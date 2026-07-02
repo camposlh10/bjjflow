@@ -79,6 +79,8 @@ app:
   # Dev/testing backdoors (role/verify/pro toggles, seed bot) are ON locally only.
   # Production runs the postgres profile, which does NOT set this → endpoints 404.
   dev-tools: true
+  # Matches the dev-only account created by AdminSeedRunner.
+  admin-emails: ${APP_ADMIN_EMAILS:admin@test.com}
 
 ---
 # --- postgres profile: real PostgreSQL (local install or docker-compose) ---

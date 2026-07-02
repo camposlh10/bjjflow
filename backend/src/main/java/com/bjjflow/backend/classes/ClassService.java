@@ -202,7 +202,7 @@ public class ClassService {
                 .map(a -> new AttendeeDto(a.getUserId(), displayName(a.getUserId()),
                         beltSummary(a.getUserId()), a.getStatus()))
                 .sorted(Comparator
-                        .comparing((AttendeeDto a) -> "PRESENT".equals(a.status()) ? 0 : 1)
+                        .comparing((AttendeeDto a) -> isAttended(a.status()) ? 0 : 1)
                         .thenComparing(AttendeeDto::displayName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
@@ -212,7 +212,7 @@ public class ClassService {
         GymMember membership = requireStaff(userId);
         GymClass gc = classInGym(classId, membership.getGymId());
         Set<Long> present = attendanceRepository.findAllByGymClassIdAndClassDate(gc.getId(), date).stream()
-                .filter(a -> "PRESENT".equals(a.getStatus()))
+                .filter(a -> isAttended(a.getStatus()))
                 .map(ClassAttendance::getUserId).collect(Collectors.toSet());
         return gymMemberRepository.findAllByGymId(membership.getGymId()).stream()
                 .map(m -> new RosterEntryDto(m.getUserId(), displayName(m.getUserId()),
@@ -262,7 +262,7 @@ public class ClassService {
     private AgendaOccurrenceDto buildOccurrence(GymClass gc, LocalDate date, Integer age, String beltSlug,
             String myStatus, long attendeeCount) {
         boolean eligible = eligible(gc, age, beltSlug);
-        boolean checkedIn = "PRESENT".equals(myStatus);
+        boolean checkedIn = isAttended(myStatus);
         boolean reserved = "RESERVED".equals(myStatus);
         boolean canCheckIn = eligible && !checkedIn && withinWindow(gc, date);
         boolean canReserve = eligible && !checkedIn && !reserved && date.isAfter(LocalDate.now());
@@ -279,6 +279,10 @@ public class ClassService {
         a.setStatus(status);
         a.setMarkedByUserId(markedBy);
         attendanceRepository.save(a);
+    }
+
+    private static boolean isAttended(String status) {
+        return "PRESENT".equals(status) || "LATE".equals(status);
     }
 
     private boolean withinWindow(GymClass gc, LocalDate date) {

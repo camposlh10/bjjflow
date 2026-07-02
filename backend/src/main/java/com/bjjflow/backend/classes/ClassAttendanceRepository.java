@@ -12,13 +12,14 @@ import org.springframework.data.repository.query.Param;
 
 public interface ClassAttendanceRepository extends JpaRepository<ClassAttendance, Long> {
 
-    /** Recent PRESENT classes (date + class name) of a student in a gym, newest first. */
+    /** Recent attended classes (PRESENT or LATE), newest first. */
     @Query("""
             select a.classDate, c.name from ClassAttendance a, GymClass c
-            where a.gymClassId = c.id and c.gymId = :gymId and a.status = 'PRESENT' and a.userId = :userId
+            where a.gymClassId = c.id and c.gymId = :gymId and a.status in ('PRESENT', 'LATE')
+              and a.userId = :userId
             order by a.classDate desc
             """)
-    java.util.List<Object[]> recentAttendanceInGym(@Param("gymId") Long gymId, @Param("userId") Long userId,
+    List<Object[]> recentAttendanceInGym(@Param("gymId") Long gymId, @Param("userId") Long userId,
             Pageable pageable);
 
     boolean existsByGymClassIdAndClassDateAndUserId(Long gymClassId, LocalDate classDate, Long userId);
@@ -33,34 +34,63 @@ public interface ClassAttendanceRepository extends JpaRepository<ClassAttendance
 
     void deleteByGymClassId(Long gymClassId);
 
-    /** Verified (PRESENT) class attendances of a user within one gym after a point in time. */
+    /** Verified attended classes (PRESENT or LATE) after a point in time. */
     @Query("""
             select count(a) from ClassAttendance a, GymClass c
-            where a.gymClassId = c.id and c.gymId = :gymId and a.status = 'PRESENT'
+            where a.gymClassId = c.id and c.gymId = :gymId and a.status in ('PRESENT', 'LATE')
               and a.userId = :userId and a.createdAt > :since
             """)
     long countForUserInGymSince(@Param("gymId") Long gymId, @Param("userId") Long userId,
             @Param("since") Instant since);
 
-    /** All PRESENT attendance rows (userId, createdAt) of a gym, for batched counting. */
+    /** All attended rows (userId, createdAt) of a gym, for batched counting. */
     @Query("""
             select a.userId, a.createdAt from ClassAttendance a, GymClass c
-            where a.gymClassId = c.id and c.gymId = :gymId and a.status = 'PRESENT'
+            where a.gymClassId = c.id and c.gymId = :gymId and a.status in ('PRESENT', 'LATE')
             """)
     List<Object[]> attendanceTimesForGym(@Param("gymId") Long gymId);
 
+    /** Attended classes for a gym within an inclusive date range. */
+    @Query("""
+            select count(a) from ClassAttendance a, GymClass c
+            where a.gymClassId = c.id and c.gymId = :gymId and a.status in ('PRESENT', 'LATE')
+              and a.classDate between :from and :to
+            """)
+    long countAttendedInGymBetween(@Param("gymId") Long gymId, @Param("from") LocalDate from,
+            @Param("to") LocalDate to);
+
+    /** Today's verified CRM check-ins for one gym. */
+    @Query("""
+            select a from ClassAttendance a, GymClass c
+            where a.gymClassId = c.id and c.gymId = :gymId and a.status in ('PRESENT', 'LATE')
+              and a.classDate = :date
+            order by c.startTime asc, a.id asc
+            """)
+    List<ClassAttendance> findAttendedInGymOnDate(@Param("gymId") Long gymId, @Param("date") LocalDate date);
+
+    /** Verified attendance history of one member, restricted to one gym. */
+    @Query("""
+            select a from ClassAttendance a, GymClass c
+            where a.gymClassId = c.id and c.gymId = :gymId and a.status in ('PRESENT', 'LATE')
+              and a.userId = :userId
+            order by a.classDate desc, a.id desc
+            """)
+    List<ClassAttendance> findAttendedForUserInGym(@Param("gymId") Long gymId, @Param("userId") Long userId);
+
     List<ClassAttendance> findAllByUserIdAndClassDateBetween(Long userId, LocalDate from, LocalDate to);
 
-    /** Most recent date the student was PRESENT in this gym (null if never). */
+    /** Most recent date the student was PRESENT or LATE in this gym. */
     @Query("""
             select max(a.classDate) from ClassAttendance a, GymClass c
-            where a.gymClassId = c.id and c.gymId = :gymId and a.status = 'PRESENT' and a.userId = :userId
+            where a.gymClassId = c.id and c.gymId = :gymId and a.status in ('PRESENT', 'LATE')
+              and a.userId = :userId
             """)
     LocalDate lastAttendedInGym(@Param("gymId") Long gymId, @Param("userId") Long userId);
 
     @Query("""
             select a.gymClassId, a.classDate, count(a) from ClassAttendance a
             where a.classDate between :from and :to
+              and a.status in ('PRESENT', 'LATE', 'RESERVED')
             group by a.gymClassId, a.classDate
             """)
     List<Object[]> countsBetween(@Param("from") LocalDate from, @Param("to") LocalDate to);
