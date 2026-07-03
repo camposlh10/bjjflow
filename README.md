@@ -1,46 +1,33 @@
-# BJJ Flow CRM — Desktop (Web)
+# BJJ Flow
 
-Painel de gestão para academias, construído em React + TypeScript. Consome o backend
-Spring Boot (`bjj-flow-backend`) — o mesmo banco de dados do aplicativo mobile.
+Plataforma de jiu-jitsu com dois produtos que compartilham o mesmo backend e banco de dados:
 
-## Stack
+- **App do atleta** (mobile) — treinos, check-ins, graduações, social.
+- **CRM da academia** (desktop web) — alunos, pagamentos, turmas, frequência e hardware de acesso (catraca, biometria).
 
-- Vite + React 18 + TypeScript
-- Tailwind CSS 4 (tema escuro)
-- TanStack Query (estado de servidor) + React Router
-- Recharts (gráfico de receita)
+## Estrutura
 
-## Rodando
+```
+backend/   Java 21 + Spring Boot 4 · PostgreSQL (prod) / H2 (dev) · Flyway
+desktop/   CRM web · Vite + React 18 + TypeScript + Tailwind CSS 4
+mobile/    App do atleta · React Native (Expo) + TypeScript
+```
 
-1. Suba o backend (porta 8090):
+## Rodando em desenvolvimento
 
-   ```
-   cd ..\bjj-flow-backend\backend
-   .\mvnw.cmd spring-boot:run
-   ```
+Backend (porta **8090**):
 
-2. Suba o frontend:
+```
+cd backend
+.\mvnw.cmd spring-boot:run
+```
 
-   ```
-   npm install
-   npm run dev
-   ```
+CRM desktop (porta **5180**, com proxy de `/api` para o backend):
 
-   Acesse http://localhost:5180 — o Vite faz proxy de `/api` para `http://localhost:8090`.
+```
+cd desktop
+npm install
+npm run dev
+```
 
-## Funcionalidades
-
-- **Login / registro** — cria a conta do proprietário e a academia direto pelo CRM.
-- **Dashboard** — receita (série diária real via `/crm/payments/revenue-series`),
-  alunos, turmas, check-ins, inadimplência, turmas de hoje e últimas faturas.
-- **Pagamentos** (somente proprietário) — planos recorrentes, geração de faturas,
-  baixa manual com forma de pagamento (PIX, dinheiro, cartão…), cancelamento.
-- **Alunos** — lista e perfil do atleta (faixa, presenças, financeiro),
-  credenciais de acesso (cartão / digital / QR) para a catraca.
-- **Turmas** — grade semanal com professores e modalidades.
-- **Frequência** — presenças de hoje, marcação manual e fila de revisão dos
-  eventos de hardware não resolvidos.
-- **Dispositivos** — registro de catracas/leitores com chave de API
-  (exibida uma única vez), troca de chave e desativação.
-- **Configurações** — dados da academia compartilhados com o app + código de convite.
-- Notificações, Relatórios e Integrações: páginas reservadas (backend ainda não possui esses módulos).
+Detalhes de cada projeto nos READMEs de `backend/` e `desktop/`.
