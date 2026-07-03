@@ -3,8 +3,10 @@ package com.bjjflow.backend.crm.payments;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -23,6 +25,8 @@ import com.bjjflow.backend.crm.payments.CrmPaymentDtos.InvoiceResponse;
 import com.bjjflow.backend.crm.payments.CrmPaymentDtos.MarkInvoicePaidRequest;
 import com.bjjflow.backend.crm.payments.CrmPaymentDtos.PaymentPlanResponse;
 import com.bjjflow.backend.crm.payments.CrmPaymentDtos.PaymentSummaryResponse;
+import com.bjjflow.backend.crm.payments.CrmPaymentDtos.RevenuePoint;
+import com.bjjflow.backend.crm.payments.CrmPaymentDtos.RevenueSeriesResponse;
 import com.bjjflow.backend.crm.payments.CrmPaymentDtos.UpdatePaymentPlanRequest;
 import com.bjjflow.backend.crm.security.CrmAccessService;
 import com.bjjflow.backend.crm.security.CrmPrincipal;
@@ -299,6 +303,41 @@ public class CrmPaymentService {
                 paymentTransactionRepository.countByGymIdAndPaidAtGreaterThanEqualAndPaidAtLessThan(
                         crm.gymId(), from, to),
                 zeroIfNull(paymentTransactionRepository.sumAmountByGymIdAndPaidAtBetween(crm.gymId(), from, to)));
+    }
+
+    /**
+     * Daily collected revenue for the trailing window (default 30 days),
+     * with zero-filled days so charts can consume it directly.
+     */
+    @Transactional(readOnly = true)
+    public RevenueSeriesResponse revenueSeries(Long userId, Integer days) {
+        CrmPrincipal crm = crmAccessService.requireOwner(userId);
+        int window = days == null ? 30 : Math.min(Math.max(days, 1), 365);
+        ZoneId zone = ZoneId.systemDefault();
+        LocalDate to = LocalDate.now(zone);
+        LocalDate from = to.minusDays(window - 1L);
+
+        Map<LocalDate, BigDecimal> amounts = new HashMap<>();
+        Map<LocalDate, Long> counts = new HashMap<>();
+        paymentTransactionRepository
+                .findAllByGymIdAndPaidAtGreaterThanEqualAndPaidAtLessThanOrderByPaidAtAsc(
+                        crm.gymId(),
+                        from.atStartOfDay(zone).toInstant(),
+                        to.plusDays(1).atStartOfDay(zone).toInstant())
+                .forEach(transaction -> {
+                    LocalDate day = transaction.getPaidAt().atZone(zone).toLocalDate();
+                    amounts.merge(day, transaction.getAmount(), BigDecimal::add);
+                    counts.merge(day, 1L, Long::sum);
+                });
+
+        List<RevenuePoint> points = new ArrayList<>(window);
+        BigDecimal total = BigDecimal.ZERO;
+        for (LocalDate day = from; !day.isAfter(to); day = day.plusDays(1)) {
+            BigDecimal amount = amounts.getOrDefault(day, BigDecimal.ZERO);
+            total = total.add(amount);
+            points.add(new RevenuePoint(day, amount, counts.getOrDefault(day, 0L)));
+        }
+        return new RevenueSeriesResponse(from, to, total, points);
     }
 
     private static Invoice newInvoice(Long gymId, Long memberUserId, Long paymentPlanId,

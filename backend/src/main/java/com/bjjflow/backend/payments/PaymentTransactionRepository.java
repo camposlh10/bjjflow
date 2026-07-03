@@ -20,6 +20,9 @@ public interface PaymentTransactionRepository extends JpaRepository<PaymentTrans
 
     long countByGymIdAndPaidAtGreaterThanEqualAndPaidAtLessThan(Long gymId, Instant from, Instant to);
 
+    List<PaymentTransaction> findAllByGymIdAndPaidAtGreaterThanEqualAndPaidAtLessThanOrderByPaidAtAsc(
+            Long gymId, Instant from, Instant to);
+
     @Query("""
             select coalesce(sum(t.amount), 0) from PaymentTransaction t
             where t.gymId = :gymId and t.paidAt >= :from and t.paidAt < :to

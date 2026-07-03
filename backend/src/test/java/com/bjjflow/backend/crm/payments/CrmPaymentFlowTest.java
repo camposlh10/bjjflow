@@ -360,6 +360,45 @@ class CrmPaymentFlowTest {
                 ((Number) JsonPath.read(paidSummaryJson, "$.collectedThisMonthAmount")).doubleValue(), 0.001);
     }
 
+    @Test
+    void revenueSeriesAggregatesDailyCollectedAmounts() throws Exception {
+        Account owner = register("series-owner@bjjflow.com", "Series Owner", "adult-black");
+        String inviteCode = createGym(owner.token(), "Series Academy");
+        Account member = register("series-member@bjjflow.com", "Series Member", "adult-blue");
+        joinGym(member.token(), inviteCode);
+
+        long firstInvoiceId = createManualInvoice(owner.token(), member.userId(), "Monthly fee", "150.00");
+        long secondInvoiceId = createManualInvoice(owner.token(), member.userId(), "Seminar", "80.00");
+        createManualInvoice(owner.token(), member.userId(), "Unpaid fee", "999.00");
+        mockMvc.perform(put("/api/v1/crm/invoices/" + firstInvoiceId + "/mark-paid")
+                .header("Authorization", bearer(owner.token())))
+                .andExpect(status().isOk());
+        mockMvc.perform(put("/api/v1/crm/invoices/" + secondInvoiceId + "/mark-paid")
+                .header("Authorization", bearer(owner.token())))
+                .andExpect(status().isOk());
+
+        String seriesJson = mockMvc.perform(get("/api/v1/crm/payments/revenue-series?days=7")
+                .header("Authorization", bearer(owner.token())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.points", hasSize(7)))
+                .andReturn().getResponse().getContentAsString();
+        org.junit.jupiter.api.Assertions.assertEquals(230.0,
+                ((Number) JsonPath.read(seriesJson, "$.totalAmount")).doubleValue(), 0.001);
+        org.junit.jupiter.api.Assertions.assertEquals(LocalDate.now().toString(),
+                JsonPath.read(seriesJson, "$.points[6].date"));
+        org.junit.jupiter.api.Assertions.assertEquals(230.0,
+                ((Number) JsonPath.read(seriesJson, "$.points[6].amount")).doubleValue(), 0.001);
+        org.junit.jupiter.api.Assertions.assertEquals(2,
+                ((Number) JsonPath.read(seriesJson, "$.points[6].transactionCount")).intValue());
+        org.junit.jupiter.api.Assertions.assertEquals(0.0,
+                ((Number) JsonPath.read(seriesJson, "$.points[0].amount")).doubleValue(), 0.001);
+
+        mockMvc.perform(get("/api/v1/crm/payments/revenue-series")
+                .header("Authorization", bearer(owner.token())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.points", hasSize(30)));
+    }
+
     private long createManualInvoice(String token, long memberUserId, String description, String amount)
             throws Exception {
         return createInvoiceDue(token, memberUserId, description, amount, LocalDate.now().plusDays(7));

@@ -18,6 +18,7 @@ import com.bjjflow.backend.crm.payments.CrmPaymentDtos.InvoiceResponse;
 import com.bjjflow.backend.crm.payments.CrmPaymentDtos.MarkInvoicePaidRequest;
 import com.bjjflow.backend.crm.payments.CrmPaymentDtos.PaymentPlanResponse;
 import com.bjjflow.backend.crm.payments.CrmPaymentDtos.PaymentSummaryResponse;
+import com.bjjflow.backend.crm.payments.CrmPaymentDtos.RevenueSeriesResponse;
 import com.bjjflow.backend.crm.payments.CrmPaymentDtos.UpdatePaymentPlanRequest;
 
 import jakarta.validation.Valid;
@@ -96,6 +97,12 @@ public class CrmPaymentController {
     @GetMapping("/payments/summary")
     public PaymentSummaryResponse summary(Authentication auth) {
         return crmPaymentService.summary(userId(auth));
+    }
+
+    @GetMapping("/payments/revenue-series")
+    public RevenueSeriesResponse revenueSeries(Authentication auth,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Integer days) {
+        return crmPaymentService.revenueSeries(userId(auth), days);
     }
 
     private static Long userId(Authentication auth) {

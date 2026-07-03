@@ -83,6 +83,19 @@ public final class CrmPaymentDtos {
             List<InvoiceResponse> invoices) {
     }
 
+    public record RevenuePoint(
+            LocalDate date,
+            BigDecimal amount,
+            long transactionCount) {
+    }
+
+    public record RevenueSeriesResponse(
+            LocalDate from,
+            LocalDate to,
+            BigDecimal totalAmount,
+            List<RevenuePoint> points) {
+    }
+
     public record PaymentSummaryResponse(
             long activePlanCount,
             long pendingInvoiceCount,
