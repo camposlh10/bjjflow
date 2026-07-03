@@ -1,0 +1,97 @@
+spring:
+  application:
+    name: bjj-flow-backend
+  profiles:
+    # Default to dev (embedded H2) so the app runs without a local PostgreSQL install.
+    # Run with -Dspring-boot.run.profiles=postgres once PostgreSQL is available.
+    default: dev
+  servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 60MB
+
+server:
+  # 8090: Apache (httpd) occupies 8080 and Expo's Metro bundler owns 8081 on the
+  # dev machine — sharing 8081 made API calls silently hit Metro when Expo
+  # started first. Keep this in sync with API_BASE_URL in the mobile client.ts.
+  port: ${PORT:8090}
+  # Gzip JSON responses over ~1KB — large transfer savings on feeds and lists.
+  compression:
+    enabled: true
+    mime-types: application/json,application/hal+json,text/plain,text/css,application/javascript
+    min-response-size: 1024
+
+app:
+  jwt:
+    # Dev-only secret; override via APP_JWT_SECRET env var in any real deployment
+    secret: ${APP_JWT_SECRET:dev-only-secret-change-me-0123456789abcdef0123456789abcdef}
+    access-ttl-minutes: 60
+    refresh-ttl-days: 30
+  media:
+    # provider: local | (s3 / azure later). Swap LocalMediaStorage for a cloud impl.
+    provider: local
+    local-dir: ./data/media
+  # Comma-separated emails allowed to approve/reject gym verifications.
+  admin-emails: ${APP_ADMIN_EMAILS:}
+  email:
+    # Sender for transactional email (password reset). Use a Resend-verified domain
+    # in production; the resend.dev sandbox sender only delivers to your own account.
+    from: ${APP_EMAIL_FROM:BJJ Flow <onboarding@resend.dev>}
+
+# AI verification (gym certificate triage). When anthropic.api-key is UNSET the
+# app uses a stub that routes every submission to manual review. Set via env:
+#   ANTHROPIC_API_KEY=sk-ant-...   (optional ANTHROPIC_MODEL, default claude-sonnet-4-6)
+anthropic:
+  model: ${ANTHROPIC_MODEL:claude-sonnet-4-6}
+
+# Transactional email (password reset). When resend.api-key is UNSET the app logs
+# the email instead of sending it. Set via env: RESEND_API_KEY=re_...
+# (resend.api-key is intentionally NOT declared here so it stays absent by default.)
+
+# Social sign-in (Google/Apple). Each list holds the allowed token audiences
+# (Google OAuth client IDs / Apple bundle or services IDs). Leave a provider unset
+# to disable it — verification fails closed. Comma-separated.
+oauth:
+  google:
+    client-ids: ${GOOGLE_OAUTH_CLIENT_IDS:}
+  apple:
+    client-ids: ${APPLE_OAUTH_CLIENT_IDS:}
+
+---
+# --- dev profile: embedded H2 in PostgreSQL compatibility mode ---
+spring:
+  config:
+    activate:
+      on-profile: dev
+  datasource:
+    url: jdbc:h2:file:./data/bjjflow-dev;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+app:
+  # Dev/testing backdoors (role/verify/pro toggles, seed bot) are ON locally only.
+  # Production runs the postgres profile, which does NOT set this → endpoints 404.
+  dev-tools: true
+  # Matches the dev-only account created by AdminSeedRunner.
+  admin-emails: ${APP_ADMIN_EMAILS:admin@test.com}
+
+---
+# --- postgres profile: real PostgreSQL (local install or docker-compose) ---
+spring:
+  config:
+    activate:
+      on-profile: postgres
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate

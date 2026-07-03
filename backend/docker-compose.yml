@@ -1,0 +1,17 @@
+# Local PostgreSQL for the `postgres` Spring profile.
+# Requires Docker Desktop. Start with: docker compose up -d
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bjjflow-postgres
+    environment:
+      POSTGRES_DB: bjjflow
+      POSTGRES_USER: bjjflow
+      POSTGRES_PASSWORD: bjjflow
+    ports:
+      - "5432:5432"
+    volumes:
+      - bjjflow-pgdata:/var/lib/postgresql/data
+
+volumes:
+  bjjflow-pgdata:
