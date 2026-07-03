@@ -1,6 +1,12 @@
 const TOKEN_KEY = 'bjjflow.token';
 const USER_KEY = 'bjjflow.user';
 
+// In dev, Vite proxies /api to the local backend (see vite.config.ts).
+// In production (Vercel), set VITE_API_URL to the Railway backend, e.g.
+// https://seu-app.up.railway.app/api/v1
+const API_BASE =
+  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, '') ?? '/api/v1';
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -51,7 +57,7 @@ export async function api<T>(path: string, options: RequestOptions = {}): Promis
   const token = getToken();
   if (token && options.auth !== false) headers.Authorization = `Bearer ${token}`;
 
-  const response = await fetch(`/api/v1${path}`, {
+  const response = await fetch(`${API_BASE}${path}`, {
     method: options.method ?? 'GET',
     headers,
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
