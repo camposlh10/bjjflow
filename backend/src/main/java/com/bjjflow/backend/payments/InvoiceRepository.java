@@ -3,6 +3,7 @@ package com.bjjflow.backend.payments;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,7 +25,13 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     Optional<Invoice> findByIdAndGymId(Long id, Long gymId);
 
+    Optional<Invoice> findByGymIdAndPaymentReferenceIgnoreCase(Long gymId, String paymentReference);
+
     boolean existsByPaymentPlanIdAndDueDate(Long paymentPlanId, LocalDate dueDate);
+
+    List<Invoice> findAllByStatusInAndDueDate(Collection<PaymentStatus> statuses, LocalDate dueDate);
+
+    boolean existsByGymIdAndMemberUserIdAndStatus(Long gymId, Long memberUserId, PaymentStatus status);
 
     long countByGymIdAndStatus(Long gymId, PaymentStatus status);
 

@@ -59,7 +59,12 @@ export default function StudentsPage() {
                   className="border-b border-edge/60 last:border-0 cursor-pointer hover:bg-panel2/60"
                   onClick={() => navigate(`/alunos/${member.userId}`)}
                 >
-                  <td className="py-3 font-semibold text-white">{member.displayName}</td>
+                  <td className="py-3 font-semibold text-white">
+                    <span className="inline-flex items-center gap-2">
+                      {member.displayName}
+                      {member.delinquent && <Badge tone="red">Inadimplente</Badge>}
+                    </span>
+                  </td>
                   <td className="py-3">
                     <BeltChip belt={member.belt} />
                   </td>

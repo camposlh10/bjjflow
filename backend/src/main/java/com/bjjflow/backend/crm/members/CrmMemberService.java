@@ -2,6 +2,8 @@ package com.bjjflow.backend.crm.members;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -39,10 +41,15 @@ public class CrmMemberService {
 
     @Transactional(readOnly = true)
     public List<MemberResponse> members(Long callerId) {
-        crmAccessService.requireStaff(callerId);
+        CrmPrincipal crm = crmAccessService.requireStaff(callerId);
+        Set<Long> delinquents = gymMemberRepository.findAllByGymId(crm.gymId()).stream()
+                .filter(member -> member.getDelinquentSince() != null)
+                .map(GymMember::getUserId)
+                .collect(Collectors.toSet());
         return gymService.listMembers(callerId).stream()
                 .map(member -> new MemberResponse(member.userId(), member.displayName(), member.role(),
-                        belt(member.belt()), member.classesAttended()))
+                        belt(member.belt()), member.classesAttended(),
+                        delinquents.contains(member.userId())))
                 .toList();
     }
 
@@ -83,6 +90,10 @@ public class CrmMemberService {
         StudentAdminDto student = studentAdminService.student(callerId, memberUserId);
         User user = userRepository.findById(memberUserId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "User not found"));
+        Long gymId = crmAccessService.requireStaff(callerId).gymId();
+        boolean delinquent = gymMemberRepository.findByGymIdAndUserId(gymId, memberUserId)
+                .map(member -> member.getDelinquentSince() != null)
+                .orElse(false);
         return new MemberDetailResponse(
                 student.userId(),
                 student.username(),
@@ -94,7 +105,8 @@ public class CrmMemberService {
                 student.attendance().totalClasses(),
                 student.attendance().last30Days(),
                 student.attendance().lastAttended(),
-                student.attendance().memberSince());
+                student.attendance().memberSince(),
+                delinquent);
     }
 
     private static BeltResponse belt(BeltSummary belt) {

@@ -72,6 +72,7 @@ public final class CrmPaymentDtos {
             LocalDate dueDate,
             String status,
             String provider,
+            String paymentReference,
             Instant paidAt,
             Long transactionId,
             Instant createdAt) {

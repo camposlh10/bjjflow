@@ -26,7 +26,8 @@ public final class CrmMemberDtos {
             String displayName,
             String role,
             BeltResponse belt,
-            long classesAttended) {
+            long classesAttended,
+            boolean delinquent) {
     }
 
     public record MemberDetailResponse(
@@ -40,7 +41,8 @@ public final class CrmMemberDtos {
             long totalClasses,
             long last30Days,
             LocalDate lastAttended,
-            Instant memberSince) {
+            Instant memberSince,
+            boolean delinquent) {
     }
 
     public record UpdateMemberRequest(

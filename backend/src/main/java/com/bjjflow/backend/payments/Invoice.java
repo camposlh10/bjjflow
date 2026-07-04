@@ -47,6 +47,10 @@ public class Invoice {
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
 
+    /** Code the attendant ties to the card-machine sale (webhook matching). */
+    @Column(name = "payment_reference", unique = true)
+    private String paymentReference;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private PaymentStatus status = PaymentStatus.PENDING;

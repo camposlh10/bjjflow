@@ -14,5 +14,7 @@ public interface GymMemberRepository extends JpaRepository<GymMember, Long> {
 
     List<GymMember> findAllByGymId(Long gymId);
 
+    List<GymMember> findAllByGymIdAndRole(Long gymId, GymRole role);
+
     long countByGymId(Long gymId);
 }

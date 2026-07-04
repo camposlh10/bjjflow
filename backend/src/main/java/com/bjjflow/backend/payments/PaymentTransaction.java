@@ -43,6 +43,26 @@ public class PaymentTransaction {
     @Column(name = "external_transaction_id")
     private String externalTransactionId;
 
+    // Card data from POS/gateway webhooks; null for manual payments.
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method")
+    private PaymentMethod paymentMethod;
+
+    @Column(name = "card_brand")
+    private String cardBrand;
+
+    private Integer installments;
+
+    @Column(nullable = false)
+    private String status = "CONFIRMED";
+
+    @Column(name = "authorization_code")
+    private String authorizationCode;
+
+    /** Gateway name (Stone, Cielo, Mercado Pago…), free-form. */
+    @Column(name = "provider_name")
+    private String providerName;
+
     @Column(name = "paid_at", nullable = false)
     private Instant paidAt;
 

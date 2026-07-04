@@ -266,8 +266,21 @@ public class CrmPaymentService {
                         : request.notes().trim());
                 paymentTransactionRepository.save(transaction);
             }
+            clearDelinquencyIfSettled(crm.gymId(), invoice.getMemberUserId());
         }
         return invoiceResponse(invoice);
+    }
+
+    /** Removes the delinquent flag once the member has no overdue invoices left. */
+    private void clearDelinquencyIfSettled(Long gymId, Long memberUserId) {
+        gymMemberRepository.findByGymIdAndUserId(gymId, memberUserId).ifPresent(member -> {
+            if (member.getDelinquentSince() != null
+                    && !invoiceRepository.existsByGymIdAndMemberUserIdAndStatus(
+                            gymId, memberUserId, PaymentStatus.OVERDUE)) {
+                member.setDelinquentSince(null);
+                gymMemberRepository.save(member);
+            }
+        });
     }
 
     @Transactional
@@ -340,6 +353,9 @@ public class CrmPaymentService {
         return new RevenueSeriesResponse(from, to, total, points);
     }
 
+    private static final java.security.SecureRandom REFERENCE_RANDOM = new java.security.SecureRandom();
+    private static final String REFERENCE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
     private static Invoice newInvoice(Long gymId, Long memberUserId, Long paymentPlanId,
             String description, BigDecimal amount, LocalDate dueDate) {
         Invoice invoice = new Invoice();
@@ -351,7 +367,17 @@ public class CrmPaymentService {
         invoice.setDueDate(dueDate);
         invoice.setStatus(dueDate.isBefore(LocalDate.now()) ? PaymentStatus.OVERDUE : PaymentStatus.PENDING);
         invoice.setProvider(PaymentProvider.MANUAL);
+        invoice.setPaymentReference(newPaymentReference());
         return invoice;
+    }
+
+    /** Short code the attendant ties to the card-machine sale (POS matching). */
+    private static String newPaymentReference() {
+        StringBuilder code = new StringBuilder("PGT-");
+        for (int i = 0; i < 8; i++) {
+            code.append(REFERENCE_ALPHABET.charAt(REFERENCE_RANDOM.nextInt(REFERENCE_ALPHABET.length())));
+        }
+        return code.toString();
     }
 
     private void ageOverdueInvoices(Long gymId) {
@@ -416,8 +442,8 @@ public class CrmPaymentService {
         return new InvoiceResponse(
                 invoice.getId(), invoice.getGymId(), invoice.getMemberUserId(), memberName,
                 invoice.getPaymentPlanId(), invoice.getDescription(), invoice.getAmount(), invoice.getDueDate(),
-                invoice.getStatus().name(), invoice.getProvider().name(), invoice.getPaidAt(), transactionId,
-                invoice.getCreatedAt());
+                invoice.getStatus().name(), invoice.getProvider().name(), invoice.getPaymentReference(),
+                invoice.getPaidAt(), transactionId, invoice.getCreatedAt());
     }
 
     private Map<Long, String> memberNames(Set<Long> memberUserIds) {

@@ -24,6 +24,22 @@ public interface ClassAttendanceRepository extends JpaRepository<ClassAttendance
 
     boolean existsByGymClassIdAndClassDateAndUserId(Long gymClassId, LocalDate classDate, Long userId);
 
+    /** Last attended date per user of one gym (PRESENT or LATE), batched. */
+    @Query("""
+            select a.userId, max(a.classDate) from ClassAttendance a, GymClass c
+            where a.gymClassId = c.id and c.gymId = :gymId and a.status in ('PRESENT', 'LATE')
+            group by a.userId
+            """)
+    List<Object[]> lastAttendanceDatesForGym(@Param("gymId") Long gymId);
+
+    /** Distinct students who attended a class since a date — reminder audience. */
+    @Query("""
+            select distinct a.userId from ClassAttendance a
+            where a.gymClassId = :classId and a.classDate >= :since
+              and a.status in ('PRESENT', 'LATE')
+            """)
+    List<Long> recentAttendeeIds(@Param("classId") Long classId, @Param("since") LocalDate since);
+
     Optional<ClassAttendance> findByGymClassIdAndClassDateAndUserId(Long gymClassId, LocalDate classDate, Long userId);
 
     long countByGymClassIdAndClassDate(Long gymClassId, LocalDate classDate);

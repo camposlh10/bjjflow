@@ -12,6 +12,8 @@ public interface GymClassRepository extends JpaRepository<GymClass, Long> {
 
     List<GymClass> findAllByGymIdAndDayOfWeekAndActiveTrueOrderByStartTimeAsc(Long gymId, Integer dayOfWeek);
 
+    List<GymClass> findAllByActiveTrue();
+
     long countByGymIdAndActiveTrue(Long gymId);
 
     long countByGymIdAndDayOfWeekAndActiveTrue(Long gymId, Integer dayOfWeek);

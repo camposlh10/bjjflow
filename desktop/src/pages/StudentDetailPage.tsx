@@ -98,7 +98,12 @@ export default function StudentDetailPage() {
             ? `@${detail.username} · ${GYM_ROLES[detail.role]}`
             : GYM_ROLES[detail.role]
         }
-        actions={<Button onClick={() => setEditModal(true)}>Editar aluno</Button>}
+        actions={
+          <span className="inline-flex items-center gap-3">
+            {detail.delinquent && <Badge tone="red">Inadimplente</Badge>}
+            <Button onClick={() => setEditModal(true)}>Editar aluno</Button>
+          </span>
+        }
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">

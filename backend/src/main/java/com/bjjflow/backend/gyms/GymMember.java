@@ -46,6 +46,11 @@ public class GymMember {
     @Column(name = "joined_at")
     private Instant joinedAt;
 
+    // Set by the payment automation when an invoice is 15+ days overdue;
+    // cleared when the member has no overdue invoices left.
+    @Column(name = "delinquent_since")
+    private Instant delinquentSince;
+
     @PrePersist
     void onCreate() {
         joinedAt = Instant.now();

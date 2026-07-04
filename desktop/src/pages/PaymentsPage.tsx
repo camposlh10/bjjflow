@@ -30,7 +30,9 @@ import {
   statusTone,
 } from '../components/ui';
 
-type Tab = 'faturas' | 'planos';
+import PosTab from './PosTab';
+
+type Tab = 'faturas' | 'planos' | 'maquininhas';
 
 export default function PaymentsPage() {
   const queryClient = useQueryClient();
@@ -141,7 +143,7 @@ export default function PaymentsPage() {
       </div>
 
       <div className="flex items-center gap-2 mb-4">
-        {(['faturas', 'planos'] as Tab[]).map((item) => (
+        {(['faturas', 'planos', 'maquininhas'] as Tab[]).map((item) => (
           <button
             key={item}
             onClick={() => setTab(item)}
@@ -188,6 +190,7 @@ export default function PaymentsPage() {
                 <tr className="text-left text-xs text-zinc-500 border-b border-edge">
                   <th className="py-2 font-semibold">Aluno</th>
                   <th className="py-2 font-semibold">Descrição</th>
+                  <th className="py-2 font-semibold">Ref.</th>
                   <th className="py-2 font-semibold">Vencimento</th>
                   <th className="py-2 font-semibold text-right">Valor</th>
                   <th className="py-2 font-semibold">Status</th>
@@ -200,6 +203,9 @@ export default function PaymentsPage() {
                   <tr key={invoice.id} className="border-b border-edge/60 last:border-0">
                     <td className="py-2.5 text-white">{invoice.memberName ?? '—'}</td>
                     <td className="py-2.5 text-zinc-400">{invoice.description}</td>
+                    <td className="py-2.5 text-zinc-500 font-mono text-xs">
+                      {invoice.paymentReference ?? '—'}
+                    </td>
                     <td className="py-2.5 text-zinc-400">{shortDate(invoice.dueDate)}</td>
                     <td className="py-2.5 text-right font-semibold text-white">
                       {money(invoice.amount)}
@@ -245,6 +251,12 @@ export default function PaymentsPage() {
             </table>
           )}
         </Card>
+      ) : tab === 'maquininhas' ? (
+        <PosTab
+          openInvoices={(invoices.data ?? []).filter(
+            (invoice) => invoice.status === 'PENDING' || invoice.status === 'OVERDUE',
+          )}
+        />
       ) : (
         <Card>
           {(plans.data ?? []).length === 0 ? (

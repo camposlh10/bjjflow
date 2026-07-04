@@ -7,8 +7,9 @@ import java.security.SecureRandom;
 import java.util.HexFormat;
 
 /**
- * Device API key generation and hashing. Keys look like
- * {@code bjjd_<40 hex chars>}; only the SHA-256 hash is persisted.
+ * API key generation and hashing for machine integrations (access devices,
+ * POS webhooks). Keys look like {@code <prefix>_<40 hex chars>}; only the
+ * SHA-256 hash is persisted.
  */
 public final class DeviceKeys {
 
@@ -18,9 +19,13 @@ public final class DeviceKeys {
     }
 
     public static String generate() {
+        return generate("bjjd");
+    }
+
+    public static String generate(String prefix) {
         byte[] bytes = new byte[20];
         RANDOM.nextBytes(bytes);
-        return "bjjd_" + HexFormat.of().formatHex(bytes);
+        return prefix + "_" + HexFormat.of().formatHex(bytes);
     }
 
     public static String hash(String apiKey) {

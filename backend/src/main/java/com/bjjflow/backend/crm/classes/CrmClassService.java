@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.bjjflow.backend.automations.ClassReminderAutomation;
 import com.bjjflow.backend.classes.GymClass;
 import com.bjjflow.backend.classes.GymClassRepository;
 import com.bjjflow.backend.classes.RestrictionMode;
@@ -35,6 +36,7 @@ public class CrmClassService {
     private final CrmAccessService crmAccessService;
     private final GymClassRepository gymClassRepository;
     private final GymMemberRepository gymMemberRepository;
+    private final ClassReminderAutomation classReminderAutomation;
 
     @Transactional(readOnly = true)
     public List<ClassResponse> list(Long userId) {
@@ -100,7 +102,11 @@ public class CrmClassService {
             gymClass.setInstructorUserId(request.instructorUserId());
         }
         if (request.active() != null) {
+            boolean wasActive = Boolean.TRUE.equals(gymClass.getActive());
             gymClass.setActive(request.active());
+            if (wasActive && !request.active()) {
+                classReminderAutomation.notifyCancelled(gymClass);
+            }
         }
 
         return response(gymClassRepository.save(gymClass));
@@ -110,8 +116,12 @@ public class CrmClassService {
     public void delete(Long userId, Long classId) {
         CrmPrincipal crm = crmAccessService.requireStaff(userId);
         GymClass gymClass = classInGym(classId, crm.gymId());
+        boolean wasActive = Boolean.TRUE.equals(gymClass.getActive());
         gymClass.setActive(false);
         gymClassRepository.save(gymClass);
+        if (wasActive) {
+            classReminderAutomation.notifyCancelled(gymClass);
+        }
     }
 
     private GymClass classInGym(Long classId, Long gymId) {

@@ -11,6 +11,7 @@ import StudentDetailPage from './pages/StudentDetailPage';
 import ClassesPage from './pages/ClassesPage';
 import AttendancePage from './pages/AttendancePage';
 import DevicesPage from './pages/DevicesPage';
+import NotificationsPage from './pages/NotificationsPage';
 import SettingsPage from './pages/SettingsPage';
 import { useGym } from './lib/hooks';
 import { Loading } from './components/ui';
@@ -57,12 +58,7 @@ export default function App() {
         <Route path="/configuracoes" element={<SettingsPage />} />
         <Route
           path="/notificacoes"
-          element={
-            <ComingSoon
-              title="Notificações"
-              description="Envio de mensagens, lembretes de pagamento e avisos de turma chegará em uma próxima versão, junto com o módulo de notificações do backend."
-            />
-          }
+          element={<NotificationsPage />}
         />
         <Route
           path="/relatorios"

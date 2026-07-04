@@ -84,6 +84,7 @@ export interface MemberResponse {
   role: 'OWNER' | 'INSTRUCTOR' | 'MEMBER';
   belt: BeltResponse | null;
   classesAttended: number;
+  delinquent: boolean;
 }
 
 export interface MemberDetailResponse {
@@ -98,6 +99,7 @@ export interface MemberDetailResponse {
   last30Days: number;
   lastAttended: string | null;
   memberSince: string | null;
+  delinquent: boolean;
 }
 
 // ---------- classes ----------
@@ -171,6 +173,7 @@ export interface InvoiceResponse {
   dueDate: string;
   status: PaymentStatus;
   provider: PaymentProvider;
+  paymentReference: string | null;
   paidAt: string | null;
   transactionId: number | null;
   createdAt: string;
@@ -221,6 +224,83 @@ export interface DeviceResponse {
 export interface DeviceWithKeyResponse {
   device: DeviceResponse;
   apiKey: string;
+}
+
+// ---------- notifications / automations ----------
+export type AutomationEventType =
+  | 'PAYMENT_REMINDER'
+  | 'PAYMENT_OVERDUE'
+  | 'PAYMENT_CONFIRMED'
+  | 'DELINQUENT_FLAG'
+  | 'ENGAGEMENT_NUDGE'
+  | 'COACH_FOLLOW_UP'
+  | 'RETENTION_ALERT'
+  | 'CLASS_REMINDER'
+  | 'CLASS_CANCELLED'
+  | 'ANNOUNCEMENT';
+
+export interface AutomationEventResponse {
+  id: number;
+  type: AutomationEventType;
+  memberUserId: number | null;
+  memberName: string | null;
+  title: string;
+  body: string | null;
+  createdAt: string;
+}
+
+export interface AnnouncementResponse {
+  recipientCount: number;
+}
+
+export interface RunAutomationsResponse {
+  createdEvents: number;
+}
+
+// ---------- POS / card machines ----------
+export interface PosIntegrationResponse {
+  id: number;
+  gymId: number;
+  name: string;
+  providerName: string;
+  active: boolean;
+  createdAt: string | null;
+  lastSeenAt: string | null;
+}
+
+export interface PosIntegrationWithKeyResponse {
+  integration: PosIntegrationResponse;
+  webhookKey: string;
+}
+
+export type PosEventStatus =
+  | 'RECEIVED'
+  | 'PROCESSED'
+  | 'DUPLICATE'
+  | 'UNRESOLVED_INVOICE'
+  | 'AMOUNT_MISMATCH'
+  | 'ALREADY_PAID'
+  | 'FAILED'
+  | 'IGNORED';
+
+export interface PosEventResponse {
+  id: number;
+  integrationName: string | null;
+  externalTransactionId: string;
+  paymentReference: string | null;
+  invoiceId: number | null;
+  invoiceDescription: string | null;
+  memberUserId: number | null;
+  memberName: string | null;
+  amount: number;
+  paymentMethod: string | null;
+  cardBrand: string | null;
+  installments: number | null;
+  authorizationCode: string | null;
+  status: PosEventStatus;
+  notes: string | null;
+  paidAt: string;
+  createdAt: string;
 }
 
 // ---------- credentials ----------
