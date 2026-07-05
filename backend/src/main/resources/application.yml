@@ -31,6 +31,10 @@ app:
     # provider: local | (s3 / azure later). Swap LocalMediaStorage for a cloud impl.
     provider: local
     local-dir: ./data/media
+  push:
+    # Remote push via the Expo Push API (in-app notifications always work).
+    # Requires the mobile app to register its ExponentPushToken.
+    enabled: ${APP_PUSH_ENABLED:true}
   # Comma-separated emails allowed to approve/reject gym verifications.
   admin-emails: ${APP_ADMIN_EMAILS:}
   email:

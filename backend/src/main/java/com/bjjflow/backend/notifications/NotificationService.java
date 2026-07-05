@@ -24,11 +24,13 @@ public class NotificationService {
     private final NotificationRepository notificationRepository;
     private final PushTokenRepository pushTokenRepository;
     private final UserRepository userRepository;
+    private final PushDispatcher pushDispatcher;
 
     /**
      * Record a notification for a user, honoring their notify_* preferences. Never throws on
      * self-notification or missing prefs — it's a side effect of other flows, not a gate.
-     * Remote push delivery (Expo) is deferred to a dev build; this backs the in-app center.
+     * The same message also fans out to the user's phone via Expo push (best-effort,
+     * after commit — see PushDispatcher).
      */
     @Transactional
     public void notify(Long userId, NotificationType type, String title, String body, String payload) {
@@ -46,7 +48,7 @@ public class NotificationService {
         n.setBody(body);
         n.setPayload(payload);
         notificationRepository.save(n);
-        // TODO: when a dev/EAS build + APNs/FCM keys exist, fan out to this user's push_tokens here.
+        pushDispatcher.sendToUser(userId, title, body);
     }
 
     @Transactional(readOnly = true)

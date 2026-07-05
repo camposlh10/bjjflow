@@ -2,6 +2,9 @@ app:
   dev-tools: true
   media:
     local-dir: ./target/test-media
+  push:
+    # Never call the Expo API from tests.
+    enabled: false
 
 spring:
   datasource:
