@@ -11,13 +11,13 @@
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://bjj-flow-production.up.railway.app/api/v1"
+        "EXPO_PUBLIC_API_BASE_URL": "https://backend-production-01001846.up.railway.app/api/v1"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_BASE_URL": "https://bjj-flow-production.up.railway.app/api/v1"
+        "EXPO_PUBLIC_API_BASE_URL": "https://backend-production-01001846.up.railway.app/api/v1"
       }
     },
     "testflight": {
