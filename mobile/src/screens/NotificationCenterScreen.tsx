@@ -15,10 +15,10 @@ import {
   refreshInsights,
 } from '../api/notifications';
 import { t, type TranslationKey } from '../i18n';
-import type { ComunidadeStackParamList } from '../navigation/ComunidadeNavigator';
+import type { HomeStackParamList } from '../navigation/HomeNavigator';
 import { makeStyles, palette } from '../theme/theme';
 
-type Nav = NativeStackNavigationProp<ComunidadeStackParamList>;
+type Nav = NativeStackNavigationProp<HomeStackParamList>;
 
 const CAT: Record<NotificationType, { icon: string; color: string; key: TranslationKey }> = {
   SOCIAL: { icon: 'account-heart', color: '#E63946', key: 'notif.cat.SOCIAL' },

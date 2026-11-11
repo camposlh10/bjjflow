@@ -1,0 +1,14 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Backend (dev H2)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.bjjflow.backend.BjjFlowBackendApplication" />
+    <module name="bjj-flow-backend" />
+    <!-- Must be backend/ : the dev H2 file (./data/bjjflow-dev) and local media
+         (./data/media) are resolved relative to the working directory. Running from
+         the repo root would silently create a second, empty database. -->
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/backend" />
+    <option name="VM_PARAMETERS" value="-Dspring.profiles.active=dev" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

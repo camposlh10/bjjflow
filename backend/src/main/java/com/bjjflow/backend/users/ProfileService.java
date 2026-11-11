@@ -58,6 +58,7 @@ public class ProfileService {
     private final CheckInRepository checkInRepository;
     private final FeedbackRepository feedbackRepository;
     private final PasswordEncoder passwordEncoder;
+    private final com.bjjflow.backend.auth.RefreshTokenService refreshTokenService;
     private final com.bjjflow.backend.storage.MediaStorage mediaStorage;
     private final com.bjjflow.backend.notifications.NotificationService notificationService;
 
@@ -93,13 +94,17 @@ public class ProfileService {
     }
 
     @Transactional
-    public void changePassword(Long userId, String currentPassword, String newPassword) {
+    public void changePassword(Long userId, String currentPassword, String newPassword,
+            String keepRefreshToken) {
         User u = requireUser(userId);
         if (!passwordEncoder.matches(currentPassword, u.getPasswordHash())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "WRONG_PASSWORD", "Current password is incorrect");
         }
         u.setPasswordHash(passwordEncoder.encode(newPassword));
+        u.setCredentialsChangedAt(java.time.Instant.now());
         userRepository.save(u);
+        // Every other device is signed out; the caller's session (if identified) stays.
+        refreshTokenService.revokeAllForUser(userId, keepRefreshToken);
     }
 
     @Transactional

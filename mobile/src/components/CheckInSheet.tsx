@@ -1,8 +1,9 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useMutation } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import * as ImagePicker from 'expo-image-picker';
-import { useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -20,24 +21,72 @@ import {
 import { Button, Text, TextInput } from 'react-native-paper';
 
 import { apiErrorMessage } from '../api/auth';
-import { CheckInSubmission, Visibility, createCheckIn, todayLocalDate } from '../api/checkins';
-import { logPain } from '../api/pain';
+import { CheckInSubmission, Visibility, todayLocalDate } from '../api/checkins';
 import { uploadMedia } from '../api/posts';
 import { ALL_REGIONS, bodyRegionLabel, intensityColor } from '../constants/body';
 import { SUBMISSIONS } from '../constants/submissions';
+import { newClientId, submitCheckIn } from '../offline/outbox';
 import { t, tf } from '../i18n';
-import { useAuthStore } from '../store/authStore';
 import { makeStyles, palette } from '../theme/theme';
 import DateField from './DateField';
 
 type Direction = 'HIT' | 'CONCEDED';
-const DURATIONS = [60, 90, 120, 180];
+const DURATIONS = [60, 75, 90, 120];
+const VISIBILITY_KEY = 'bjjflow.checkin.visibility';
 const localDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+function sameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function durationLabel(d: number) {
+  const h = Math.floor(d / 60);
+  const m = d % 60;
+  return m === 0 ? `${h}h` : `${h}h${String(m).padStart(2, '0')}`;
+}
+
+/** An optional part of the form: one row with a summary, expanding in place. */
+function Section({
+  icon,
+  title,
+  summary,
+  open,
+  onToggle,
+  children,
+}: {
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  title: string;
+  summary: string;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <View style={styles.section}>
+      <Pressable
+        style={styles.sectionHead}
+        onPress={onToggle}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}>
+        <MaterialCommunityIcons name={icon} size={18} color={palette.textSecondary} />
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={styles.sectionSummary} numberOfLines={1}>
+          {summary}
+        </Text>
+        <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={palette.textSecondary} />
+      </Pressable>
+      {open && <View style={styles.sectionBody}>{children}</View>}
+    </View>
+  );
+}
+
+/**
+ * Log a session. The essentials (day, type, duration) are a few taps and can be
+ * saved right away; submissions, pain, and note/photo are optional rows that
+ * expand only when wanted. Visibility starts private and remembers the last choice.
+ */
 export default function CheckInSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const queryClient = useQueryClient();
   const { height } = useWindowDimensions();
-  const myId = useAuthStore((s) => s.user?.id);
   // Built in render (not at module load) so labels follow the active language.
   const TYPES: { key: string; label: string }[] = [
     { key: 'GI', label: t('checkin.type.GI') },
@@ -51,12 +100,29 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
   const [hit, setHit] = useState<Record<string, number>>({});
   const [conceded, setConceded] = useState<Record<string, number>>({});
   const [notes, setNotes] = useState('');
-  const [visibility, setVisibility] = useState<Visibility>('PUBLIC');
+  const [visibility, setVisibility] = useState<Visibility>('PRIVATE');
   const [photo, setPhoto] = useState<{ key: string; uri: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [pain, setPain] = useState<Record<string, number>>({});
   const [painRegion, setPainRegion] = useState<string | null>(null);
   const [date, setDate] = useState(new Date());
+  const [pickingDate, setPickingDate] = useState(false);
+  const [openSection, setOpenSection] = useState<'subs' | 'pain' | 'notes' | null>(null);
+  const toggle = (section: 'subs' | 'pain' | 'notes') => setOpenSection((cur) => (cur === section ? null : section));
+
+  // Sessions are private unless the user chose to share; their last choice sticks.
+  useEffect(() => {
+    if (!visible) return;
+    AsyncStorage.getItem(VISIBILITY_KEY)
+      .then((saved) => {
+        if (saved === 'PUBLIC' || saved === 'PRIVATE') setVisibility(saved);
+      })
+      .catch(() => undefined);
+  }, [visible]);
+  const chooseVisibility = (v: Visibility) => {
+    setVisibility(v);
+    AsyncStorage.setItem(VISIBILITY_KEY, v).catch(() => undefined);
+  };
 
   const reset = () => {
     setSessionType('GI');
@@ -66,10 +132,11 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
     setHit({});
     setConceded({});
     setNotes('');
-    setVisibility('PUBLIC');
     setPhoto(null);
     setPain({});
     setPainRegion(null);
+    setPickingDate(false);
+    setOpenSection(null);
   };
 
   const pickPhoto = async () => {
@@ -96,13 +163,20 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
     }
   };
 
+  // One id per session being logged: a double tap or a retry records it once.
+  const clientId = useRef(newClientId());
+
   const save = useMutation({
     mutationFn: async () => {
       const submissions: CheckInSubmission[] = [
         ...Object.entries(hit).filter(([, n]) => n > 0).map(([submission, n]) => ({ submission, direction: 'HIT' as const, count: n })),
         ...Object.entries(conceded).filter(([, n]) => n > 0).map(([submission, n]) => ({ submission, direction: 'CONCEDED' as const, count: n })),
       ];
-      const result = await createCheckIn({
+      const painEntries = Object.entries(pain)
+        .filter(([, n]) => n > 0)
+        .map(([region, n]) => ({ region, intensity: n }));
+      // Sent now if possible; without a connection it waits in the outbox.
+      return submitCheckIn({
         date: localDate(date),
         sessionType,
         durationMinutes: duration,
@@ -110,30 +184,37 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
         visibility,
         photoKey: photo?.key,
         submissions: submissions.length ? submissions : undefined,
-      });
-      // Log any pain marked in this report — it shows on the body map.
-      for (const [region, n] of Object.entries(pain)) {
-        if (n > 0) {
-          await logPain({ region, intensity: n });
-        }
-      }
-      return result;
+        clientId: clientId.current,
+        // Pain marked in this report shows on the body map.
+      }, painEntries);
     },
-    onSuccess: () => {
+    onSuccess: (outcome) => {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      queryClient.invalidateQueries({ queryKey: ['stats'] });
-      queryClient.invalidateQueries({ queryKey: ['journey'] });
-      queryClient.invalidateQueries({ queryKey: ['communityFeed'] });
-      queryClient.invalidateQueries({ queryKey: ['userSubmissions'] });
-      queryClient.invalidateQueries({ queryKey: ['painDaily'] });
-      queryClient.invalidateQueries({ queryKey: ['painMonthly'] });
-      if (myId) queryClient.invalidateQueries({ queryKey: ['userProfile', myId] });
+      clientId.current = newClientId();
       reset();
       onClose();
-      Alert.alert(t('checkin.sheet.saved'));
+      Alert.alert(outcome === 'queued' ? t('checkin.queued') : t('checkin.sheet.saved'));
     },
     onError: (e) => Alert.alert(apiErrorMessage(e)),
   });
+
+  const today = new Date();
+  const yesterday = new Date(Date.now() - 86_400_000);
+  const isToday = sameDay(date, today);
+  const isYesterday = sameDay(date, yesterday);
+
+  const hitTotal = Object.values(hit).reduce((a, b) => a + b, 0);
+  const concededTotal = Object.values(conceded).reduce((a, b) => a + b, 0);
+  const subsSummary =
+    hitTotal + concededTotal === 0
+      ? t('checkin.section.none')
+      : tf('checkin.section.subsSummary', { hit: hitTotal, conceded: concededTotal });
+  const painCount = Object.keys(pain).length;
+  const painSummary = painCount === 0 ? t('checkin.section.none') : tf('checkin.pain.added', { n: painCount });
+  const notesSummary =
+    [notes.trim() ? t('checkin.section.note') : null, photo ? t('checkin.section.photo') : null]
+      .filter(Boolean)
+      .join(' · ') || t('checkin.section.none');
 
   const counts = subDir === 'HIT' ? hit : conceded;
   const setCounts = subDir === 'HIT' ? setHit : setConceded;
@@ -160,11 +241,43 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
               keyboardDismissMode="on-drag"
               automaticallyAdjustKeyboardInsets
               contentContainerStyle={{ paddingBottom: 24 }}>
-            {/* Workout date */}
+            {/* Day: today / yesterday cover almost every session; a calendar for the rest. */}
             <Text style={styles.label}>{t('checkin.sheet.date')}</Text>
-            <View style={{ marginBottom: 8 }}>
-              <DateField value={date} onChange={setDate} maximumDate={new Date()} />
+            <View style={styles.chips}>
+              <Pressable
+                style={[styles.chip, isToday && !pickingDate && styles.chipOn]}
+                onPress={() => {
+                  setDate(new Date());
+                  setPickingDate(false);
+                }}>
+                <Text style={[styles.chipText, isToday && !pickingDate && styles.chipTextOn]}>{t('checkin.date.today')}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.chip, isYesterday && !pickingDate && styles.chipOn]}
+                onPress={() => {
+                  setDate(new Date(Date.now() - 86_400_000));
+                  setPickingDate(false);
+                }}>
+                <Text style={[styles.chipText, isYesterday && !pickingDate && styles.chipTextOn]}>
+                  {t('checkin.date.yesterday')}
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.chip, (pickingDate || (!isToday && !isYesterday)) && styles.chipOn]}
+                onPress={() => setPickingDate(true)}
+                accessibilityLabel={t('checkin.date.other')}>
+                <MaterialCommunityIcons
+                  name="calendar"
+                  size={15}
+                  color={pickingDate || (!isToday && !isYesterday) ? '#fff' : palette.textSecondary}
+                />
+              </Pressable>
             </View>
+            {pickingDate && (
+              <View style={{ marginBottom: 8 }}>
+                <DateField value={date} onChange={setDate} maximumDate={new Date()} />
+              </View>
+            )}
 
             {/* Session type */}
             <Text style={styles.label}>{t('checkin.sheet.type')}</Text>
@@ -185,13 +298,14 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
               {DURATIONS.map((d) => (
                 <Pressable key={d} style={[styles.chip, duration === d && styles.chipOn]} onPress={() => setDuration(d)}>
                   <Text style={[styles.chipText, duration === d && styles.chipTextOn]}>
-                    {d % 60 === 0 ? `${d / 60}h` : `${(d / 60).toFixed(1)}h`}
+                    {durationLabel(d)}
                   </Text>
                 </Pressable>
               ))}
             </View>
 
-            {/* Submissions */}
+            {/* Optional details */}
+            <Section icon="karate" title={t('checkin.section.subs')} summary={subsSummary} open={openSection === 'subs'} onToggle={() => toggle('subs')}>
             <View style={styles.subToggle}>
               <Pressable
                 style={[styles.segBtn, subDir === 'HIT' && styles.segBtnOn]}
@@ -226,12 +340,11 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
                 );
               })}
             </View>
+            </Section>
 
             {/* Pain / injury — slide through regions, pick one, then set 0-10 */}
-            <Text style={styles.label}>{t('checkin.pain.title')}</Text>
-            <Text style={styles.painHint}>
-              {Object.keys(pain).length > 0 ? tf('checkin.pain.added', { n: Object.keys(pain).length }) : t('checkin.pain.hint')}
-            </Text>
+            <Section icon="bandage" title={t('checkin.section.pain')} summary={painSummary} open={openSection === 'pain'} onToggle={() => toggle('pain')}>
+            <Text style={styles.painHint}>{t('checkin.pain.hint')}</Text>
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -278,7 +391,9 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
                 </View>
               </View>
             )}
+            </Section>
 
+            <Section icon="note-text-outline" title={t('checkin.section.notes')} summary={notesSummary} open={openSection === 'notes'} onToggle={() => toggle('notes')}>
             <TextInput
               mode="outlined"
               value={notes}
@@ -310,6 +425,7 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
                 )}
               </Pressable>
             )}
+            </Section>
 
             {/* Visibility */}
             <Text style={styles.label}>{t('checkin.sheet.visibility')}</Text>
@@ -318,7 +434,7 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
                 <Pressable
                   key={v}
                   style={[styles.segBtn, visibility === v && styles.segBtnOn]}
-                  onPress={() => setVisibility(v)}>
+                  onPress={() => chooseVisibility(v)}>
                   <MaterialCommunityIcons
                     name={v === 'PUBLIC' ? 'earth' : 'lock'}
                     size={15}
@@ -369,12 +485,17 @@ const styles = makeStyles(() => ({
   // actually scroll (and keeps the Save button visible) when the form is tall.
   scroll: { flexShrink: 1 },
   label: { color: palette.textSecondary, fontSize: 12, fontWeight: '600', marginBottom: 8, marginTop: 6 },
+  section: { borderTopWidth: 1, borderTopColor: palette.surfaceVariant },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 14, minHeight: 48 },
+  sectionTitle: { color: palette.textPrimary, fontSize: 14, fontWeight: '600' },
+  sectionSummary: { flex: 1, color: palette.textSecondary, fontSize: 13, textAlign: 'right' },
+  sectionBody: { paddingBottom: 12 },
   chips: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   chip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 999, backgroundColor: palette.surfaceVariant },
   chipOn: { backgroundColor: palette.primary },
   chipText: { color: palette.textSecondary, fontSize: 13, fontWeight: '600' },
   chipTextOn: { color: '#fff' },
-  subToggle: { flexDirection: 'row', backgroundColor: palette.surfaceVariant, borderRadius: 10, padding: 3, marginTop: 14, marginBottom: 10 },
+  subToggle: { flexDirection: 'row', backgroundColor: palette.surfaceVariant, borderRadius: 10, padding: 3, marginBottom: 10 },
   segBtn: { flex: 1, flexDirection: 'row', gap: 6, paddingVertical: 8, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   segBtnOn: { backgroundColor: palette.surface },
   segText: { color: palette.textSecondary, fontSize: 12, fontWeight: '600' },
@@ -406,7 +527,7 @@ const styles = makeStyles(() => ({
   painScaleBtn: { width: 26, height: 32, borderRadius: 7, alignItems: 'center', justifyContent: 'center' },
   painScaleText: { color: '#fff', fontWeight: '700', fontSize: 12 },
   painHint: { color: palette.textSecondary, fontSize: 11, textAlign: 'center', marginTop: 4, marginBottom: 4 },
-  notes: { marginTop: 14, backgroundColor: palette.surface },
+  notes: { backgroundColor: palette.surface, marginBottom: 10 },
   photoWrap: { marginBottom: 6, borderRadius: 12, overflow: 'hidden' },
   photo: { width: '100%', height: 170, borderRadius: 12 },
   photoRemove: {
@@ -433,7 +554,7 @@ const styles = makeStyles(() => ({
     marginBottom: 6,
   },
   photoAddText: { color: palette.textSecondary, fontSize: 13, fontWeight: '600' },
-  visToggle: { flexDirection: 'row', backgroundColor: palette.surfaceVariant, borderRadius: 10, padding: 3, marginBottom: 6 },
+  visToggle: { flexDirection: 'row', backgroundColor: palette.surfaceVariant, borderRadius: 10, padding: 3, marginBottom: 6, marginTop: 4 },
   visHint: { color: palette.textSecondary, fontSize: 11, marginBottom: 4 },
   save: { marginTop: 16 },
   saveContent: { paddingVertical: 6 },

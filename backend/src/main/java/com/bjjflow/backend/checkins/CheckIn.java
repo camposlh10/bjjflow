@@ -45,6 +45,10 @@ public class CheckIn {
     @Column(name = "photo_key")
     private String photoKey;
 
+    /** The app's own id for this check-in; makes retries and offline replays idempotent. */
+    @Column(name = "client_id")
+    private String clientId;
+
     @Column(name = "share_count")
     private Integer shareCount = 0;
 

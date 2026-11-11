@@ -1,3 +1,6 @@
+import * as FileSystem from 'expo-file-system/legacy';
+import { Platform } from 'react-native';
+
 import { GymRole } from './gyms';
 import { API_ORIGIN, api } from './client';
 
@@ -59,16 +62,95 @@ export async function getFeed(): Promise<Post[]> {
   return data;
 }
 
+/** A page of the gym wall plus the cursor for the next (older) page (null = end). */
+export type PostPage = { items: Post[]; nextCursor: number | null };
+
+/** The first page (no cursor) starts with the pinned posts. */
+export async function getFeedPage(cursor?: number | null): Promise<PostPage> {
+  const { data } = await api.get<PostPage | Post[]>('/gyms/posts', {
+    params: { limit: 15, cursor: cursor ?? undefined },
+  });
+  // A backend without paging answers with the whole array.
+  if (Array.isArray(data)) return { items: data, nextCursor: null };
+  return data;
+}
+
 export async function getPost(id: number): Promise<Post> {
   const { data } = await api.get<Post>(`/gyms/posts/${id}`);
   return data;
 }
 
-export async function uploadMedia(file: {
-  uri: string;
-  name: string;
-  type: string;
-}): Promise<UploadedMedia> {
+type UploadFile = { uri: string; name: string; type: string };
+
+/** Uploads can be large videos on mobile data: far longer than the API's default 8s. */
+const UPLOAD_TIMEOUT_MS = 5 * 60_000;
+
+type UploadTicket = {
+  /** false: the backend has no direct-upload storage (local dev) - use multipart. */
+  direct: boolean;
+  key: string | null;
+  url: string | null;
+  type: MediaType;
+  uploadUrl: string | null;
+  headers: Record<string, string> | null;
+};
+
+/**
+ * Uploads a picked image/video and returns its storage key + URL.
+ *
+ * Preferred path: ask the API for a one-time upload URL and send the file
+ * straight to object storage, so it never passes through our server. Falls back
+ * to posting the file to the API when that isn't available (local dev backend,
+ * web preview, or the file size can't be read).
+ */
+export async function uploadMedia(file: UploadFile): Promise<UploadedMedia> {
+  const direct = await tryDirectUpload(file);
+  return direct ?? uploadViaApi(file);
+}
+
+async function tryDirectUpload(file: UploadFile): Promise<UploadedMedia | null> {
+  // uploadAsync only reads file:// sources (what the image picker returns).
+  if (Platform.OS === 'web' || !file.uri.startsWith('file://')) {
+    return null;
+  }
+  let ticket: UploadTicket;
+  try {
+    const info = await FileSystem.getInfoAsync(file.uri);
+    if (!info.exists || !info.size) {
+      return null;
+    }
+    const { data } = await api.post<UploadTicket>('/media/uploads', {
+      contentType: file.type,
+      sizeBytes: info.size,
+      filename: file.name,
+    });
+    ticket = data;
+  } catch (error) {
+    // A real refusal (too large, unsupported type) must reach the user as is.
+    const status = (error as { response?: { status?: number } }).response?.status;
+    if (status === 400 || status === 413) {
+      throw error;
+    }
+    return null;
+  }
+  if (!ticket.direct || !ticket.uploadUrl || !ticket.key || !ticket.url) {
+    return null;
+  }
+  const result = await FileSystem.uploadAsync(ticket.uploadUrl, file.uri, {
+    httpMethod: 'PUT',
+    uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+    // Foreground: fail when the connection drops, so the user sees an error and
+    // can retry. The iOS default (background) would keep retrying silently.
+    sessionType: FileSystem.FileSystemSessionType.FOREGROUND,
+    headers: ticket.headers ?? { 'Content-Type': file.type },
+  });
+  if (result.status < 200 || result.status >= 300) {
+    throw new Error(`Upload failed (${result.status})`);
+  }
+  return { key: ticket.key, url: ticket.url, type: ticket.type };
+}
+
+async function uploadViaApi(file: UploadFile): Promise<UploadedMedia> {
   const form = new FormData();
   // React Native's FormData accepts a {uri, name, type} object for files.
   form.append('file', { uri: file.uri, name: file.name, type: file.type } as unknown as Blob);
@@ -76,6 +158,7 @@ export async function uploadMedia(file: {
   // avatar/photos/certificate as well as gym uploads.
   const { data } = await api.post<UploadedMedia>('/media', form, {
     headers: { 'Content-Type': 'multipart/form-data' },
+    timeout: UPLOAD_TIMEOUT_MS,
   });
   return data;
 }

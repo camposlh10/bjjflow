@@ -38,9 +38,19 @@ public class PostController {
         return Long.parseLong(auth.getName());
     }
 
+    /**
+     * The gym wall. With {@code limit}: a cursor page {@code {items, nextCursor}}
+     * (pass the returned cursor to load older posts). Without it: a plain array of
+     * the most recent posts, the shape older app builds expect.
+     */
     @GetMapping
-    public List<PostDto> feed(Authentication auth) {
-        return postService.feed(userId(auth));
+    public Object feed(Authentication auth,
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) Long cursor) {
+        if (limit == null) {
+            return postService.feed(userId(auth));
+        }
+        return postService.feedPage(userId(auth), cursor, Math.min(Math.max(limit, 1), 50));
     }
 
     @GetMapping("/saved")

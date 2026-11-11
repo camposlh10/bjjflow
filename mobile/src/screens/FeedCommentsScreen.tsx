@@ -18,11 +18,11 @@ import type { FeedComment } from '../api/feed';
 import { addFeedComment, getFeedComments } from '../api/feed';
 import TrainingCard from '../components/TrainingCard';
 import { t } from '../i18n';
-import type { ComunidadeStackParamList } from '../navigation/ComunidadeNavigator';
+import type { HomeStackParamList } from '../navigation/HomeNavigator';
 import { makeStyles, palette } from '../theme/theme';
 import { timeAgo } from '../utils/time';
 
-type Props = NativeStackScreenProps<ComunidadeStackParamList, 'FeedComments'>;
+type Props = NativeStackScreenProps<HomeStackParamList, 'FeedComments'>;
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/);

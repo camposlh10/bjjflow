@@ -1,4 +1,4 @@
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from './secureStorage';
 import { create } from 'zustand';
 
 import { Locale, setActiveLocale } from '../i18n';

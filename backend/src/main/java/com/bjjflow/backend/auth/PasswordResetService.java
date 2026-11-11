@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.bjjflow.backend.common.ApiException;
-import com.bjjflow.backend.email.EmailSender;
 import com.bjjflow.backend.users.User;
 import com.bjjflow.backend.users.UserRepository;
 
@@ -28,11 +27,13 @@ public class PasswordResetService {
 
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final int TTL_MINUTES = 15;
+    private static final int MAX_ATTEMPTS = 5;
 
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
-    private final EmailSender emailSender;
+    private final com.bjjflow.backend.jobs.JobQueue jobQueue;
+    private final RefreshTokenService refreshTokenService;
 
     /** Always succeeds (no account enumeration). Emails a code only if the account exists. */
     @Transactional
@@ -46,24 +47,39 @@ public class PasswordResetService {
             token.setExpiresAt(Instant.now().plus(TTL_MINUTES, ChronoUnit.MINUTES));
             token.setUsed(false);
             tokenRepository.save(token);
-            emailSender.send(email, "Seu código de redefinição — BJJ Flow", emailHtml(code));
+            // Sent by a background job: the request answers at once (no timing hint
+            // about whether the account exists) and delivery is retried on failure.
+            jobQueue.enqueue(com.bjjflow.backend.email.EmailJobHandler.TYPE, java.util.Map.of(
+                    "to", email,
+                    "subject", "Seu código de redefinição — BJJ Flow",
+                    "html", emailHtml(code)));
         });
     }
 
-    @Transactional
+    // noRollbackFor: a wrong guess must still persist its attempt count.
+    @Transactional(noRollbackFor = ApiException.class)
     public void resetPassword(String rawEmail, String code, String newPassword) {
         String email = rawEmail.trim().toLowerCase(Locale.ROOT);
         User user = userRepository.findByEmail(email).orElseThrow(PasswordResetService::invalid);
         PasswordResetToken token = tokenRepository
                 .findFirstByUserIdAndUsedFalseOrderByCreatedAtDesc(user.getId())
                 .orElseThrow(PasswordResetService::invalid);
-        if (token.getExpiresAt().isBefore(Instant.now()) || !passwordEncoder.matches(code, token.getCodeHash())) {
+        int attempts = token.getAttempts() == null ? 0 : token.getAttempts();
+        if (token.getExpiresAt().isBefore(Instant.now()) || attempts >= MAX_ATTEMPTS) {
+            throw invalid();
+        }
+        if (!passwordEncoder.matches(code, token.getCodeHash())) {
+            token.setAttempts(attempts + 1);
+            tokenRepository.save(token);
             throw invalid();
         }
         user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setCredentialsChangedAt(Instant.now());
         userRepository.save(user);
         token.setUsed(true);
         tokenRepository.save(token);
+        // Whoever knew the old password is signed out everywhere.
+        refreshTokenService.revokeAllForUser(user.getId(), null);
     }
 
     private static ApiException invalid() {

@@ -1,12 +1,12 @@
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { InfiniteData, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ReactElement } from 'react';
-import { Alert, RefreshControl, Share, StyleSheet, Text } from 'react-native';
+import { ActivityIndicator, Alert, RefreshControl, Share, StyleSheet, Text } from 'react-native';
 import Animated, { FadeInDown, FadeOutUp, LinearTransition } from 'react-native-reanimated';
 
 import { Gym } from '../api/gyms';
-import { Post, deletePost, setPinned, sharePost, toggleLike, toggleSave } from '../api/posts';
+import { Post, PostPage, deletePost, setPinned, sharePost, toggleLike, toggleSave } from '../api/posts';
 import { t } from '../i18n';
 import { GymStackParamList } from '../navigation/GymNavigator';
 import { useAuthStore } from '../store/authStore';
@@ -23,6 +23,8 @@ export default function PostList({
   emptyText,
   refreshing,
   onRefresh,
+  onEndReached,
+  loadingMore,
 }: {
   posts: Post[];
   gym: Gym;
@@ -30,6 +32,9 @@ export default function PostList({
   emptyText: string;
   refreshing?: boolean;
   onRefresh?: () => void;
+  /** Called near the end of the list, to fetch the next page. */
+  onEndReached?: () => void;
+  loadingMore?: boolean;
 }) {
   const navigation = useNavigation<Nav>();
   const queryClient = useQueryClient();
@@ -42,8 +47,47 @@ export default function PostList({
     queryClient.invalidateQueries({ queryKey: ['savedPosts'] });
   };
 
-  const like = useMutation({ mutationFn: (id: number) => toggleLike(id), onSuccess: invalidate });
-  const save = useMutation({ mutationFn: (id: number) => toggleSave(id), onSuccess: invalidate });
+  /** Rewrites one post wherever it is cached (the paged wall and the saved list). */
+  const patchPost = (id: number, change: (post: Post) => Post) => {
+    queryClient.setQueryData<InfiniteData<PostPage>>(['gymFeed'], (old) =>
+      old?.pages
+        ? {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              items: page.items.map((post) => (post.id === id ? change(post) : post)),
+            })),
+          }
+        : old,
+    );
+    queryClient.setQueryData<Post[]>(['savedPosts'], (old) =>
+      Array.isArray(old) ? old.map((post) => (post.id === id ? change(post) : post)) : old,
+    );
+  };
+
+  // Likes and saves show at once and are corrected by the server's answer;
+  // a failure re-syncs from the server instead of leaving a wrong state.
+  const like = useMutation({
+    mutationFn: (id: number) => toggleLike(id),
+    onMutate: (id) =>
+      patchPost(id, (post) => ({
+        ...post,
+        likedByMe: !post.likedByMe,
+        likeCount: Math.max(0, post.likeCount + (post.likedByMe ? -1 : 1)),
+      })),
+    onSuccess: (result, id) =>
+      patchPost(id, (post) => ({ ...post, likedByMe: result.liked, likeCount: result.likeCount })),
+    onError: invalidate,
+  });
+  const save = useMutation({
+    mutationFn: (id: number) => toggleSave(id),
+    onMutate: (id) => patchPost(id, (post) => ({ ...post, savedByMe: !post.savedByMe })),
+    onSuccess: (result, id) => {
+      patchPost(id, (post) => ({ ...post, savedByMe: result.saved }));
+      queryClient.invalidateQueries({ queryKey: ['savedPosts'] });
+    },
+    onError: invalidate,
+  });
   const pin = useMutation({
     mutationFn: (v: { id: number; pinned: boolean }) => setPinned(v.id, v.pinned),
     onSuccess: invalidate,
@@ -93,6 +137,9 @@ export default function PostList({
           />
         ) : undefined
       }
+      onEndReached={onEndReached}
+      onEndReachedThreshold={0.5}
+      ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footer} color={palette.primary} /> : null}
       ListEmptyComponent={<Text style={styles.empty}>{emptyText}</Text>}
       renderItem={({ item }: { item: Post }) => (
         <Animated.View entering={FadeInDown.duration(300)} exiting={FadeOutUp.duration(220)}>
@@ -119,4 +166,5 @@ export default function PostList({
 const styles = makeStyles(() => ({
   content: { paddingBottom: 24, flexGrow: 1 },
   empty: { color: palette.textSecondary, textAlign: 'center', paddingVertical: 32 },
+  footer: { paddingVertical: 16 },
 }));

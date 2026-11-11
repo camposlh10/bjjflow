@@ -31,6 +31,9 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     List<Invoice> findAllByStatusInAndDueDate(Collection<PaymentStatus> statuses, LocalDate dueDate);
 
+    List<Invoice> findAllByGymIdAndStatusInAndDueDate(Long gymId, Collection<PaymentStatus> statuses,
+            LocalDate dueDate);
+
     boolean existsByGymIdAndMemberUserIdAndStatus(Long gymId, Long memberUserId, PaymentStatus status);
 
     long countByGymIdAndStatus(Long gymId, PaymentStatus status);

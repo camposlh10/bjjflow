@@ -26,6 +26,8 @@ public class MessageDtos {
     public record StartConversationRequest(Long userId) {
     }
 
-    public record SendMessageRequest(@NotBlank @Size(max = 2000) String content) {
+    public record SendMessageRequest(@NotBlank @Size(max = 2000) String content,
+            // Optional id chosen by the app; sending the same one twice creates one message.
+            @Size(max = 64) String clientId) {
     }
 }

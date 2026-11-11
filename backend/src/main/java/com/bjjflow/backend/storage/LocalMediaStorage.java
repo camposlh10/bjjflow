@@ -1,11 +1,12 @@
 package com.bjjflow.backend.storage;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.UUID;
+import java.nio.file.StandardCopyOption;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -13,8 +14,9 @@ import org.springframework.stereotype.Component;
 
 /**
  * Stores media on the local filesystem and serves it via the {@code /media/**}
- * static route (see WebConfig). Active by default; replace by setting
- * {@code app.media.provider} to a cloud implementation later.
+ * static route (see WebConfig). Development only: files do not survive a
+ * redeploy and are not shared between instances. Production sets
+ * {@code app.media.provider=s3} (see S3MediaStorage).
  */
 @Component
 @ConditionalOnProperty(name = "app.media.provider", havingValue = "local", matchIfMissing = true)
@@ -33,16 +35,20 @@ public class LocalMediaStorage implements MediaStorage {
 
     @Override
     public String store(byte[] content, String contentType, String originalFilename) {
-        String key = "posts/" + UUID.randomUUID() + extensionFor(contentType, originalFilename);
-        Path target = baseDir.resolve(key).normalize();
-        if (!target.startsWith(baseDir)) {
-            throw new IllegalArgumentException("Resolved path escapes the media directory");
-        }
+        String key = MediaKeys.newKey(contentType, originalFilename);
         try {
-            Files.write(target, content);
+            Files.write(resolve(key), content);
         } catch (IOException e) {
             throw new UncheckedIOException("Could not store media", e);
         }
+        return key;
+    }
+
+    @Override
+    public String store(InputStream content, long length, String contentType, String originalFilename)
+            throws IOException {
+        String key = MediaKeys.newKey(contentType, originalFilename);
+        Files.copy(content, resolve(key), StandardCopyOption.REPLACE_EXISTING);
         return key;
     }
 
@@ -53,39 +59,18 @@ public class LocalMediaStorage implements MediaStorage {
 
     @Override
     public byte[] read(String key) {
-        Path target = baseDir.resolve(key).normalize();
-        if (!target.startsWith(baseDir)) {
-            throw new IllegalArgumentException("Resolved path escapes the media directory");
-        }
         try {
-            return Files.readAllBytes(target);
+            return Files.readAllBytes(resolve(key));
         } catch (IOException e) {
             throw new UncheckedIOException("Could not read media " + key, e);
         }
     }
 
-    private String extensionFor(String contentType, String originalFilename) {
-        if (contentType != null) {
-            switch (contentType.toLowerCase()) {
-                case "image/jpeg":
-                    return ".jpg";
-                case "image/png":
-                    return ".png";
-                case "image/webp":
-                    return ".webp";
-                case "image/heic":
-                    return ".heic";
-                case "video/mp4":
-                    return ".mp4";
-                case "video/quicktime":
-                    return ".mov";
-                default:
-                    break;
-            }
+    private Path resolve(String key) {
+        Path target = baseDir.resolve(key).normalize();
+        if (!target.startsWith(baseDir)) {
+            throw new IllegalArgumentException("Resolved path escapes the media directory");
         }
-        if (originalFilename != null && originalFilename.contains(".")) {
-            return originalFilename.substring(originalFilename.lastIndexOf('.'));
-        }
-        return "";
+        return target;
     }
 }

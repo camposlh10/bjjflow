@@ -32,6 +32,10 @@ public class User {
     @Column(name = "password_hash")
     private String passwordHash;
 
+    /** Last password change; legacy refresh tokens issued before it are refused. */
+    @Column(name = "credentials_changed_at")
+    private java.time.Instant credentialsChangedAt;
+
     @Column(name = "display_name")
     private String displayName;
 

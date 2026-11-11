@@ -43,6 +43,15 @@ public class AuthService {
     private final com.bjjflow.backend.common.AdminAccess adminAccess;
     private final OAuthVerifier oauthVerifier;
     private final OAuthAccountRepository oauthAccountRepository;
+    private final RefreshTokenService refreshTokenService;
+
+    /**
+     * Accept the stateless JWT refresh tokens issued before server-side sessions
+     * existed, exchanging them for a revocable one. Turn off once old app builds
+     * have refreshed at least once (30 days after this ships).
+     */
+    @org.springframework.beans.factory.annotation.Value("${app.jwt.accept-legacy-refresh:true}")
+    private boolean acceptLegacyRefresh;
 
     @Transactional
     public AuthResponse register(RegisterRequest request) {
@@ -126,7 +135,7 @@ public class AuthService {
         return buildAuthResponse(user, findProgress(user.getId()));
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public AuthResponse login(LoginRequest request) {
         String email = request.email().trim().toLowerCase(Locale.ROOT);
         User user = userRepository.findByEmail(email)
@@ -156,17 +165,50 @@ public class AuthService {
         return buildAuthResponse(user, findProgress(user.getId()));
     }
 
-    @Transactional(readOnly = true)
+    /**
+     * Rotates the refresh token. Deliberately not transactional: the rotation
+     * commits on its own so a reuse-triggered revocation survives the 401.
+     */
     public AuthResponse refresh(String refreshToken) {
-        Long userId = jwtService.parse(refreshToken)
-                .filter(token -> "refresh".equals(token.type()))
-                .map(JwtService.ParsedToken::userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN",
-                        "Refresh token is invalid or expired"));
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN",
-                        "Refresh token is invalid or expired"));
-        return buildAuthResponse(user, findProgress(user.getId()));
+        Long userId;
+        String nextRefreshToken;
+        var rotation = refreshTokenService.rotate(refreshToken);
+        if (rotation.isPresent()) {
+            userId = rotation.get().userId();
+            nextRefreshToken = rotation.get().refreshToken();
+        } else {
+            userId = legacyRefreshUserId(refreshToken);
+            nextRefreshToken = refreshTokenService.issue(userId);
+        }
+        User user = userRepository.findById(userId).orElseThrow(AuthService::invalidRefresh);
+        return AuthResponse.tokens(jwtService.createAccessToken(userId), nextRefreshToken,
+                toUserDto(user, findProgress(userId)));
+    }
+
+    /** Ends the session this refresh token belongs to. Always succeeds. */
+    public void logout(String refreshToken) {
+        refreshTokenService.revokeSession(refreshToken);
+    }
+
+    private Long legacyRefreshUserId(String token) {
+        if (!acceptLegacyRefresh) {
+            throw invalidRefresh();
+        }
+        JwtService.ParsedToken parsed = jwtService.parse(token)
+                .filter(t -> "refresh".equals(t.type()))
+                .orElseThrow(AuthService::invalidRefresh);
+        User user = userRepository.findById(parsed.userId()).orElseThrow(AuthService::invalidRefresh);
+        // A password change/reset invalidates every legacy token issued before it.
+        if (user.getCredentialsChangedAt() != null
+                && (parsed.issuedAt() == null || parsed.issuedAt().isBefore(user.getCredentialsChangedAt()))) {
+            throw invalidRefresh();
+        }
+        return user.getId();
+    }
+
+    private static ApiException invalidRefresh() {
+        return new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_REFRESH_TOKEN",
+                "Refresh token is invalid or expired");
     }
 
     @Transactional(readOnly = true)
@@ -219,7 +261,7 @@ public class AuthService {
     private AuthResponse buildAuthResponse(User user, UserBeltProgress progress) {
         return AuthResponse.tokens(
                 jwtService.createAccessToken(user.getId()),
-                jwtService.createRefreshToken(user.getId()),
+                refreshTokenService.issue(user.getId()),
                 toUserDto(user, progress));
     }
 

@@ -12,7 +12,8 @@ import { rankBarColorFor } from '../constants/belts';
 import { submissionStyle } from '../constants/submissions';
 import { t, tf } from '../i18n';
 import { makeStyles, palette } from '../theme/theme';
-import { timeAgo } from '../utils/time';
+import { todayLocalDate } from '../api/checkins';
+import { timeAgo, trainingDayLabel } from '../utils/time';
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -165,7 +166,8 @@ export default function TrainingCard({
             )}
             <Text style={styles.meta} numberOfLines={1}>
               {author.username ? `@${author.username} · ` : ''}
-              {timeAgo(item.createdAt)}
+              {/* Same-day sessions show how fresh they are; older ones the day they were trained. */}
+              {item.date === todayLocalDate() ? timeAgo(item.createdAt) : trainingDayLabel(item.date)}
             </Text>
           </View>
         </Pressable>

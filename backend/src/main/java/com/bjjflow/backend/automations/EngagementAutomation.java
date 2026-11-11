@@ -13,7 +13,6 @@ import com.bjjflow.backend.classes.ClassAttendanceRepository;
 import com.bjjflow.backend.gyms.Gym;
 import com.bjjflow.backend.gyms.GymMember;
 import com.bjjflow.backend.gyms.GymMemberRepository;
-import com.bjjflow.backend.gyms.GymRepository;
 import com.bjjflow.backend.gyms.GymRole;
 import com.bjjflow.backend.notifications.NotificationType;
 import com.bjjflow.backend.users.User;
@@ -31,21 +30,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class EngagementAutomation {
 
-    private final GymRepository gymRepository;
     private final GymMemberRepository gymMemberRepository;
     private final ClassAttendanceRepository classAttendanceRepository;
     private final UserRepository userRepository;
     private final AutomationEvents automationEvents;
 
-    public int run(LocalDate today) {
-        int created = 0;
-        for (Gym gym : gymRepository.findAll()) {
-            created += runForGym(gym.getId(), today);
-        }
-        return created;
-    }
-
-    private int runForGym(Long gymId, LocalDate today) {
+    /** Runs the ladder for one gym; {@code today} is the gym's local date. */
+    public int run(Long gymId, LocalDate today, ZoneId zone) {
         Map<Long, LocalDate> lastAttendance = new HashMap<>();
         for (Object[] row : classAttendanceRepository.lastAttendanceDatesForGym(gymId)) {
             lastAttendance.put((Long) row[0], (LocalDate) row[1]);
@@ -58,7 +49,7 @@ public class EngagementAutomation {
         for (GymMember member : gymMemberRepository.findAllByGymIdAndRole(gymId, GymRole.MEMBER)) {
             LocalDate baseline = lastAttendance.get(member.getUserId());
             if (baseline == null && member.getJoinedAt() != null) {
-                baseline = member.getJoinedAt().atZone(ZoneId.systemDefault()).toLocalDate();
+                baseline = member.getJoinedAt().atZone(zone).toLocalDate();
             }
             if (baseline == null) {
                 continue;

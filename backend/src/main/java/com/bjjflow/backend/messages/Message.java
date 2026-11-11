@@ -32,6 +32,10 @@ public class Message {
 
     private String content;
 
+    /** The app's own id for this message; makes retries and offline replays idempotent. */
+    @Column(name = "client_id")
+    private String clientId;
+
     @Column(name = "created_at")
     private Instant createdAt;
 

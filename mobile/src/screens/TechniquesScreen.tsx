@@ -17,10 +17,10 @@ import {
 import VideoModal from '../components/VideoModal';
 import { CATEGORY_COLORS, DIFFICULTY_LABELS, categoryLabel } from '../constants/techniques';
 import { t } from '../i18n';
-import type { HomeStackParamList } from '../navigation/HomeNavigator';
+import type { ProgressStackParamList } from '../navigation/ProgressNavigator';
 import { makeStyles, palette } from '../theme/theme';
 
-type Nav = NativeStackNavigationProp<HomeStackParamList>;
+type Nav = NativeStackNavigationProp<ProgressStackParamList>;
 const FAV = '__FAV__';
 
 export default function TechniquesScreen() {

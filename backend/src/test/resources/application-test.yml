@@ -1,7 +1,18 @@
 app:
   dev-tools: true
+  jwt:
+    secret: test-only-secret-0123456789abcdef0123456789abcdef0123456789
+  cors:
+    allowed-origins: https://crm.test
+  rate-limit:
+    # Flow tests hammer /auth from one address; RateLimitTest turns it back on.
+    enabled: false
   media:
     local-dir: ./target/test-media
+  jobs:
+    # Run background jobs immediately in the caller's thread, so flow tests can
+    # assert their effects. JobQueueTest exercises the real worker.
+    inline: true
   push:
     # Never call the Expo API from tests.
     enabled: false

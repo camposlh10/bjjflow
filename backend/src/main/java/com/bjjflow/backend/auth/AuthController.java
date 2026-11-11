@@ -48,6 +48,13 @@ public class AuthController {
         return authService.refresh(request.refreshToken());
     }
 
+    /** Revokes the session behind this refresh token. Always 200. */
+    @PostMapping("/logout")
+    public Map<String, Boolean> logout(@Valid @RequestBody RefreshRequest request) {
+        authService.logout(request.refreshToken());
+        return Map.of("ok", true);
+    }
+
     @PostMapping("/mfa")
     public AuthResponse completeMfa(@Valid @RequestBody MfaChallengeRequest request) {
         return authService.completeMfa(request.mfaToken(), request.code());

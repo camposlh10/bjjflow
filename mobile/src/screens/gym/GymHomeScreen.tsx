@@ -32,13 +32,19 @@ import RankingScreen from './RankingScreen';
 
 type Nav = NativeStackNavigationProp<GymStackParamList, 'GymHome'>;
 
-const INNER_TABS: { key: string; label: TranslationKey }[] = [
+type GymSection = 'mural' | 'agenda' | 'members' | 'market' | 'ranking';
+
+/** The three everyday sections; Mercado and Ranking open from the ⋯ menu. */
+const MAIN_SECTIONS: { key: GymSection; label: TranslationKey }[] = [
   { key: 'mural', label: 'gym.tab.mural' },
   { key: 'agenda', label: 'gym.tab.agenda' },
   { key: 'members', label: 'gym.tab.members' },
-  { key: 'market', label: 'gym.tab.market' },
-  { key: 'ranking', label: 'gym.tab.ranking' },
 ];
+
+const EXTRA_SECTIONS: Partial<Record<GymSection, TranslationKey>> = {
+  market: 'gym.tab.market',
+  ranking: 'gym.tab.ranking',
+};
 
 function roleLabel(role: GymRole): string {
   if (role === 'OWNER') return t('gym.role.OWNER');
@@ -133,12 +139,14 @@ const ROLE_CYCLE: GymRole[] = ['MEMBER', 'INSTRUCTOR', 'OWNER'];
 function GymView({ gym }: { gym: Gym }) {
   const navigation = useNavigation<Nav>();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState('members');
+  // Opens on the wall: what's new at the gym is the most common reason to come here.
+  const [activeTab, setActiveTab] = useState<GymSection>('mural');
   const [menuVisible, setMenuVisible] = useState(false);
   const [copied, setCopied] = useState(false);
   const staff = gym.role === 'OWNER' || gym.role === 'INSTRUCTOR';
 
   const copyCode = async () => {
+    setMenuVisible(false);
     if (!gym.inviteCode) return;
     await Clipboard.setStringAsync(gym.inviteCode);
     Haptics.selectionAsync();
@@ -203,25 +211,56 @@ function GymView({ gym }: { gym: Gym }) {
             </Text>
           </View>
         </Pressable>
-        <Pressable
-          style={styles.roleChip}
-          onPress={() => changeRole.mutate()}
-          disabled={changeRole.isPending}>
-          <Text style={styles.roleChipText}>{roleLabel(gym.role)}</Text>
-          <MaterialCommunityIcons name="swap-horizontal" size={13} color={palette.textSecondary} />
-        </Pressable>
+        {/* Role switching is a development tool (the server only allows it in dev). */}
+        {__DEV__ && (
+          <Pressable
+            style={styles.roleChip}
+            onPress={() => changeRole.mutate()}
+            disabled={changeRole.isPending}
+            accessibilityHint={t('gym.role.testHint')}>
+            <Text style={styles.roleChipText}>{roleLabel(gym.role)}</Text>
+            <MaterialCommunityIcons name="swap-horizontal" size={13} color={palette.textSecondary} />
+          </Pressable>
+        )}
         <Menu
           visible={menuVisible}
           onDismiss={() => setMenuVisible(false)}
           anchor={
             <IconButton
-              icon="cog"
+              icon="dots-horizontal"
               iconColor={palette.textSecondary}
-              size={20}
+              size={22}
               onPress={() => setMenuVisible(true)}
               accessibilityLabel={t('a11y.more')}
             />
           }>
+          <Menu.Item
+            onPress={() => {
+              setMenuVisible(false);
+              setActiveTab('market');
+            }}
+            title={t('gym.tab.market')}
+            leadingIcon="storefront-outline"
+          />
+          <Menu.Item
+            onPress={() => {
+              setMenuVisible(false);
+              setActiveTab('ranking');
+            }}
+            title={t('gym.tab.ranking')}
+            leadingIcon="trophy-outline"
+          />
+          {staff && gym.inviteCode && (
+            <Menu.Item onPress={copyCode} title={t('gym.invite.copy')} leadingIcon="key-variant" />
+          )}
+          <Menu.Item
+            onPress={() => {
+              setMenuVisible(false);
+              navigation.navigate('GymProfile');
+            }}
+            title={t('gymProfile.title')}
+            leadingIcon="information-outline"
+          />
           {gym.role === 'OWNER' && (
             <Menu.Item
               onPress={() => {
@@ -236,39 +275,45 @@ function GymView({ gym }: { gym: Gym }) {
         </Menu>
       </View>
 
-      <Text style={styles.testHint}>{t('gym.role.testHint')}</Text>
-
-      {staff && gym.inviteCode && (
+      {copied && (
         <View style={styles.inviteRow}>
-          <MaterialCommunityIcons name="key-variant" size={14} color={palette.textSecondary} />
+          <MaterialCommunityIcons name="check" size={14} color="#4ADE80" />
           <Text style={styles.inviteText}>
-            {t('gym.invite.label')}: <Text style={styles.inviteCode}>{gym.inviteCode}</Text>
+            {t('gym.invite.copied')}: <Text style={styles.inviteCode}>{gym.inviteCode}</Text>
           </Text>
-          <Pressable onPress={copyCode} hitSlop={8} style={styles.copyBtn}>
-            <MaterialCommunityIcons
-              name={copied ? 'check' : 'content-copy'}
-              size={15}
-              color={copied ? '#4ADE80' : palette.primary}
-            />
-            {copied && <Text style={styles.copyText}>{t('gym.invite.copied')}</Text>}
-          </Pressable>
         </View>
       )}
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.innerTabs}
-        contentContainerStyle={styles.innerTabsContent}>
-        {INNER_TABS.map((tab) => (
-          <Text
-            key={tab.key}
-            onPress={() => setActiveTab(tab.key)}
-            style={[styles.innerTab, activeTab === tab.key && styles.innerTabActive]}>
-            {t(tab.label)}
-          </Text>
-        ))}
-      </ScrollView>
+      {EXTRA_SECTIONS[activeTab] ? (
+        <View style={styles.extraHead}>
+          <Pressable
+            onPress={() => setActiveTab('mural')}
+            hitSlop={8}
+            style={styles.extraBack}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.back')}>
+            <MaterialCommunityIcons name="arrow-left" size={20} color={palette.textPrimary} />
+          </Pressable>
+          <Text style={styles.extraTitle}>{t(EXTRA_SECTIONS[activeTab]!)}</Text>
+        </View>
+      ) : (
+        <View style={styles.segment} accessibilityRole="tablist">
+          {MAIN_SECTIONS.map((section) => {
+            const active = activeTab === section.key;
+            return (
+              <Pressable
+                key={section.key}
+                onPress={() => setActiveTab(section.key)}
+                style={[styles.segmentItem, active && styles.segmentItemActive]}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: active }}
+                aria-selected={active}>
+                <Text style={[styles.segmentText, active && styles.segmentTextActive]}>{t(section.label)}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      )}
 
       {activeTab === 'members' ? (
         <MembersList gym={gym} />
@@ -391,6 +436,21 @@ function ComingSoon() {
 }
 
 const styles = makeStyles(() => ({
+  segment: {
+    flexDirection: 'row',
+    backgroundColor: palette.surface,
+    borderRadius: 12,
+    padding: 3,
+    marginTop: 4,
+    marginBottom: 14,
+  },
+  segmentItem: { flex: 1, minHeight: 38, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },
+  segmentItemActive: { backgroundColor: palette.surfaceVariant },
+  segmentText: { color: palette.textSecondary, fontSize: 14, fontWeight: '600' },
+  segmentTextActive: { color: palette.textPrimary },
+  extraHead: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4, marginBottom: 14 },
+  extraBack: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.surface },
+  extraTitle: { color: palette.textPrimary, fontSize: 17, fontWeight: 'bold' },
   container: { flex: 1, backgroundColor: palette.background, paddingHorizontal: 20 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 40 },
   soon: { color: palette.textSecondary },
@@ -465,22 +525,9 @@ const styles = makeStyles(() => ({
     paddingVertical: 5,
   },
   roleChipText: { color: palette.textSecondary, fontSize: 11 },
-  testHint: { color: palette.textSecondary, fontSize: 10, marginTop: -2, marginBottom: 10 },
   inviteRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
   inviteText: { color: palette.textSecondary, fontSize: 12 },
   inviteCode: { color: palette.textPrimary, fontWeight: 'bold', letterSpacing: 1 },
-  copyBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, marginLeft: 8 },
-  copyText: { fontSize: 11, color: '#4ADE80' },
-
-  innerTabs: { flexGrow: 0, marginBottom: 16, borderBottomWidth: 0.5, borderBottomColor: palette.surfaceVariant },
-  innerTabsContent: { gap: 18, paddingBottom: 4 },
-  innerTab: { color: palette.textSecondary, fontSize: 13, paddingTop: 6, paddingBottom: 10 },
-  innerTabActive: {
-    color: palette.textPrimary,
-    fontWeight: 'bold',
-    borderBottomWidth: 2,
-    borderBottomColor: palette.primary,
-  },
 
   membersContent: { paddingBottom: 24 },
   memberRow: {

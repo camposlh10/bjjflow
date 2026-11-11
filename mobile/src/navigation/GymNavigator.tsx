@@ -4,7 +4,7 @@ import { AgendaOccurrence } from '../api/classes';
 import { t } from '../i18n';
 import ConversationScreen from '../screens/ConversationScreen';
 import StudentManagementScreen from '../screens/gym/StudentManagementScreen';
-import type { ConversationParams } from './ComunidadeNavigator';
+import type { ConversationParams } from './HomeNavigator';
 import AdminVerificationsScreen from '../screens/gym/AdminVerificationsScreen';
 import AttendanceScreen from '../screens/gym/AttendanceScreen';
 import ClassDetailScreen from '../screens/gym/ClassDetailScreen';

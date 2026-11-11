@@ -30,6 +30,9 @@ public class Gym {
 
     private String description;
 
+    /** IANA zone (e.g. America/Sao_Paulo): automations run at the gym's local time. */
+    private String timezone = "America/Sao_Paulo";
+
     @Column(name = "invite_code")
     private String inviteCode;
 

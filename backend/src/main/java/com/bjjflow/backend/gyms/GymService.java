@@ -265,17 +265,13 @@ public class GymService {
             return List.of();
         }
         String city = userRepository.findById(userId).map(User::getCity).orElse(null);
-        List<Gym> gyms = city == null || city.isBlank()
-                ? gymRepository.findAll()
-                : gymRepository.findAllByCityIgnoreCase(city);
-        if (gyms.isEmpty()) {
-            gyms = gymRepository.findAll();
+        var top = org.springframework.data.domain.PageRequest.of(0, MAX_SUGGESTIONS);
+        List<Object[]> rows = city == null || city.isBlank() ? List.of() : gymRepository.largestInCity(city, top);
+        if (rows.isEmpty()) {
+            rows = gymRepository.largest(top);
         }
-        return gyms.stream()
-                .map(g -> new GymSuggestionDto(g.getId(), g.getName(), g.getCity(),
-                        gymMemberRepository.countByGymId(g.getId())))
-                .sorted(Comparator.comparingLong(GymSuggestionDto::memberCount).reversed())
-                .limit(MAX_SUGGESTIONS)
+        return rows.stream()
+                .map(r -> new GymSuggestionDto((Long) r[0], (String) r[1], (String) r[2], (Long) r[3]))
                 .toList();
     }
 

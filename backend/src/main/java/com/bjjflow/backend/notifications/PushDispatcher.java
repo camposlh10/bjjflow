@@ -2,16 +2,12 @@ package com.bjjflow.backend.notifications;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.client.RestClient;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -19,8 +15,10 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 /**
  * Remote push delivery via the Expo Push API. The in-app notification center
  * is the source of truth; this fans the same message out to the member's
- * phone. Delivery is best-effort, asynchronous, and fires only after the
- * surrounding transaction commits — a rolled-back notification never pushes.
+ * phone.
+ *
+ * Called from the {@link PushJobHandler} background job, never inside a
+ * request: a transport failure throws so the job is retried with backoff.
  *
  * Disable with app.push.enabled=false (tests do).
  */
@@ -34,7 +32,6 @@ public class PushDispatcher {
     private final PushTokenRepository pushTokenRepository;
     private final RestClient restClient;
     private final boolean enabled;
-    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
     public PushDispatcher(PushTokenRepository pushTokenRepository,
             RestClient.Builder restClientBuilder,
@@ -44,6 +41,11 @@ public class PushDispatcher {
         this.enabled = enabled;
     }
 
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    /** Sends to every registered Expo token of the user. Throws if Expo cannot be reached. */
     public void sendToUser(Long userId, String title, String body) {
         if (!enabled || userId == null) {
             return;
@@ -52,43 +54,20 @@ public class PushDispatcher {
                 .map(PushToken::getToken)
                 .filter(PushDispatcher::isExpoToken)
                 .toList();
-        if (tokens.isEmpty()) {
-            return;
-        }
-        Runnable dispatch = () -> executor.submit(() -> deliver(tokens, title, body));
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    dispatch.run();
-                }
-            });
-        } else {
-            dispatch.run();
-        }
-    }
-
-    private void deliver(List<String> tokens, String title, String body) {
         for (int start = 0; start < tokens.size(); start += CHUNK_SIZE) {
             List<String> chunk = tokens.subList(start, Math.min(start + CHUNK_SIZE, tokens.size()));
-            try {
-                List<Map<String, Object>> messages = chunk.stream()
-                        .map(token -> Map.<String, Object>of(
-                                "to", token, "title", title, "body", body == null ? "" : body,
-                                "sound", "default"))
-                        .toList();
-                ExpoPushResponse response = restClient.post()
-                        .uri(EXPO_PUSH_URL)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .body(messages)
-                        .retrieve()
-                        .body(ExpoPushResponse.class);
-                handleTickets(chunk, response);
-            } catch (Exception exception) {
-                // Best-effort: the in-app notification already exists.
-                log.warn("Expo push delivery failed for {} token(s): {}", chunk.size(),
-                        exception.getMessage());
-            }
+            List<Map<String, Object>> messages = chunk.stream()
+                    .map(token -> Map.<String, Object>of(
+                            "to", token, "title", title, "body", body == null ? "" : body,
+                            "sound", "default"))
+                    .toList();
+            ExpoPushResponse response = restClient.post()
+                    .uri(EXPO_PUSH_URL)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(messages)
+                    .retrieve()
+                    .body(ExpoPushResponse.class);
+            handleTickets(chunk, response);
         }
     }
 
@@ -105,6 +84,7 @@ public class PushDispatcher {
                     // Stale token (app uninstalled / token rotated): stop trying.
                     pushTokenRepository.deleteByToken(chunk.get(index));
                 } else {
+                    // Per-device rejections are not retried: resending would not change them.
                     log.warn("Expo push ticket error: {} ({})", ticket.message(), detail);
                 }
             }

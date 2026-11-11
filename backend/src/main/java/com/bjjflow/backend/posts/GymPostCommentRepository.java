@@ -11,6 +11,9 @@ public interface GymPostCommentRepository extends JpaRepository<GymPostComment, 
 
     List<GymPostComment> findAllByPostIdOrderByCreatedAtAsc(Long postId);
 
+    /** Newest first, capped; callers reverse to chronological order. */
+    List<GymPostComment> findByPostIdOrderByIdDesc(Long postId, org.springframework.data.domain.Pageable pageable);
+
     long countByPostId(Long postId);
 
     void deleteByPostId(Long postId);

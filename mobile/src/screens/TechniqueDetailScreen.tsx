@@ -8,7 +8,7 @@ import { getTechnique, toggleTechniqueFavorite } from '../api/techniques';
 import QueryState from '../components/QueryState';
 import { CATEGORY_COLORS, DIFFICULTY_LABELS, categoryLabel } from '../constants/techniques';
 import { t } from '../i18n';
-import type { HomeStackParamList } from '../navigation/HomeNavigator';
+import type { ProgressStackParamList } from '../navigation/ProgressNavigator';
 import { makeStyles, palette } from '../theme/theme';
 
 const BELT_LABELS: Record<string, string> = {
@@ -30,7 +30,7 @@ function beltLabel(slug: string | null): string | null {
 }
 
 export default function TechniqueDetailScreen() {
-  const route = useRoute<RouteProp<HomeStackParamList, 'TechniqueDetail'>>();
+  const route = useRoute<RouteProp<ProgressStackParamList, 'TechniqueDetail'>>();
   const navigation = useNavigation();
   const qc = useQueryClient();
   const { id } = route.params;

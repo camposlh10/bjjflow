@@ -16,6 +16,10 @@ public class PostDtos {
     public record MediaDto(String url, String type) {
     }
 
+    /** A page of the gym wall plus the cursor for the next (older) page (null = end). */
+    public record PostPage(java.util.List<PostDto> items, Long nextCursor) {
+    }
+
     public record PostDto(
             Long id,
             AuthorDto author,

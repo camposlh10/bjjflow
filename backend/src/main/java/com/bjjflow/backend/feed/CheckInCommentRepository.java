@@ -11,6 +11,10 @@ public interface CheckInCommentRepository extends JpaRepository<CheckInComment, 
 
     List<CheckInComment> findAllByCheckInIdOrderByCreatedAtAsc(Long checkInId);
 
+    /** Newest first, capped; callers reverse to chronological order. */
+    List<CheckInComment> findByCheckInIdOrderByIdDesc(Long checkInId,
+            org.springframework.data.domain.Pageable pageable);
+
     @Query("select c.checkInId, count(c) from CheckInComment c where c.checkInId in :ids group by c.checkInId")
     List<Object[]> countByCheckInIds(@Param("ids") Collection<Long> ids);
 }

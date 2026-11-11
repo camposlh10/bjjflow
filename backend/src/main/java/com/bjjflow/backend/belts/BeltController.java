@@ -19,11 +19,22 @@ public class BeltController {
             Integer sortOrder, Integer maxStripes, String system) {
     }
 
+    /** The catalogue only changes with a migration, so it is served from memory. */
+    private volatile List<BeltRankDto> cachedRanks;
+
     @GetMapping("/ranks")
-    public List<BeltRankDto> ranks() {
-        return beltRankRepository.findAllByOrderByBeltSystemIdAscSortOrderAsc().stream()
-                .map(r -> new BeltRankDto(r.getId(), r.getSlug(), r.getName(), r.getNamePt(),
-                        r.getColorHex(), r.getSortOrder(), r.getMaxStripes(), r.getBeltSystem().getName()))
-                .toList();
+    public org.springframework.http.ResponseEntity<List<BeltRankDto>> ranks() {
+        List<BeltRankDto> ranks = cachedRanks;
+        if (ranks == null) {
+            ranks = beltRankRepository.findAllByOrderByBeltSystemIdAscSortOrderAsc().stream()
+                    .map(r -> new BeltRankDto(r.getId(), r.getSlug(), r.getName(), r.getNamePt(),
+                            r.getColorHex(), r.getSortOrder(), r.getMaxStripes(), r.getBeltSystem().getName()))
+                    .toList();
+            cachedRanks = ranks;
+        }
+        return org.springframework.http.ResponseEntity.ok()
+                .cacheControl(org.springframework.http.CacheControl.maxAge(java.time.Duration.ofHours(1)).cachePublic())
+                .body(ranks);
     }
+
 }

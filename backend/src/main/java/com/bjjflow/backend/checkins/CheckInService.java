@@ -35,6 +35,14 @@ public class CheckInService {
 
     @Transactional
     public CheckInDto create(Long userId, CreateCheckInRequest request) {
+        String clientId = blankToNull(request.clientId());
+        if (clientId != null) {
+            // A retry of a check-in that already went through: answer the same way.
+            var existing = checkInRepository.findByUserIdAndClientId(userId, clientId);
+            if (existing.isPresent()) {
+                return toDto(existing.get());
+            }
+        }
         LocalDate today = LocalDate.now();
         if (request.date().isAfter(today)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "FUTURE_DATE", "Cannot check in for a future date");
@@ -51,6 +59,7 @@ public class CheckInService {
         checkIn.setNotes(request.notes());
         checkIn.setVisibility(normalizeVisibility(request.visibility()));
         checkIn.setPhotoKey(blankToNull(request.photoKey()));
+        checkIn.setClientId(clientId);
         checkIn = checkInRepository.save(checkIn);
 
         saveSubmissions(userId, checkIn.getId(), request.date(), request.submissions());
@@ -58,6 +67,18 @@ public class CheckInService {
         int streak = updateStreak(userId, request.date());
         emitProgress(userId, request.date(), streak);
 
+        return toDto(checkIn);
+    }
+
+    /** The check-in a concurrent duplicate request already created (see CheckInController). */
+    @Transactional(readOnly = true)
+    public java.util.Optional<CheckInDto> findByClientId(Long userId, String clientId) {
+        String id = blankToNull(clientId);
+        return id == null ? java.util.Optional.empty()
+                : checkInRepository.findByUserIdAndClientId(userId, id).map(CheckInService::toDto);
+    }
+
+    private static CheckInDto toDto(CheckIn checkIn) {
         return new CheckInDto(checkIn.getId(), checkIn.getCheckDate(), checkIn.getSessionType(),
                 checkIn.getDurationMinutes(), checkIn.getNotes());
     }

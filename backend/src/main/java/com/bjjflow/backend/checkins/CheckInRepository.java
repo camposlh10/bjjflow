@@ -10,6 +10,8 @@ import org.springframework.data.repository.query.Param;
 
 public interface CheckInRepository extends JpaRepository<CheckIn, Long> {
 
+    java.util.Optional<CheckIn> findByUserIdAndClientId(Long userId, String clientId);
+
     List<CheckIn> findAllByUserIdAndCheckDateBetweenOrderByCheckDateAsc(Long userId, LocalDate from, LocalDate to);
 
     /** First page of the global Comunidade feed: newest public sessions (id desc ==

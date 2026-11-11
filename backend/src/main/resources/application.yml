@@ -9,28 +9,85 @@ spring:
     multipart:
       max-file-size: 50MB
       max-request-size: 60MB
+  threads:
+    # One virtual thread per request: a slow query or upstream call no longer
+    # ties up a scarce platform thread, so the server keeps accepting requests.
+    virtual:
+      enabled: true
+  datasource:
+    hikari:
+      # Connections are the real concurrency limit now. Keep this below the
+      # database's connection cap (divided by the number of instances).
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+      # Fail fast instead of queueing requests behind an exhausted pool.
+      connection-timeout: 5000
 
 server:
   # 8090: Apache (httpd) occupies 8080 and Expo's Metro bundler owns 8081 on the
   # dev machine — sharing 8081 made API calls silently hit Metro when Expo
   # started first. Keep this in sync with API_BASE_URL in the mobile client.ts.
   port: ${PORT:8090}
+  # Behind the platform's proxy: take the real client IP and scheme from the
+  # X-Forwarded-* headers (the auth rate limiter keys on the client IP).
+  forward-headers-strategy: native
   # Gzip JSON responses over ~1KB — large transfer savings on feeds and lists.
   compression:
     enabled: true
     mime-types: application/json,application/hal+json,text/plain,text/css,application/javascript
     min-response-size: 1024
 
+management:
+  endpoints:
+    web:
+      exposure:
+        # Only health is reachable over HTTP. Add metrics/prometheus here once a
+        # monitoring destination is chosen (and lock the endpoint down).
+        include: health
+  endpoint:
+    health:
+      probes:
+        # /actuator/health/liveness and /actuator/health/readiness
+        enabled: true
+
 app:
   jwt:
-    # Dev-only secret; override via APP_JWT_SECRET env var in any real deployment
-    secret: ${APP_JWT_SECRET:dev-only-secret-change-me-0123456789abcdef0123456789abcdef}
-    access-ttl-minutes: 60
+    # No default on purpose: outside the dev profile the app refuses to start
+    # without APP_JWT_SECRET (min. 32 characters), so tokens can never be signed
+    # with a publicly known key.
+    secret: ${APP_JWT_SECRET}
+    # Short-lived: clients renew silently with the refresh token.
+    access-ttl-minutes: 15
     refresh-ttl-days: 30
+    # Also accept the pre-rotation JWT refresh tokens held by older app builds.
+    # Set APP_JWT_ACCEPT_LEGACY_REFRESH=false ~30 days after this ships.
+    accept-legacy-refresh: ${APP_JWT_ACCEPT_LEGACY_REFRESH:true}
+  cors:
+    # Browser origins allowed to call the API (the CRM), comma-separated.
+    # Wildcards allowed, e.g. https://crm.example.com,https://*.vercel.app
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
+  rate-limit:
+    enabled: ${APP_RATE_LIMIT_ENABLED:true}
+    # Per client IP, per minute.
+    auth-per-minute: 20
+    refresh-per-minute: 60
   media:
-    # provider: local | (s3 / azure later). Swap LocalMediaStorage for a cloud impl.
-    provider: local
+    # local = this server's disk (dev only: lost on redeploy, single instance).
+    # s3    = any S3-compatible bucket (Cloudflare R2, AWS S3); clients upload direct.
+    provider: ${APP_MEDIA_PROVIDER:local}
     local-dir: ./data/media
+    s3:
+      # R2: https://<account-id>.r2.cloudflarestorage.com  (leave empty for AWS S3)
+      endpoint: ${APP_MEDIA_S3_ENDPOINT:}
+      # R2: auto.  AWS: the bucket's region, e.g. sa-east-1
+      region: ${APP_MEDIA_S3_REGION:auto}
+      bucket: ${APP_MEDIA_S3_BUCKET:}
+      access-key: ${APP_MEDIA_S3_ACCESS_KEY:}
+      secret-key: ${APP_MEDIA_S3_SECRET_KEY:}
+      # Public/CDN domain files are read from, e.g. https://media.example.com
+      public-base-url: ${APP_MEDIA_S3_PUBLIC_BASE_URL:}
+  jobs:
+    # How often the background worker looks for due jobs (push, email, fan-out).
+    poll-interval-ms: ${APP_JOBS_POLL_INTERVAL_MS:1000}
   push:
     # Remote push via the Expo Push API (in-app notifications always work).
     # Requires the mobile app to register its ExponentPushToken.
@@ -80,6 +137,12 @@ spring:
       enabled: true
       path: /h2-console
 app:
+  jwt:
+    # Dev-only signing key. Never used outside this profile.
+    secret: ${APP_JWT_SECRET:dev-only-secret-change-me-0123456789abcdef0123456789abcdef}
+  cors:
+    # Any origin in dev (Expo web, Vite on a LAN address).
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:*}
   # Dev/testing backdoors (role/verify/pro toggles, seed bot) are ON locally only.
   # Production runs the postgres profile, which does NOT set this → endpoints 404.
   dev-tools: true

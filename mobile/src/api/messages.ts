@@ -36,12 +36,34 @@ export async function startConversation(userId: number): Promise<Conversation> {
   return data;
 }
 
-export async function getMessages(conversationId: number): Promise<DirectMessage[]> {
-  const { data } = await api.get<DirectMessage[]>(`/conversations/${conversationId}/messages`);
+/**
+ * Messages in chronological order.
+ * - `after`: only messages newer than that id (what a poll needs);
+ * - `before`: the page of older messages just before that id;
+ * - neither: the latest `limit` messages.
+ */
+export async function getMessages(
+  conversationId: number,
+  page: { limit?: number; before?: number; after?: number } = {},
+): Promise<DirectMessage[]> {
+  const { data } = await api.get<DirectMessage[]>(`/conversations/${conversationId}/messages`, {
+    params: page,
+  });
   return data;
 }
 
-export async function sendMessage(conversationId: number, content: string): Promise<DirectMessage> {
-  const { data } = await api.post<DirectMessage>(`/conversations/${conversationId}/messages`, { content });
+/**
+ * `clientId` is the app's own id for the message: resending the same one
+ * returns the original instead of posting it twice (see offline/outbox).
+ */
+export async function sendMessage(
+  conversationId: number,
+  content: string,
+  clientId?: string,
+): Promise<DirectMessage> {
+  const { data } = await api.post<DirectMessage>(`/conversations/${conversationId}/messages`, {
+    content,
+    clientId,
+  });
   return data;
 }

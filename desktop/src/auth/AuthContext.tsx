@@ -1,5 +1,14 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react';
-import { api, ApiError, getStoredUser, getToken, setStoredUser, setToken } from '../lib/api';
+import {
+  api,
+  ApiError,
+  getStoredUser,
+  getToken,
+  revokeSession,
+  setRefreshToken,
+  setStoredUser,
+  setToken,
+} from '../lib/api';
 import type { AuthResponse, AuthUser } from '../lib/types';
 
 interface RegisterInput {
@@ -36,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new ApiError(500, 'NO_TOKEN', 'Resposta de autenticação inválida.');
     }
     setToken(response.accessToken);
+    setRefreshToken(response.refreshToken);
     if (response.user) setStoredUser(response.user);
     setTokenState(response.accessToken);
     setUser(response.user);
@@ -66,6 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const logout = useCallback(() => {
+    revokeSession();
     setToken(null);
     setTokenState(null);
     setUser(null);

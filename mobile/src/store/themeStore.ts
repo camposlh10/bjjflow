@@ -1,4 +1,4 @@
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from './secureStorage';
 import { Appearance } from 'react-native';
 import { create } from 'zustand';
 

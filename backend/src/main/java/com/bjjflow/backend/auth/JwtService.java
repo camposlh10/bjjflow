@@ -19,7 +19,7 @@ import io.jsonwebtoken.security.Keys;
 @Service
 public class JwtService {
 
-    public record ParsedToken(Long userId, String type) {
+    public record ParsedToken(Long userId, String type, Instant issuedAt, Instant expiresAt) {
     }
 
     private final SecretKey key;
@@ -39,6 +39,11 @@ public class JwtService {
         return createToken(userId, "access", Instant.now().plus(accessTtlMinutes, ChronoUnit.MINUTES));
     }
 
+    /**
+     * Legacy stateless refresh token. No longer issued to clients (see
+     * RefreshTokenService); kept so tests can exercise the migration path for
+     * app builds that still hold one.
+     */
     public String createRefreshToken(Long userId) {
         return createToken(userId, "refresh", Instant.now().plus(refreshTtlDays, ChronoUnit.DAYS));
     }
@@ -67,7 +72,9 @@ public class JwtService {
                     .getPayload();
             return Optional.of(new ParsedToken(
                     Long.parseLong(claims.getSubject()),
-                    claims.get("type", String.class)));
+                    claims.get("type", String.class),
+                    claims.getIssuedAt() == null ? null : claims.getIssuedAt().toInstant(),
+                    claims.getExpiration() == null ? null : claims.getExpiration().toInstant()));
         } catch (JwtException | IllegalArgumentException e) {
             return Optional.empty();
         }

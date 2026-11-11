@@ -39,21 +39,22 @@ public class PaymentReminderAutomation {
     private final UserRepository userRepository;
     private final AutomationEvents automationEvents;
 
-    public int run(LocalDate today) {
+    /** Runs the ladder for one gym; {@code today} is the gym's local date. */
+    public int run(Long gymId, LocalDate today) {
         int created = 0;
-        created += remindUpcoming(today, 7, "Sua fatura \"%s\" de %s vence em %s.");
-        created += remindUpcoming(today, 3, "Lembrete: a fatura \"%s\" de %s vence em %s.");
-        created += remindDueToday(today);
-        created += remindOverdue(today, 3);
-        created += remindOverdue(today, 7);
-        created += flagDelinquents(today);
+        created += remindUpcoming(gymId, today, 7, "Sua fatura \"%s\" de %s vence em %s.");
+        created += remindUpcoming(gymId, today, 3, "Lembrete: a fatura \"%s\" de %s vence em %s.");
+        created += remindDueToday(gymId, today);
+        created += remindOverdue(gymId, today, 3);
+        created += remindOverdue(gymId, today, 7);
+        created += flagDelinquents(gymId, today);
         return created;
     }
 
-    private int remindUpcoming(LocalDate today, int daysAhead, String template) {
+    private int remindUpcoming(Long gymId, LocalDate today, int daysAhead, String template) {
         int created = 0;
-        for (Invoice invoice : invoiceRepository.findAllByStatusInAndDueDate(
-                List.of(PaymentStatus.PENDING), today.plusDays(daysAhead))) {
+        for (Invoice invoice : invoiceRepository.findAllByGymIdAndStatusInAndDueDate(
+                gymId, List.of(PaymentStatus.PENDING), today.plusDays(daysAhead))) {
             String body = template.formatted(
                     invoice.getDescription(), money(invoice.getAmount()), BR_DATE.format(invoice.getDueDate()));
             if (automationEvents.fireOnce(invoice.getGymId(), AutomationEvents.PAYMENT_REMINDER,
@@ -65,9 +66,9 @@ public class PaymentReminderAutomation {
         return created;
     }
 
-    private int remindDueToday(LocalDate today) {
+    private int remindDueToday(Long gymId, LocalDate today) {
         int created = 0;
-        for (Invoice invoice : invoiceRepository.findAllByStatusInAndDueDate(OPEN, today)) {
+        for (Invoice invoice : invoiceRepository.findAllByGymIdAndStatusInAndDueDate(gymId, OPEN, today)) {
             String body = "A fatura \"%s\" de %s vence hoje.".formatted(
                     invoice.getDescription(), money(invoice.getAmount()));
             if (automationEvents.fireOnce(invoice.getGymId(), AutomationEvents.PAYMENT_REMINDER,
@@ -79,9 +80,10 @@ public class PaymentReminderAutomation {
         return created;
     }
 
-    private int remindOverdue(LocalDate today, int daysLate) {
+    private int remindOverdue(Long gymId, LocalDate today, int daysLate) {
         int created = 0;
-        for (Invoice invoice : invoiceRepository.findAllByStatusInAndDueDate(OPEN, today.minusDays(daysLate))) {
+        for (Invoice invoice : invoiceRepository.findAllByGymIdAndStatusInAndDueDate(gymId, OPEN,
+                today.minusDays(daysLate))) {
             String body = "A fatura \"%s\" de %s está em atraso desde %s.".formatted(
                     invoice.getDescription(), money(invoice.getAmount()), BR_DATE.format(invoice.getDueDate()));
             if (automationEvents.fireOnce(invoice.getGymId(), AutomationEvents.PAYMENT_OVERDUE,
@@ -93,9 +95,10 @@ public class PaymentReminderAutomation {
         return created;
     }
 
-    private int flagDelinquents(LocalDate today) {
+    private int flagDelinquents(Long gymId, LocalDate today) {
         int created = 0;
-        for (Invoice invoice : invoiceRepository.findAllByStatusInAndDueDate(OPEN, today.minusDays(15))) {
+        for (Invoice invoice : invoiceRepository.findAllByGymIdAndStatusInAndDueDate(gymId, OPEN,
+                today.minusDays(15))) {
             GymMember member = gymMemberRepository
                     .findByGymIdAndUserId(invoice.getGymId(), invoice.getMemberUserId()).orElse(null);
             String memberName = userRepository.findById(invoice.getMemberUserId())

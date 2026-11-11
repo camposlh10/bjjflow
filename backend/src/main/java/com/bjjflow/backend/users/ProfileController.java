@@ -106,7 +106,8 @@ public class ProfileController {
 
     @PutMapping("/me/password")
     public ResponseEntity<Void> changePassword(Authentication auth, @Valid @RequestBody ChangePasswordRequest request) {
-        profileService.changePassword(userId(auth), request.currentPassword(), request.newPassword());
+        profileService.changePassword(userId(auth), request.currentPassword(), request.newPassword(),
+                request.refreshToken());
         return ResponseEntity.noContent().build();
     }
 

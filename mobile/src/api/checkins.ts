@@ -32,11 +32,6 @@ export async function getStats(): Promise<Stats> {
   return data;
 }
 
-export async function createQuickCheckIn(): Promise<void> {
-  // Check-in de um toque: duração padrão de 60min
-  await api.post('/checkins', { date: todayLocalDate(), durationMinutes: 60 });
-}
-
 export type CheckInSubmission = { submission: string; direction: 'HIT' | 'CONCEDED'; count: number };
 
 export type Visibility = 'PUBLIC' | 'PRIVATE';
@@ -51,6 +46,8 @@ export type CreateCheckInPayload = {
   /** Storage key of an uploaded training photo (from uploadMedia). */
   photoKey?: string;
   submissions?: CheckInSubmission[];
+  /** The app's own id: resending the same check-in never records it twice. */
+  clientId?: string;
 };
 
 /** Detailed check-in (session type, duration, submissions landed/conceded, notes). */

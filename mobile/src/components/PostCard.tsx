@@ -55,6 +55,14 @@ function PostCard({
   onOpen,
 }: Props) {
   const [menuVisible, setMenuVisible] = useState(false);
+  // Paper's Menu runs its close animation when it mounts and then focuses its
+  // anchor; on web that scrolls the list to this post, so a wall of posts drags
+  // itself to the bottom while loading. Mount the Menu only once it is first opened.
+  const [menuMounted, setMenuMounted] = useState(false);
+  const openMenu = () => {
+    setMenuMounted(true);
+    setMenuVisible(true);
+  };
   const role = roleLabel(post.author.role);
   const isAuthor = post.author.userId === myUserId;
   const canPin = isStaff;
@@ -93,7 +101,16 @@ function PostCard({
             <Text style={styles.timeText}>{formatShortDateTime(post.createdAt)}</Text>
           </View>
         </View>
-        {showMenu && (
+        {showMenu && !menuMounted && (
+          <IconButton
+            icon="dots-horizontal"
+            size={18}
+            iconColor={palette.textSecondary}
+            onPress={openMenu}
+            accessibilityLabel={t('a11y.more')}
+          />
+        )}
+        {showMenu && menuMounted && (
           <Menu
             visible={menuVisible}
             onDismiss={() => setMenuVisible(false)}
@@ -102,7 +119,7 @@ function PostCard({
                 icon="dots-horizontal"
                 size={18}
                 iconColor={palette.textSecondary}
-                onPress={() => setMenuVisible(true)}
+                onPress={openMenu}
                 accessibilityLabel={t('a11y.more')}
               />
             }>

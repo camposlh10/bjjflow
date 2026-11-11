@@ -14,6 +14,9 @@ public interface GymMemberRepository extends JpaRepository<GymMember, Long> {
 
     List<GymMember> findAllByGymId(Long gymId);
 
+    /** Memberships of just these users (e.g. the authors on one page of posts). */
+    List<GymMember> findAllByGymIdAndUserIdIn(Long gymId, java.util.Collection<Long> userIds);
+
     List<GymMember> findAllByGymIdAndRole(Long gymId, GymRole role);
 
     long countByGymId(Long gymId);

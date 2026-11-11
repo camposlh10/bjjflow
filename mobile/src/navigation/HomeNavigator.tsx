@@ -1,44 +1,37 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import type { PersonalTechnique } from '../api/techniques';
+import type { FeedItem } from '../api/feed';
 import { t } from '../i18n';
-import AccountScreen from '../screens/AccountScreen';
-import AppearanceScreen from '../screens/AppearanceScreen';
-import BodyMapScreen from '../screens/BodyMapScreen';
-import DonationsScreen from '../screens/DonationsScreen';
+import ConversationScreen from '../screens/ConversationScreen';
+import DirectInboxScreen from '../screens/DirectInboxScreen';
 import EditUserProfileScreen from '../screens/EditUserProfileScreen';
-import HelpScreen from '../screens/HelpScreen';
+import FeedCommentsScreen from '../screens/FeedCommentsScreen';
 import HomeScreen from '../screens/HomeScreen';
-import LanguageScreen from '../screens/LanguageScreen';
-import MetricsScreen from '../screens/MetricsScreen';
-import MfaScreen from '../screens/MfaScreen';
-import NotificationsScreen from '../screens/NotificationsScreen';
-import PersonalTechniqueEditorScreen from '../screens/PersonalTechniqueEditorScreen';
-import PrivacyScreen from '../screens/PrivacyScreen';
-import SettingsScreen from '../screens/SettingsScreen';
+import NotificationCenterScreen from '../screens/NotificationCenterScreen';
+import StudentManagementScreen from '../screens/gym/StudentManagementScreen';
 import SubmissionsScreen from '../screens/SubmissionsScreen';
-import TechniqueDetailScreen from '../screens/TechniqueDetailScreen';
-import TechniquesScreen from '../screens/TechniquesScreen';
+import UserProfileScreen from '../screens/UserProfileScreen';
 import { palette } from '../theme/theme';
 
+export type ConversationParams = {
+  conversationId?: number;
+  userId?: number;
+  title?: string;
+  username?: string | null;
+  avatarUrl?: string | null;
+};
+
+/** Início: today + the community feed, and everything reached from it (people, messages, notifications). */
 export type HomeStackParamList = {
   HomeMain: undefined;
-  Settings: undefined;
+  FeedComments: { item: FeedItem };
+  UserProfile: { userId?: number } | undefined;
   EditUserProfile: undefined;
-  Account: undefined;
-  Notifications: undefined;
-  Privacy: undefined;
-  Help: undefined;
-  Metrics: undefined;
-  Mfa: undefined;
-  Language: undefined;
-  Appearance: undefined;
-  Techniques: undefined;
-  TechniqueDetail: { id: number };
-  PersonalTechniqueEditor: { technique?: PersonalTechnique } | undefined;
-  Donations: undefined;
-  BodyMap: undefined;
   Submissions: { userId?: number } | undefined;
+  Direct: undefined;
+  Conversation: ConversationParams;
+  StudentManagement: { userId: number };
+  NotificationCenter: undefined;
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -54,34 +47,30 @@ export default function HomeNavigator() {
         animation: 'slide_from_right',
       }}>
       <Stack.Screen name="HomeMain" component={HomeScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: t('settings.title') }} />
+      <Stack.Screen name="FeedComments" component={FeedCommentsScreen} options={{ title: t('feed.comments.title') }} />
+      <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: t('tabs.profile') }} />
       <Stack.Screen
         name="EditUserProfile"
         component={EditUserProfileScreen}
         options={{ title: t('profile.edit.title') }}
       />
-      <Stack.Screen name="Account" component={AccountScreen} options={{ title: t('settings.account') }} />
-      <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: t('settings.notifications') }} />
-      <Stack.Screen name="Privacy" component={PrivacyScreen} options={{ title: t('settings.privacy') }} />
-      <Stack.Screen name="Help" component={HelpScreen} options={{ title: t('settings.help') }} />
-      <Stack.Screen name="Metrics" component={MetricsScreen} options={{ title: t('metrics.title') }} />
-      <Stack.Screen name="Mfa" component={MfaScreen} options={{ title: t('mfa.title') }} />
-      <Stack.Screen name="Language" component={LanguageScreen} options={{ title: t('language.title') }} />
-      <Stack.Screen name="Appearance" component={AppearanceScreen} options={{ title: t('settings.appearance') }} />
-      <Stack.Screen name="Techniques" component={TechniquesScreen} options={{ title: t('techniques.title') }} />
-      <Stack.Screen
-        name="TechniqueDetail"
-        component={TechniqueDetailScreen}
-        options={{ title: t('techniques.title') }}
-      />
-      <Stack.Screen
-        name="PersonalTechniqueEditor"
-        component={PersonalTechniqueEditorScreen}
-        options={{ title: t('techniques.tab.mine') }}
-      />
-      <Stack.Screen name="Donations" component={DonationsScreen} options={{ title: t('donations.title') }} />
-      <Stack.Screen name="BodyMap" component={BodyMapScreen} options={{ title: t('body.title') }} />
       <Stack.Screen name="Submissions" component={SubmissionsScreen} options={{ title: t('submissions.title') }} />
+      <Stack.Screen name="Direct" component={DirectInboxScreen} options={{ title: t('dm.title') }} />
+      <Stack.Screen
+        name="Conversation"
+        component={ConversationScreen}
+        options={({ route }) => ({ title: route.params?.title ?? t('dm.title') })}
+      />
+      <Stack.Screen
+        name="StudentManagement"
+        component={StudentManagementScreen}
+        options={{ title: t('student.manage') }}
+      />
+      <Stack.Screen
+        name="NotificationCenter"
+        component={NotificationCenterScreen}
+        options={{ title: t('notifications.center.title') }}
+      />
     </Stack.Navigator>
   );
 }

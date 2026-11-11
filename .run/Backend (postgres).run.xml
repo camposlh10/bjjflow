@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Backend (postgres)" type="Application" factoryName="Application">
+    <option name="MAIN_CLASS_NAME" value="com.bjjflow.backend.BjjFlowBackendApplication" />
+    <module name="bjj-flow-backend" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/backend" />
+    <option name="VM_PARAMETERS" value="-Dspring.profiles.active=postgres" />
+    <!-- Matches backend/docker-compose.yml. Start it first: docker compose up -d -->
+    <envs>
+      <env name="SPRING_DATASOURCE_URL" value="jdbc:postgresql://localhost:5432/bjjflow" />
+      <env name="SPRING_DATASOURCE_USERNAME" value="bjjflow" />
+      <env name="SPRING_DATASOURCE_PASSWORD" value="bjjflow" />
+    </envs>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

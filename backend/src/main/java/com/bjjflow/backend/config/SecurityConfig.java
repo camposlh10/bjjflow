@@ -2,6 +2,7 @@ package com.bjjflow.backend.config;
 
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -28,6 +29,14 @@ import lombok.RequiredArgsConstructor;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final AuthRateLimitFilter authRateLimitFilter;
+
+    /**
+     * Browser origins allowed to call the API (the CRM). Comma-separated; entries
+     * may use wildcards, e.g. https://*.vercel.app. Native mobile apps do not use CORS.
+     */
+    @Value("${app.cors.allowed-origins:}")
+    private List<String> allowedOrigins;
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -38,6 +47,11 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/health").permitAll()
+                        // The realtime socket authenticates with the first frame it receives
+                        // (browsers cannot send an Authorization header on a WebSocket).
+                        .requestMatchers("/api/v1/realtime").permitAll()
+                        // Liveness/readiness probes for the hosting platform.
+                        .requestMatchers("/actuator/health/**").permitAll()
                         // The error dispatch must be reachable, else any unhandled exception
                         // surfaces as a misleading 401 instead of its real status.
                         .requestMatchers("/error").permitAll()
@@ -55,6 +69,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(authRateLimitFilter, JwtAuthFilter.class)
                 // h2-console renders inside a frame
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
         return http.build();
@@ -67,9 +82,8 @@ public class SecurityConfig {
 
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
-        // Permissive CORS for development (Expo web). Native mobile apps don't use CORS.
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOriginPatterns(List.of("*"));
+        config.setAllowedOriginPatterns(allowedOrigins.stream().filter(origin -> !origin.isBlank()).toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -3,7 +3,7 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import { QueryClient } from '@tanstack/react-query';
 
 // Bump when a cached response SHAPE changes incompatibly — invalidates old caches.
-export const CACHE_BUSTER = 'v1';
+export const CACHE_BUSTER = 'v2';
 export const CACHE_MAX_AGE = 1000 * 60 * 60 * 24; // 24h
 
 export const queryClient = new QueryClient({

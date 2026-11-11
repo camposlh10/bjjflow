@@ -1,9 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   FlatList,
   Image,
   KeyboardAvoidingView,
@@ -16,10 +17,19 @@ import {
 } from 'react-native';
 import { ActivityIndicator } from 'react-native-paper';
 
-import { DirectMessage, getMessages, sendMessage, startConversation } from '../api/messages';
+import { DirectMessage, getMessages, startConversation } from '../api/messages';
 import { resolveMediaUrl } from '../api/posts';
 import { t } from '../i18n';
+import { discardMessage, queueMessage, retryMessage, useOutbox } from '../offline/outbox';
+import { useRealtimeStatus } from '../realtime/realtime';
+import { useAuthStore } from '../store/authStore';
 import { makeStyles, palette } from '../theme/theme';
+
+/** Messages fetched per page (first load and each "load earlier"). */
+const PAGE_SIZE = 50;
+
+/** A row in the thread: a confirmed message, or one still in the outbox. */
+type Row = DirectMessage & { outboxId?: string; failed?: boolean };
 
 type Params = {
   conversationId?: number;
@@ -65,7 +75,7 @@ export default function ConversationScreen() {
   const navigation = useNavigation<any>();
   const headerHeight = useHeaderHeight();
   const queryClient = useQueryClient();
-  const listRef = useRef<FlatList<DirectMessage>>(null);
+  const listRef = useRef<FlatList<Row>>(null);
 
   const params = route.params ?? {};
   const [convId, setConvId] = useState<number | null>(params.conversationId ?? null);
@@ -96,24 +106,104 @@ export default function ConversationScreen() {
     };
   }, [convId, params.userId]);
 
+  const myId = useAuthStore((s) => s.user?.id);
+  const messagesKey = ['messages', convId];
+  const [noEarlier, setNoEarlier] = useState(false);
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
+  // Set while older messages are being prepended, so the list doesn't jump to the bottom.
+  const keepScroll = useRef(false);
+
+  // The thread lives in the cache as one growing list. The first fetch loads the
+  // latest page; every poll after that asks only for messages newer than the last
+  // one we have, so a quiet conversation costs an empty response. With the live
+  // connection up, new messages trigger a refetch at once and the poll is only a
+  // safety net.
+  const connected = useRealtimeStatus((s) => s.connected);
   const messages = useQuery({
-    queryKey: ['messages', convId],
-    queryFn: () => getMessages(convId as number),
-    enabled: convId != null,
-    refetchInterval: 4000,
-  });
-
-  const send = useMutation({
-    mutationFn: () => sendMessage(convId as number, text.trim()),
-    onSuccess: () => {
-      setText('');
-      queryClient.invalidateQueries({ queryKey: ['messages', convId] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    queryKey: messagesKey,
+    queryFn: async () => {
+      const cached = queryClient.getQueryData<DirectMessage[]>(messagesKey) ?? [];
+      const lastConfirmed = cached[cached.length - 1];
+      const fetched = lastConfirmed
+        ? await getMessages(convId as number, { after: lastConfirmed.id })
+        : await getMessages(convId as number, { limit: PAGE_SIZE });
+      // Re-read: a message may have been sent while the request was in flight.
+      const current = queryClient.getQueryData<DirectMessage[]>(messagesKey) ?? [];
+      const known = new Set(current.map((m) => m.id));
+      const fresh = fetched.filter((m) => !known.has(m.id));
+      if (fresh.length === 0) {
+        return current;
+      }
+      return [...current, ...fresh].sort((a, b) => a.id - b.id);
     },
+    enabled: convId != null,
+    refetchInterval: connected ? 30_000 : 4_000,
   });
 
-  const data = messages.data ?? [];
-  const canSend = text.trim().length > 0 && convId != null && !send.isPending;
+  // Messages typed here wait in the outbox until the server confirms them; they
+  // survive a lost connection and the app closing.
+  const outboxItems = useOutbox((s) => s.items);
+  const pending = useMemo(
+    () => outboxItems.filter((i) => i.kind === 'message' && i.conversationId === convId),
+    [outboxItems, convId],
+  );
+
+  const send = () => {
+    const content = text.trim();
+    if (!content || convId == null) return;
+    setText('');
+    queueMessage(convId, content);
+  };
+
+  const onPendingPress = (row: Row) => {
+    if (!row.failed || !row.outboxId) return;
+    const id = row.outboxId;
+    Alert.alert(t('dm.thread.failed'), row.content, [
+      { text: t('dm.thread.discard'), style: 'destructive', onPress: () => discardMessage(id) },
+      { text: t('dm.thread.retry'), onPress: () => retryMessage(id) },
+    ]);
+  };
+
+
+  const confirmed = messages.data ?? [];
+  const data: Row[] = useMemo(
+    () => [
+      ...confirmed,
+      ...pending.map((item, index) => ({
+        id: -(index + 1),
+        senderId: myId ?? 0,
+        fromMe: true,
+        content: item.kind === 'message' ? item.content : '',
+        createdAt: item.createdAt,
+        outboxId: item.id,
+        failed: item.kind === 'message' ? item.failed : false,
+      })),
+    ],
+    [confirmed, pending, myId],
+  );
+  const canSend = text.trim().length > 0 && convId != null;
+  const canLoadEarlier = confirmed.length >= PAGE_SIZE && !noEarlier;
+
+  const loadEarlier = async () => {
+    const first = confirmed[0];
+    if (!first || loadingEarlier || convId == null) return;
+    setLoadingEarlier(true);
+    try {
+      const older = await getMessages(convId, { limit: PAGE_SIZE, before: first.id });
+      if (older.length < PAGE_SIZE) setNoEarlier(true);
+      if (older.length > 0) {
+        keepScroll.current = true;
+        queryClient.setQueryData<DirectMessage[]>(messagesKey, (old = []) => {
+          const known = new Set(old.map((m) => m.id));
+          return [...older.filter((m) => !known.has(m.id)), ...old];
+        });
+      }
+    } catch {
+      // Leave the button in place so it can be tried again.
+    } finally {
+      setLoadingEarlier(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView
@@ -128,11 +218,31 @@ export default function ConversationScreen() {
         <FlatList
           ref={listRef}
           data={data}
-          keyExtractor={(m) => String(m.id)}
+          keyExtractor={(m) => m.outboxId ?? String(m.id)}
           contentContainerStyle={styles.list}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
-          onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+          onContentSizeChange={() => {
+            if (keepScroll.current) {
+              keepScroll.current = false;
+              return;
+            }
+            listRef.current?.scrollToEnd({ animated: false });
+            // The last row can finish laying out a frame later (web especially),
+            // which left the newest message under the composer. Scroll once more.
+            requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: false }));
+          }}
+          ListHeaderComponent={
+            canLoadEarlier ? (
+              <Pressable onPress={loadEarlier} disabled={loadingEarlier} style={styles.loadEarlier}>
+                {loadingEarlier ? (
+                  <ActivityIndicator size="small" />
+                ) : (
+                  <Text style={styles.loadEarlierText}>{t('dm.thread.loadEarlier')}</Text>
+                )}
+              </Pressable>
+            ) : null
+          }
           ListEmptyComponent={<Text style={styles.emptyHint}>{t('dm.thread.empty')}</Text>}
           renderItem={({ item, index }) => {
             // Group consecutive messages from the same sender (tighter spacing, IG-style).
@@ -145,14 +255,25 @@ export default function ConversationScreen() {
                   item.fromMe ? styles.rowMine : styles.rowTheirs,
                   { marginTop: grouped ? 2 : 10 },
                 ]}>
-                <View
+                <Pressable
+                  onPress={() => onPendingPress(item)}
+                  disabled={!item.failed}
+                  accessibilityHint={item.failed ? t('dm.thread.failed') : undefined}
                   style={[
                     styles.bubble,
                     item.fromMe ? styles.bubbleMine : styles.bubbleTheirs,
                     grouped && (item.fromMe ? styles.groupedMine : styles.groupedTheirs),
+                    // Still on its way to the server.
+                    item.outboxId && !item.failed && styles.bubblePending,
+                    item.failed && styles.bubbleFailed,
                   ]}>
                   <Text style={item.fromMe ? styles.textMine : styles.textTheirs}>{item.content}</Text>
-                </View>
+                </Pressable>
+                {item.outboxId ? (
+                  <Text style={[styles.status, item.failed && styles.statusFailed]}>
+                    {item.failed ? t('dm.thread.failed') : t('dm.thread.sending')}
+                  </Text>
+                ) : null}
               </View>
             );
           }}
@@ -170,7 +291,7 @@ export default function ConversationScreen() {
           />
         </View>
         <Pressable
-          onPress={() => send.mutate()}
+          onPress={send}
           disabled={!canSend}
           style={[styles.sendBtn, !canSend && styles.sendBtnOff]}
           hitSlop={6}
@@ -196,9 +317,16 @@ const styles = makeStyles(() => ({
 
   list: { padding: 12, flexGrow: 1, justifyContent: 'flex-end' },
   emptyHint: { color: palette.textSecondary, fontSize: 13, textAlign: 'center', marginVertical: 24 },
-  bubbleRow: { flexDirection: 'row' },
-  rowMine: { justifyContent: 'flex-end' },
-  rowTheirs: { justifyContent: 'flex-start' },
+  loadEarlier: { alignSelf: 'center', paddingVertical: 10, paddingHorizontal: 16, minHeight: 40, justifyContent: 'center' },
+  loadEarlierText: { color: palette.primary, fontSize: 13, fontWeight: '600' },
+  bubblePending: { opacity: 0.6 },
+  bubbleFailed: { opacity: 0.6 },
+  status: { color: palette.textSecondary, fontSize: 11, marginTop: 2 },
+  statusFailed: { color: palette.primary },
+  // Column so a pending message's status line sits under its bubble.
+  bubbleRow: { flexDirection: 'column' },
+  rowMine: { alignItems: 'flex-end' },
+  rowTheirs: { alignItems: 'flex-start' },
   bubble: { maxWidth: '76%', borderRadius: 20, paddingHorizontal: 13, paddingVertical: 9 },
   bubbleMine: { backgroundColor: palette.primary, borderBottomRightRadius: 6 },
   bubbleTheirs: { backgroundColor: palette.surface, borderBottomLeftRadius: 6 },

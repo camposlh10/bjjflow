@@ -29,13 +29,25 @@ public class ClassReminderAutomation {
     private final GymClassRepository gymClassRepository;
     private final ClassAttendanceRepository classAttendanceRepository;
     private final AutomationEvents automationEvents;
+    private final GymZones gymZones;
 
+    /** All gyms. Class times are read in each gym's own time zone. */
     public int run(Instant now) {
-        ZoneId zone = ZoneId.systemDefault();
-        ZonedDateTime reference = now.atZone(zone);
+        return remindClasses(now, gymClassRepository.findAllByActiveTrue());
+    }
+
+    /** One gym (the CRM's "run now"). */
+    public int runForGym(Instant now, Long gymId) {
+        return remindClasses(now, gymClassRepository.findAllByGymIdAndActiveTrueOrderByDayOfWeekAscStartTimeAsc(gymId));
+    }
+
+    private int remindClasses(Instant now, java.util.List<GymClass> classes) {
+        java.util.Map<Long, ZoneId> zones = gymZones.zonesFor(
+                classes.stream().map(GymClass::getGymId).collect(java.util.stream.Collectors.toSet()));
         int created = 0;
 
-        for (GymClass gymClass : gymClassRepository.findAllByActiveTrue()) {
+        for (GymClass gymClass : classes) {
+            ZonedDateTime reference = now.atZone(zones.getOrDefault(gymClass.getGymId(), GymZones.DEFAULT));
             ZonedDateTime occurrence = nextOccurrence(gymClass, reference);
             Duration until = Duration.between(reference, occurrence);
 

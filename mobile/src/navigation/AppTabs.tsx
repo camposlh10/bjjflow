@@ -1,19 +1,20 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import CheckInSheet from '../components/CheckInSheet';
+import SyncBridge from '../components/SyncBridge';
 import { t } from '../i18n';
-import ComunidadeNavigator from './ComunidadeNavigator';
+import { useCheckInSheet } from '../store/checkInSheetStore';
 import GymNavigator from './GymNavigator';
 import HomeNavigator from './HomeNavigator';
+import ProgressNavigator from './ProgressNavigator';
 import ProfileNavigator from './ProfileNavigator';
 import { makeStyles, palette } from '../theme/theme';
 
 export type AppTabsParamList = {
   Home: undefined;
-  Comunidade: undefined;
+  Progress: undefined;
   CheckIn: undefined;
   Gym: undefined;
   Profile: undefined;
@@ -26,7 +27,9 @@ function EmptyScreen() {
 }
 
 export default function AppTabs() {
-  const [checkInOpen, setCheckInOpen] = useState(false);
+  const checkInOpen = useCheckInSheet((s) => s.visible);
+  const openCheckIn = useCheckInSheet((s) => s.open);
+  const closeCheckIn = useCheckInSheet((s) => s.close);
 
   return (
     <>
@@ -49,12 +52,12 @@ export default function AppTabs() {
         }}
       />
       <Tab.Screen
-        name="Comunidade"
-        component={ComunidadeNavigator}
+        name="Progress"
+        component={ProgressNavigator}
         options={{
-          tabBarLabel: t('tabs.community'),
+          tabBarLabel: t('tabs.progress'),
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="earth" size={size} color={color} />
+            <MaterialCommunityIcons name="chart-line" size={size} color={color} />
           ),
         }}
       />
@@ -66,7 +69,7 @@ export default function AppTabs() {
           tabBarButton: () => (
             <View style={styles.centerWrap}>
               <Pressable
-                onPress={() => setCheckInOpen(true)}
+                onPress={openCheckIn}
                 style={({ pressed }) => [styles.centerButton, pressed && styles.centerPressed]}
                 accessibilityLabel={t('home.checkin.button')}>
                 <MaterialCommunityIcons name="plus" size={26} color="#FFFFFF" />
@@ -96,7 +99,8 @@ export default function AppTabs() {
         }}
       />
     </Tab.Navigator>
-    <CheckInSheet visible={checkInOpen} onClose={() => setCheckInOpen(false)} />
+    <CheckInSheet visible={checkInOpen} onClose={closeCheckIn} />
+    <SyncBridge />
     </>
   );
 }

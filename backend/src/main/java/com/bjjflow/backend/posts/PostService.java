@@ -52,6 +52,9 @@ public class PostService {
     private final GymRepository gymRepository;
     private final UserRepository userRepository;
     private final UserBeltProgressRepository beltProgressRepository;
+    private static final int LEGACY_FEED_LIMIT = 100;
+    private static final int MAX_COMMENTS = 200;
+
     private final MediaStorage mediaStorage;
     private final com.bjjflow.backend.notifications.NotificationService notificationService;
 
@@ -71,13 +74,12 @@ public class PostService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "UNSUPPORTED_MEDIA",
                     "Only images and videos are allowed");
         }
-        byte[] bytes;
-        try {
-            bytes = file.getBytes();
+        String key;
+        try (java.io.InputStream in = file.getInputStream()) {
+            key = mediaStorage.store(in, file.getSize(), contentType, file.getOriginalFilename());
         } catch (IOException e) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "UPLOAD_FAILED", "Could not read upload");
         }
-        String key = mediaStorage.store(bytes, contentType, file.getOriginalFilename());
         return new UploadResponse(key, mediaStorage.urlFor(key), type.name());
     }
 
@@ -119,23 +121,46 @@ public class PostService {
             String preview = text.isEmpty()
                     ? "compartilhou algo no Mural."
                     : "postou no Mural: " + (text.length() > 80 ? text.substring(0, 77) + "…" : text);
-            for (GymMember m : gymMemberRepository.findAllByGymId(membership.getGymId())) {
-                if (!m.getUserId().equals(userId)) {
-                    notificationService.notify(m.getUserId(),
-                            com.bjjflow.backend.notifications.NotificationType.ACADEMY, author, preview,
-                            "gym:" + membership.getGymId());
-                }
-            }
+            List<Long> recipients = gymMemberRepository.findAllByGymId(membership.getGymId()).stream()
+                    .map(GymMember::getUserId)
+                    .filter(memberId -> !memberId.equals(userId))
+                    .toList();
+            // Background fan-out: publishing doesn't wait on notifying the whole gym.
+            notificationService.notifyMany(recipients, com.bjjflow.backend.notifications.NotificationType.ACADEMY,
+                    author, preview, "gym:" + membership.getGymId());
         }
         return toPostDto(post, userId);
     }
 
+    /** Unpaged wall for app builds that predate paging: the most recent posts only. */
     @Transactional(readOnly = true)
     public List<PostDto> feed(Long userId) {
         GymMember membership = requireMembership(userId);
         return buildPostDtos(
-                postRepository.findAllByGymIdOrderByPinnedDescCreatedAtDesc(membership.getGymId()),
+                postRepository.findAllByGymIdOrderByPinnedDescCreatedAtDesc(membership.getGymId(),
+                        org.springframework.data.domain.PageRequest.of(0, LEGACY_FEED_LIMIT)),
                 userId, membership.getGymId());
+    }
+
+    /**
+     * Cursor-paged wall, newest first. The first page (no cursor) starts with
+     * every pinned post; later pages continue through the unpinned ones.
+     */
+    @Transactional(readOnly = true)
+    public PostDtos.PostPage feedPage(Long userId, Long cursor, int limit) {
+        GymMember membership = requireMembership(userId);
+        Long gymId = membership.getGymId();
+        var pageable = org.springframework.data.domain.PageRequest.of(0, limit);
+        List<GymPost> unpinned = cursor == null
+                ? postRepository.findByGymIdAndPinnedFalseOrderByIdDesc(gymId, pageable)
+                : postRepository.findByGymIdAndPinnedFalseAndIdLessThanOrderByIdDesc(gymId, cursor, pageable);
+        List<GymPost> posts = new ArrayList<>();
+        if (cursor == null) {
+            posts.addAll(postRepository.findByGymIdAndPinnedTrueOrderByIdDesc(gymId));
+        }
+        posts.addAll(unpinned);
+        Long nextCursor = unpinned.size() == limit ? unpinned.get(unpinned.size() - 1).getId() : null;
+        return new PostDtos.PostPage(buildPostDtos(posts, userId, gymId), nextCursor);
     }
 
     @Transactional(readOnly = true)
@@ -227,7 +252,10 @@ public class PostService {
     public List<CommentDto> listComments(Long userId, Long postId) {
         GymMember membership = requireMembership(userId);
         GymPost post = postInGym(postId, membership.getGymId());
-        List<GymPostComment> comments = commentRepository.findAllByPostIdOrderByCreatedAtAsc(post.getId());
+        // Most recent comments only, shown oldest-first.
+        List<GymPostComment> comments = new ArrayList<>(commentRepository.findByPostIdOrderByIdDesc(post.getId(),
+                org.springframework.data.domain.PageRequest.of(0, MAX_COMMENTS)));
+        java.util.Collections.reverse(comments);
         Map<Long, AuthorDto> authors = authorMap(membership.getGymId(),
                 comments.stream().map(GymPostComment::getUserId).collect(Collectors.toSet()));
         return comments.stream()
@@ -356,7 +384,7 @@ public class PostService {
             belts.put(p.getUserId(), toBeltSummary(p));
         }
         Map<Long, String> roles = new HashMap<>();
-        for (GymMember m : gymMemberRepository.findAllByGymId(gymId)) {
+        for (GymMember m : gymMemberRepository.findAllByGymIdAndUserIdIn(gymId, userIds)) {
             roles.put(m.getUserId(), m.getRole().name());
         }
         Map<Long, AuthorDto> out = new HashMap<>();

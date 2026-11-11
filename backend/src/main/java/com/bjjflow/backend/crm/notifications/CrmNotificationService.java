@@ -64,9 +64,7 @@ public class CrmNotificationService {
 
         String title = request.title().trim();
         String message = request.message().trim();
-        for (Long recipient : recipients) {
-            notificationService.notify(recipient, NotificationType.ACADEMY, title, message, null);
-        }
+        notificationService.notifyMany(recipients, NotificationType.ACADEMY, title, message, null);
         automationEvents.fireOnce(crm.gymId(), AutomationEvents.ANNOUNCEMENT,
                 "announcement-" + UUID.randomUUID(), request.memberUserId(), null, title, message);
         return new AnnouncementResponse(recipients.size());
@@ -95,7 +93,8 @@ public class CrmNotificationService {
     }
 
     public RunAutomationsResponse runNow(Long userId) {
-        crmAccessService.requireOwner(userId);
-        return new RunAutomationsResponse(automationRunner.runAll());
+        CrmPrincipal crm = crmAccessService.requireOwner(userId);
+        // Only this owner's gym, at the gym's local date.
+        return new RunAutomationsResponse(automationRunner.runForGym(crm.gymId()));
     }
 }

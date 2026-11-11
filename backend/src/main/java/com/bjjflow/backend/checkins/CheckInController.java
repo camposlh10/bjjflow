@@ -27,7 +27,13 @@ public class CheckInController {
 
     @PostMapping("/api/v1/checkins")
     public CheckInDto create(Authentication auth, @Valid @RequestBody CreateCheckInRequest request) {
-        return checkInService.create(Long.parseLong(auth.getName()), request);
+        Long userId = Long.parseLong(auth.getName());
+        try {
+            return checkInService.create(userId, request);
+        } catch (org.springframework.dao.DataIntegrityViolationException duplicate) {
+            // Two copies of the same check-in raced; the other one won. Return it.
+            return checkInService.findByClientId(userId, request.clientId()).orElseThrow(() -> duplicate);
+        }
     }
 
     @GetMapping("/api/v1/checkins")

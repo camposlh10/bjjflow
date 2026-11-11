@@ -124,6 +124,12 @@ public class FeedService {
                 });
 
         for (UserEvent e : userEventRepository.findTop20ByUserIdOrderByOccurredAtDesc(userId)) {
+            // The first training is derived from the earliest check-in above (which
+            // stays right even when a session is back-dated); the stored event would
+            // show it twice.
+            if (EventType.FIRST_TRAINING.equals(e.getType())) {
+                continue;
+            }
             timeline.add(new TimelineItemDto(e.getType(), e.getValue(), e.getText(), e.getBeltSlug(), e.getOccurredAt()));
         }
 

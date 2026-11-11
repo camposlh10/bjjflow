@@ -40,6 +40,13 @@ public class Conversation {
     @Column(name = "last_message_at")
     private Instant lastMessageAt;
 
+    /** Latest message, denormalized so the inbox needs no per-row lookup. */
+    @Column(name = "last_message_preview")
+    private String lastMessagePreview;
+
+    @Column(name = "last_sender_id")
+    private Long lastSenderId;
+
     @Column(name = "created_at")
     private Instant createdAt;
 

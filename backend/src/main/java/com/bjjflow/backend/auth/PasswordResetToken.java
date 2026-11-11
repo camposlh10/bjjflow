@@ -35,6 +35,9 @@ public class PasswordResetToken {
 
     private Boolean used = false;
 
+    /** Wrong guesses so far; the code is dead once this hits the cap. */
+    private Integer attempts = 0;
+
     @Column(name = "created_at")
     private Instant createdAt;
 

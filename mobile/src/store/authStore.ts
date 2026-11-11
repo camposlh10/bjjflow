@@ -1,4 +1,4 @@
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from './secureStorage';
 import { create } from 'zustand';
 
 import { clearPersistedCache } from '../queryClient';
@@ -53,7 +53,8 @@ type AuthState = {
   setAuth: (tokens: Tokens, user: User) => Promise<void>;
   setTokens: (tokens: Tokens) => Promise<void>;
   setUser: (user: User) => void;
-  logout: () => Promise<void>;
+  /** revoke=false skips the server call (used when the server already ended the session). */
+  logout: (options?: { revoke?: boolean }) => Promise<void>;
   hydrate: () => Promise<void>;
 };
 
@@ -61,7 +62,7 @@ const ACCESS_KEY = 'bjjflow.accessToken';
 const REFRESH_KEY = 'bjjflow.refreshToken';
 const USER_KEY = 'bjjflow.user';
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   hydrated: false,
   accessToken: null,
   refreshToken: null,
@@ -93,7 +94,14 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ user });
   },
 
-  logout: async () => {
+  logout: async (options) => {
+    const refreshToken = get().refreshToken;
+    if (refreshToken && options?.revoke !== false) {
+      // End the session server-side too, so the token is useless if it ever leaked.
+      // Not awaited: signing out must work offline. Lazy import avoids a cycle
+      // (the API client itself imports this store).
+      void import('../api/client').then(({ revokeSession }) => revokeSession(refreshToken));
+    }
     await Promise.all([
       SecureStore.deleteItemAsync(ACCESS_KEY),
       SecureStore.deleteItemAsync(REFRESH_KEY),
@@ -101,6 +109,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     ]);
     // Drop the previous user's persisted query cache so the next login starts clean.
     await clearPersistedCache();
+    // Never send this user's unsent messages/check-ins under the next user's session.
+    await import('../offline/outbox').then(({ useOutbox }) => useOutbox.getState().clear());
     set({ accessToken: null, refreshToken: null, user: null });
   },
 

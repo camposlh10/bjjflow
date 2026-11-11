@@ -30,7 +30,9 @@ public class ProfileDtos {
 
     public record ChangePasswordRequest(
             @jakarta.validation.constraints.NotBlank String currentPassword,
-            @jakarta.validation.constraints.NotBlank @Size(min = 8, max = 72) String newPassword) {
+            @jakarta.validation.constraints.NotBlank @Size(min = 8, max = 72) String newPassword,
+            // Optional: the caller's own refresh token, so this device stays signed in.
+            String refreshToken) {
     }
 
     public record ChangeEmailRequest(

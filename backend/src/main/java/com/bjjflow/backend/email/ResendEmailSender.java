@@ -3,19 +3,18 @@ package com.bjjflow.backend.email;
 import java.util.List;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestClient;
 
 /**
  * Sends email through Resend (https://resend.com). Built only when
- * {@code resend.api-key} is configured (see {@link EmailConfig}). Failures are
- * logged rather than thrown so callers like "forgot password" stay non-revealing.
+ * {@code resend.api-key} is configured (see {@link EmailConfig}).
+ *
+ * Runs from the {@link EmailJobHandler} background job, so a failure throws:
+ * the job is retried with backoff, and the request that asked for the email
+ * (e.g. "forgot password") has already answered without revealing anything.
  */
 public class ResendEmailSender implements EmailSender {
-
-    private static final Logger log = LoggerFactory.getLogger(ResendEmailSender.class);
 
     private final RestClient http = RestClient.builder().baseUrl("https://api.resend.com").build();
     private final String apiKey;
@@ -28,15 +27,11 @@ public class ResendEmailSender implements EmailSender {
 
     @Override
     public void send(String to, String subject, String html) {
-        try {
-            http.post().uri("/emails")
-                    .header("Authorization", "Bearer " + apiKey)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(Map.of("from", from, "to", List.of(to), "subject", subject, "html", html))
-                    .retrieve()
-                    .toBodilessEntity();
-        } catch (Exception e) {
-            log.warn("Resend email to {} failed: {}", to, e.getMessage());
-        }
+        http.post().uri("/emails")
+                .header("Authorization", "Bearer " + apiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(Map.of("from", from, "to", List.of(to), "subject", subject, "html", html))
+                .retrieve()
+                .toBodilessEntity();
     }
 }

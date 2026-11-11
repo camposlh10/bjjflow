@@ -1,11 +1,12 @@
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useQuery } from '@tanstack/react-query';
+import { useInfiniteQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, IconButton } from 'react-native-paper';
 
 import { Gym } from '../../api/gyms';
-import { getFeed } from '../../api/posts';
+import { Post, getFeedPage } from '../../api/posts';
 import PostList from '../../components/PostList';
 import { t } from '../../i18n';
 import { GymStackParamList } from '../../navigation/GymNavigator';
@@ -15,7 +16,27 @@ type Nav = NativeStackNavigationProp<GymStackParamList>;
 
 export default function MuralFeed({ gym }: { gym: Gym }) {
   const navigation = useNavigation<Nav>();
-  const feed = useQuery({ queryKey: ['gymFeed'], queryFn: getFeed });
+  const feed = useInfiniteQuery({
+    queryKey: ['gymFeed'],
+    queryFn: ({ pageParam }) => getFeedPage(pageParam),
+    initialPageParam: null as number | null,
+    getNextPageParam: (last) => last.nextCursor,
+  });
+  // Pages are fetched at different moments, so a post can appear in two of them
+  // (e.g. it was just unpinned): keep the first occurrence.
+  const posts = useMemo(() => {
+    const seen = new Set<number>();
+    const out: Post[] = [];
+    for (const page of feed.data?.pages ?? []) {
+      for (const post of page.items) {
+        if (!seen.has(post.id)) {
+          seen.add(post.id);
+          out.push(post);
+        }
+      }
+    }
+    return out;
+  }, [feed.data]);
 
   if (feed.isLoading) {
     return (
@@ -47,12 +68,16 @@ export default function MuralFeed({ gym }: { gym: Gym }) {
 
   return (
     <PostList
-      posts={feed.data ?? []}
+      posts={posts}
       gym={gym}
       header={header}
       emptyText={t('mural.empty')}
-      refreshing={feed.isRefetching}
+      refreshing={feed.isRefetching && !feed.isFetchingNextPage}
       onRefresh={() => feed.refetch()}
+      loadingMore={feed.isFetchingNextPage}
+      onEndReached={() => {
+        if (feed.hasNextPage && !feed.isFetchingNextPage) feed.fetchNextPage();
+      }}
     />
   );
 }

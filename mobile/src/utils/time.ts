@@ -46,6 +46,22 @@ export function dayHeader(isoDate: string): string {
   return base;
 }
 
+/**
+ * When a training happened, from its local date ("2026-11-09"): "hoje",
+ * "ontem", or "seg, 9 nov". The feed uses this so a session logged late
+ * still shows the day it was trained, not when it was posted.
+ */
+export function trainingDayLabel(date: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  const day = new Date(y, (m ?? 1) - 1, d ?? 1);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.round((today.getTime() - day.getTime()) / 86_400_000);
+  if (diff === 0) return 'hoje';
+  if (diff === 1) return 'ontem';
+  return `${WEEKDAYS[day.getDay()].toLowerCase()}, ${day.getDate()} ${MONTHS_PT[day.getMonth()]}`;
+}
+
 /** Tempo relativo curto em pt-BR: "agora", "5min", "3h", "2d", "4sem". */
 export function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();

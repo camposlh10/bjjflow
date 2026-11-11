@@ -23,7 +23,9 @@ public class CheckInDtos {
             @Size(max = 500) String notes,
             @Size(max = 10) String visibility,
             @Size(max = 255) String photoKey,
-            @Size(max = 100) @jakarta.validation.Valid List<SubmissionInput> submissions) {
+            @Size(max = 100) @jakarta.validation.Valid List<SubmissionInput> submissions,
+            // Optional id chosen by the app; sending the same one twice creates one check-in.
+            @Size(max = 64) String clientId) {
     }
 
     public record CheckInDto(Long id, LocalDate date, String sessionType, Integer durationMinutes, String notes) {

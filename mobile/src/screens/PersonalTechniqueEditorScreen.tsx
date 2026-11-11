@@ -15,13 +15,13 @@ import {
   type PersonalTechniqueInput,
 } from '../api/techniques';
 import { t } from '../i18n';
-import type { HomeStackParamList } from '../navigation/HomeNavigator';
+import type { ProgressStackParamList } from '../navigation/ProgressNavigator';
 import { makeStyles, palette } from '../theme/theme';
 
 const LIBRARY_COLORS = ['#E63946', '#E0A82E', '#2DB6A3', '#3E63DD', '#8E4EC6', '#F76808', '#4A9EED', '#16A34A'];
 
 export default function PersonalTechniqueEditorScreen() {
-  const route = useRoute<RouteProp<HomeStackParamList, 'PersonalTechniqueEditor'>>();
+  const route = useRoute<RouteProp<ProgressStackParamList, 'PersonalTechniqueEditor'>>();
   const navigation = useNavigation();
   const headerHeight = useHeaderHeight();
   const qc = useQueryClient();

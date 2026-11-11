@@ -39,6 +39,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CommunityFeedService {
 
+    private static final int MAX_COMMENTS = 200;
+
     private final CheckInRepository checkInRepository;
     private final UserRepository userRepository;
     private final UserBeltProgressRepository beltProgressRepository;
@@ -135,7 +137,10 @@ public class CommunityFeedService {
     @Transactional(readOnly = true)
     public List<FeedCommentDto> listComments(Long checkInId) {
         requirePublic(checkInId);
-        List<CheckInComment> comments = commentRepository.findAllByCheckInIdOrderByCreatedAtAsc(checkInId);
+        // Most recent comments only, shown oldest-first.
+        List<CheckInComment> comments = new ArrayList<>(
+                commentRepository.findByCheckInIdOrderByIdDesc(checkInId, PageRequest.of(0, MAX_COMMENTS)));
+        java.util.Collections.reverse(comments);
         Map<Long, FeedAuthorDto> authors = authorMap(
                 comments.stream().map(CheckInComment::getUserId).collect(Collectors.toSet()));
         return comments.stream()

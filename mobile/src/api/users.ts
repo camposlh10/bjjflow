@@ -1,6 +1,7 @@
 import { Journey } from './activity';
 import { MedalInput, MedalTier } from './gyms';
 import { api } from './client';
+import { useAuthStore } from '../store/authStore';
 
 export type ProfileBelt = {
   slug: string;
@@ -182,7 +183,9 @@ export async function updateSettings(payload: Partial<Omit<Settings, 'email' | '
 }
 
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
-  await api.put('/users/me/password', { currentPassword, newPassword });
+  // Sending our refresh token keeps this device signed in; every other device is signed out.
+  const refreshToken = useAuthStore.getState().refreshToken;
+  await api.put('/users/me/password', { currentPassword, newPassword, refreshToken });
 }
 
 export async function changeEmail(password: string, email: string): Promise<Settings> {
