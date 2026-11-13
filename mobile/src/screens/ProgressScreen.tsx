@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { Alert, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Modal, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,26 +11,30 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TimelineItem, getJourney, logCompetition } from '../api/activity';
 import { Stats, getStats, todayLocalDate } from '../api/checkins';
 import { getUserSubmissions } from '../api/submissions';
-import Skeleton from '../components/Skeleton';
-import MilestoneBar from '../components/MilestoneBar';
 import DateField from '../components/DateField';
+import MetricRing from '../components/MetricRing';
+import Skeleton from '../components/Skeleton';
 import SubmissionBars from '../components/SubmissionBars';
+import {
+  STREAK_MILESTONES,
+  TRAINING_MILESTONES,
+  WEEK_MILESTONES,
+  milestoneProgress,
+  nextMilestone,
+} from '../constants/milestones';
 import { SUBMISSIONS } from '../constants/submissions';
-import { STREAK_MILESTONES, TRAINING_MILESTONES, WEEK_MILESTONES, nextMilestone } from '../constants/milestones';
 import { t, tf } from '../i18n';
 import { useAuthStore } from '../store/authStore';
+import { useCheckInSheet } from '../store/checkInSheetStore';
 import { makeStyles, palette } from '../theme/theme';
 
-const localDate = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const localDate = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
-// Mirrors the profile "Métricas" rings so the evolution bars read the same.
-const METRIC_COLORS = { streak: palette.primary, trainings: '#E0A82E', weeks: '#2DB6A3' };
-
-// Journey dots cycle this palette by index, so no color repeats within any 6
-// consecutive events; a color is only reused after the previous one scrolls past.
-const JOURNEY_DOT_COLORS = ['#E63946', '#E0A82E', '#2DB6A3', '#3E63DD', '#8E4EC6', '#F76808'];
-
+const COLORS = { trainings: '#E0A82E', hours: '#3E63DD', streak: palette.primary, weeks: '#2DB6A3' };
+const UP = '#16A34A';
+const DOWN = '#E5484D';
 
 function formatMinutes(m: number): string {
   if (!m) return '0min';
@@ -63,50 +67,156 @@ function timelineText(item: TimelineItem): string {
   }
 }
 
+type Goal = { text: string; value: number; target: number; icon: keyof typeof MaterialCommunityIcons.glyphMap };
 
-function nextGoal(s: Stats): string {
+/** The single most reachable goal right now, with how far along it is. */
+function nextGoal(s: Stats): Goal {
   const recordGap = s.longestStreak - s.currentStreak;
   if (s.currentStreak > 0 && recordGap > 0 && recordGap <= 10) {
-    return tf('home.nextGoal.record', { n: s.longestStreak });
+    return {
+      text: tf('home.nextGoal.record', { n: s.longestStreak }),
+      value: s.currentStreak,
+      target: s.longestStreak,
+      icon: 'fire',
+    };
   }
   const nextTraining = nextMilestone(s.totalCheckIns, TRAINING_MILESTONES);
   if (nextTraining !== null && nextTraining - s.totalCheckIns <= 15) {
-    return tf('home.nextGoal.trainingMilestone', { m: nextTraining, n: nextTraining - s.totalCheckIns });
+    return {
+      text: tf('home.nextGoal.trainingMilestone', { m: nextTraining, n: nextTraining - s.totalCheckIns }),
+      value: s.totalCheckIns,
+      target: nextTraining,
+      icon: 'dumbbell',
+    };
   }
   const nextStreak = nextMilestone(s.currentStreak, STREAK_MILESTONES);
   if (s.currentStreak > 0 && nextStreak !== null && nextStreak - s.currentStreak <= 7) {
-    return tf('home.nextGoal.streakMilestone', { m: nextStreak, n: nextStreak - s.currentStreak });
+    return {
+      text: tf('home.nextGoal.streakMilestone', { m: nextStreak, n: nextStreak - s.currentStreak }),
+      value: s.currentStreak,
+      target: nextStreak,
+      icon: 'fire',
+    };
   }
-  if (s.currentStreak > 0) return t('home.nextGoal.maintain');
-  return t('home.nextGoal.start');
+  const goal = Math.max(1, s.weeklyGoal || 3);
+  return {
+    text: s.currentStreak > 0 ? t('home.nextGoal.maintain') : t('home.nextGoal.start'),
+    value: Math.min(s.weeklyProgress ?? 0, goal),
+    target: goal,
+    icon: 'target',
+  };
+}
+
+function weekMessage(s: Stats): string {
+  const goal = Math.max(1, s.weeklyGoal || 3);
+  const left = goal - (s.weeklyProgress ?? 0);
+  if (left <= 0) return t('progress.week.goalDone');
+  return left === 1 ? t('progress.week.left.one') : tf('progress.week.left.many', { n: left });
+}
+
+/** One number, what it means, and how close it is to the next milestone. */
+function StatTile({
+  icon,
+  color,
+  value,
+  label,
+  progress,
+  hint,
+}: {
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  color: string;
+  value: string | number;
+  label: string;
+  progress?: number;
+  hint?: string;
+}) {
+  return (
+    <View style={styles.tile} accessible accessibilityLabel={`${label}: ${value}${hint ? `. ${hint}` : ''}`}>
+      <View style={styles.tileTop}>
+        <MaterialCommunityIcons name={icon} size={18} color={color} />
+        <Text style={styles.tileLabel} numberOfLines={1}>
+          {label}
+        </Text>
+      </View>
+      <Text style={styles.tileValue}>{value}</Text>
+      {progress !== undefined && (
+        <View style={styles.tileTrack}>
+          <View style={[styles.tileFill, { width: `${Math.round(progress * 100)}%`, backgroundColor: color }]} />
+        </View>
+      )}
+      {hint ? (
+        <Text style={styles.tileHint} numberOfLines={1}>
+          {hint}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
+
+function ToolTile({
+  icon,
+  color,
+  label,
+  onPress,
+}: {
+  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  color: string;
+  label: string;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable style={styles.tool} onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
+      <View style={[styles.toolIcon, { backgroundColor: color + '26' }]}>
+        <MaterialCommunityIcons name={icon} size={22} color={color} />
+      </View>
+      <Text style={styles.toolLabel} numberOfLines={2}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
+
+function milestoneHint(value: number, ladder: number[]): string {
+  const next = nextMilestone(value, ladder);
+  return next === null ? t('progress.milestone.max') : tf('progress.milestone.next', { n: next - value, m: next });
 }
 
 /**
- * Progresso: everything about how your training is going, in one place —
- * milestones, weekly load, submissions, next goal, journey, plus the tools that
- * feed them (technique library, body map). Today's streak lives on Início.
+ * Progresso, read top to bottom as a story: how this week is going, your
+ * totals and how close each is to its next milestone, the one goal to chase
+ * next, your submissions, the tools that feed all this, and your journey.
  */
 export default function ProgressScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<any>();
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const openSheet = useCheckInSheet((s) => s.open);
   const [compOpen, setCompOpen] = useState(false);
+  const [showAllJourney, setShowAllJourney] = useState(false);
 
   const stats = useQuery({ queryKey: ['stats'], queryFn: getStats });
+  const journey = useQuery({ queryKey: ['journey'], queryFn: getJourney });
   const subMonth = todayLocalDate().slice(0, 7);
   const submissions = useQuery({
     queryKey: ['userSubmissions', user?.id ?? 0, subMonth, 'HIT'],
     queryFn: () => getUserSubmissions(user?.id ?? 0, subMonth, 'HIT'),
     enabled: !!user?.id,
   });
-  const journey = useQuery({ queryKey: ['journey'], queryFn: getJourney });
 
   const s = stats.data;
-  const timelineItems = Array.isArray(journey.data?.timeline) ? journey.data.timeline : [];
+  const timeline = Array.isArray(journey.data?.timeline) ? journey.data.timeline : [];
+  const shownTimeline = showAllJourney ? timeline : timeline.slice(0, 4);
+  const subItems = SUBMISSIONS.map((sb) => ({
+    label: sb.label,
+    color: sb.color,
+    value: submissions.data?.items.find((i) => i.submission === sb.key)?.count ?? 0,
+  }));
+  const hasSubs = subItems.some((i) => i.value > 0);
 
   return (
     <ScrollView
+      showsVerticalScrollIndicator={false}
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
       refreshControl={
@@ -115,173 +225,185 @@ export default function ProgressScreen() {
           onRefresh={() => {
             stats.refetch();
             journey.refetch();
+            submissions.refetch();
           }}
           tintColor={palette.primary}
         />
       }>
-      <View style={styles.titleRow}>
-        <Text variant="headlineSmall" style={styles.screenTitle}>
-          {t('tabs.progress')}
-        </Text>
-      </View>
+      <Text variant="headlineSmall" style={styles.screenTitle}>
+        {t('tabs.progress')}
+      </Text>
 
       {!s ? (
         <View style={{ gap: 14 }}>
-          <Skeleton height={130} radius={16} />
-          <Skeleton height={130} radius={16} />
-          <Skeleton height={70} radius={16} />
+          <Skeleton height={150} radius={18} />
+          <Skeleton height={190} radius={18} />
+          <Skeleton height={80} radius={18} />
         </View>
       ) : (
         <>
-          {/* 4. Progress Overview */}
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>{t('home.overview.title')}</Text>
-            <View style={{ gap: 16, marginTop: 12 }}>
-              <MilestoneBar icon="dumbbell" label={t('home.overview.trainings')} value={s.totalCheckIns} ladder={TRAINING_MILESTONES} color={METRIC_COLORS.trainings} />
-              <MilestoneBar icon="fire" label={t('home.overview.streak')} value={s.longestStreak} ladder={STREAK_MILESTONES} color={METRIC_COLORS.streak} />
-              <MilestoneBar icon="calendar-check" label={t('home.overview.weeks')} value={s.activeWeeks ?? 0} ladder={WEEK_MILESTONES} color={METRIC_COLORS.weeks} />
+          {/* 1. This week: the question people open this tab with. */}
+          <Pressable
+            style={styles.weekCard}
+            onPress={() => navigation.navigate('Metrics')}
+            accessibilityRole="button"
+            accessibilityHint={t('metrics.seeAll')}>
+            <MetricRing
+              value={`${s.weeklyProgress ?? 0}/${Math.max(1, s.weeklyGoal || 3)}`}
+              progress={Math.min(1, (s.weeklyProgress ?? 0) / Math.max(1, s.weeklyGoal || 3))}
+              label=""
+              sublabel={t('progress.week.sessions')}
+              color={palette.primary}
+              size={92}
+            />
+            <View style={{ flex: 1, gap: 6 }}>
+              <Text style={styles.cardKicker}>{t('home.week.title')}</Text>
+              <Text style={styles.weekMessage}>{weekMessage(s)}</Text>
+              <View style={styles.weekLoadRow}>
+                <MaterialCommunityIcons name="timer-outline" size={15} color={palette.textSecondary} />
+                <Text style={styles.weekLoad}>{formatMinutes(s.weeklyMinutes)}</Text>
+                {s.weeklyMinutes !== s.lastWeekMinutes && (
+                  <View style={styles.trend}>
+                    <MaterialCommunityIcons
+                      name={s.weeklyMinutes > s.lastWeekMinutes ? 'arrow-up' : 'arrow-down'}
+                      size={13}
+                      color={s.weeklyMinutes > s.lastWeekMinutes ? UP : DOWN}
+                    />
+                    <Text style={[styles.trendText, { color: s.weeklyMinutes > s.lastWeekMinutes ? UP : DOWN }]}>
+                      {tf('progress.week.vsLast', { n: formatMinutes(Math.abs(s.weeklyMinutes - s.lastWeekMinutes)) })}
+                    </Text>
+                  </View>
+                )}
+              </View>
+              {s.weeklyCalories != null && (
+                <Text style={styles.weekCal}>{tf('home.week.calories', { n: s.weeklyCalories })}</Text>
+              )}
             </View>
+            <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
+          </Pressable>
+
+          {/* 2. Totals, each with progress toward its next milestone. */}
+          <Text style={styles.section}>{t('progress.numbers.title')}</Text>
+          <View style={styles.grid}>
+            <StatTile
+              icon="dumbbell"
+              color={COLORS.trainings}
+              value={s.totalCheckIns}
+              label={t('home.overview.trainings')}
+              progress={milestoneProgress(s.totalCheckIns, TRAINING_MILESTONES)}
+              hint={milestoneHint(s.totalCheckIns, TRAINING_MILESTONES)}
+            />
+            <StatTile
+              icon="fire"
+              color={COLORS.streak}
+              value={s.currentStreak}
+              label={t('progress.numbers.streak')}
+              progress={milestoneProgress(s.currentStreak, STREAK_MILESTONES)}
+              hint={tf('home.hero.record', { n: s.longestStreak })}
+            />
+            <StatTile
+              icon="clock-outline"
+              color={COLORS.hours}
+              value={`${s.totalHours}h`}
+              label={t('progress.numbers.hours')}
+              hint={t('progress.numbers.hoursHint')}
+            />
+            <StatTile
+              icon="calendar-check"
+              color={COLORS.weeks}
+              value={s.activeWeeks ?? 0}
+              label={t('home.overview.weeks')}
+              progress={milestoneProgress(s.activeWeeks ?? 0, WEEK_MILESTONES)}
+              hint={milestoneHint(s.activeWeeks ?? 0, WEEK_MILESTONES)}
+            />
           </View>
 
-          {/* Técnicas shortcut (Técnicas lives off the tab bar — reached from Início) */}
-          <Pressable
-            style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: 14 }]}
-            onPress={() => navigation.navigate('Techniques')}>
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
-                backgroundColor: palette.primary + '26',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-              <MaterialCommunityIcons name="book-open-variant" size={22} color={palette.primary} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.sectionTitle}>{t('techniques.card.title')}</Text>
-              <Text style={styles.cardSub}>{t('techniques.card.subtitle')}</Text>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
-          </Pressable>
-
-          {/* Body map shortcut (log pain / injuries on a body diagram) */}
-          <Pressable
-            style={[styles.card, { flexDirection: 'row', alignItems: 'center', gap: 14 }]}
-            onPress={() => navigation.navigate('BodyMap')}>
-            <View
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 12,
-                backgroundColor: '#2DB6A326',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}>
-              <MaterialCommunityIcons name="human-handsup" size={22} color="#2DB6A3" />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.sectionTitle}>{t('body.card.title')}</Text>
-              <Text style={styles.cardSub}>{t('body.card.subtitle')}</Text>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
-          </Pressable>
-
-          {/* Submissions widget → full Submissions screen */}
-          <Pressable style={styles.card} onPress={() => navigation.navigate('Submissions', { userId: user?.id })}>
-            <View style={styles.sectionHead}>
-              <Text style={styles.sectionTitle}>{t('profile.submissions')}</Text>
-              <MaterialCommunityIcons name="chevron-right" size={18} color={palette.textSecondary} />
-            </View>
-            <View style={{ marginTop: 10 }}>
-              <SubmissionBars
-                items={SUBMISSIONS.map((sb) => ({
-                  label: sb.label,
-                  color: sb.color,
-                  value: submissions.data?.items.find((i) => i.submission === sb.key)?.count ?? 0,
-                }))}
-                max={5}
-              />
-            </View>
-          </Pressable>
-
-          {/* 4b. Weekly training load + estimated calories */}
-          <View style={styles.card}>
-            <Pressable style={styles.weekHead} onPress={() => navigation.navigate('Metrics')} hitSlop={6}>
-              <Text style={styles.sectionTitle}>{t('home.week.title')}</Text>
-              <View style={styles.weekLink}>
-                <Text style={styles.link}>{t('metrics.seeAll')}</Text>
-                <MaterialCommunityIcons name="chevron-right" size={16} color={palette.primary} />
+          {/* 3. One goal to chase. */}
+          {(() => {
+            const goal = nextGoal(s);
+            return (
+              <View style={styles.goalCard}>
+                <View style={styles.goalIcon}>
+                  <MaterialCommunityIcons name={goal.icon} size={22} color={palette.primary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardKicker}>{t('home.nextGoal.title')}</Text>
+                  <Text style={styles.goalText}>{goal.text}</Text>
+                  <View style={styles.goalTrack}>
+                    <View
+                      style={[
+                        styles.goalFill,
+                        { width: `${Math.round(Math.min(1, goal.value / Math.max(1, goal.target)) * 100)}%` },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.goalCount}>
+                    {goal.value} / {goal.target}
+                  </Text>
+                </View>
               </View>
+            );
+          })()}
+
+          {/* 4. Submissions this month. */}
+          <View style={styles.sectionRow}>
+            <Text style={styles.section}>{t('progress.subs.title')}</Text>
+            <Pressable onPress={() => navigation.navigate('Submissions', { userId: user?.id })} hitSlop={8}>
+              <Text style={styles.link}>{t('metrics.seeAll')}</Text>
             </Pressable>
-            <View style={styles.loadRow}>
-              <View style={styles.loadMain}>
-                <View style={styles.loadIcon}>
-                  <MaterialCommunityIcons name="lightning-bolt" size={20} color={METRIC_COLORS.trainings} />
-                </View>
-                <View>
-                  <Text style={styles.loadValue}>{formatMinutes(s.weeklyMinutes)}</Text>
-                  <Text style={styles.loadLabel}>{t('home.week.load')}</Text>
-                </View>
-              </View>
-              <View
-                style={[
-                  styles.trend,
-                  s.weeklyMinutes >= s.lastWeekMinutes ? styles.trendUp : styles.trendDown,
-                ]}>
-                <MaterialCommunityIcons
-                  name={
-                    s.weeklyMinutes === s.lastWeekMinutes
-                      ? 'minus'
-                      : s.weeklyMinutes > s.lastWeekMinutes
-                        ? 'arrow-up'
-                        : 'arrow-down'
-                  }
-                  size={13}
-                  color={s.weeklyMinutes >= s.lastWeekMinutes ? '#16A34A' : '#E5484D'}
-                />
-                <Text style={[styles.trendText, { color: s.weeklyMinutes >= s.lastWeekMinutes ? '#16A34A' : '#E5484D' }]}>
-                  {s.weeklyMinutes === s.lastWeekMinutes
-                    ? t('home.week.same')
-                    : `${Math.abs(s.weeklyMinutes - s.lastWeekMinutes)}min`}
-                </Text>
-              </View>
-            </View>
-            {s.weeklyCalories != null && (
-              <View style={styles.calRow}>
-                <MaterialCommunityIcons name="fire" size={16} color={palette.primary} />
-                <Text style={styles.calText}>{tf('home.week.calories', { n: s.weeklyCalories })}</Text>
+          </View>
+          <View style={styles.card}>
+            {hasSubs ? (
+              <SubmissionBars items={subItems} max={4} />
+            ) : (
+              <View style={styles.emptySubs}>
+                <Text style={styles.cardSub}>{t('progress.subs.empty')}</Text>
+                <Pressable onPress={openSheet} hitSlop={8} accessibilityRole="button">
+                  <Text style={styles.inlineLink}>{t('home.action.button')}</Text>
+                </Pressable>
               </View>
             )}
           </View>
 
-          {/* 5. Next Goal */}
-          <View style={[styles.card, styles.goalCard]}>
-            <MaterialCommunityIcons name="target" size={24} color={palette.primary} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.goalLabel}>{t('home.nextGoal.title')}</Text>
-              <Text style={styles.goalText}>{nextGoal(s)}</Text>
-            </View>
+          {/* 5. Tools that feed the numbers. */}
+          <Text style={styles.section}>{t('progress.tools.title')}</Text>
+          <View style={styles.tools}>
+            <ToolTile
+              icon="book-open-variant"
+              color={palette.primary}
+              label={t('progress.tools.techniques')}
+              onPress={() => navigation.navigate('Techniques')}
+            />
+            <ToolTile
+              icon="human-handsup"
+              color="#2DB6A3"
+              label={t('progress.tools.body')}
+              onPress={() => navigation.navigate('BodyMap')}
+            />
+            <ToolTile
+              icon="chart-box-outline"
+              color="#3E63DD"
+              label={t('progress.tools.metrics')}
+              onPress={() => navigation.navigate('Metrics')}
+            />
           </View>
 
-          {/* Journey Timeline */}
-          <View>
-            <View style={styles.sectionHead}>
-              <Text style={styles.sectionTitle}>{t('home.timeline.title')}</Text>
-              <Pressable onPress={() => setCompOpen(true)} hitSlop={6}>
-                <Text style={styles.link}>{t('home.competition.cta')}</Text>
-              </Pressable>
-            </View>
-            <View style={styles.card}>
-              {timelineItems.length === 0 ? (
-                <Text style={styles.cardSub}>{t('home.timeline.empty')}</Text>
-              ) : (
-                timelineItems.slice(0, 6).map((item, i, arr) => (
-                  <Animated.View key={i} entering={FadeInDown.duration(260).delay(i * 50)} style={styles.timelineRow}>
+          {/* 6. Journey. */}
+          <View style={styles.sectionRow}>
+            <Text style={styles.section}>{t('home.timeline.title')}</Text>
+            <Pressable onPress={() => setCompOpen(true)} hitSlop={8}>
+              <Text style={styles.link}>{t('home.competition.cta')}</Text>
+            </Pressable>
+          </View>
+          <View style={styles.card}>
+            {timeline.length === 0 ? (
+              <Text style={styles.cardSub}>{t('home.timeline.empty')}</Text>
+            ) : (
+              <>
+                {shownTimeline.map((item, i, arr) => (
+                  <Animated.View key={i} entering={FadeInDown.duration(240).delay(i * 40)} style={styles.timelineRow}>
                     <View style={styles.timelineRail}>
-                      <View
-                        style={[styles.timelineDot, { backgroundColor: JOURNEY_DOT_COLORS[i % JOURNEY_DOT_COLORS.length] }]}
-                      />
+                      <View style={styles.timelineDot} />
                       {i < arr.length - 1 && <View style={styles.timelineLine} />}
                     </View>
                     <View style={styles.timelineBody}>
@@ -289,9 +411,16 @@ export default function ProgressScreen() {
                       <Text style={styles.timelineDate}>{eventDate(item.occurredAt)}</Text>
                     </View>
                   </Animated.View>
-                ))
-              )}
-            </View>
+                ))}
+                {timeline.length > 4 && (
+                  <Pressable onPress={() => setShowAllJourney((v) => !v)} hitSlop={8} style={styles.moreBtn}>
+                    <Text style={styles.inlineLink}>
+                      {showAllJourney ? t('progress.journey.less') : tf('progress.journey.more', { n: timeline.length - 4 })}
+                    </Text>
+                  </Pressable>
+                )}
+              </>
+            )}
           </View>
         </>
       )}
@@ -364,85 +493,79 @@ function CompetitionModal({
 }
 
 const styles = makeStyles(() => ({
-  titleRow: { marginBottom: 16 },
-  screenTitle: { color: palette.textPrimary, fontWeight: 'bold' },
   container: { flex: 1, backgroundColor: palette.background },
-  content: { paddingHorizontal: 20, paddingBottom: 32, gap: 14 },
-  greeting: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  gearBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: palette.surface, alignItems: 'center', justifyContent: 'center' },
-  bellDot: { position: 'absolute', top: 9, right: 9, width: 9, height: 9, borderRadius: 5, backgroundColor: palette.primary, borderWidth: 1.5, borderColor: palette.surface },
-  avatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: palette.surfaceVariant, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: palette.textPrimary, fontWeight: 'bold', fontSize: 15 },
-  name: { color: palette.textPrimary, fontWeight: 'bold' },
-  greetBeltRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 },
-  greetBelt: { width: 40 },
-  greetMeta: { color: palette.textSecondary, fontSize: 12, flex: 1 },
-  loading: { paddingVertical: 48 },
+  content: { paddingHorizontal: 16, paddingBottom: 40 },
+  screenTitle: { color: palette.textPrimary, fontWeight: 'bold', marginBottom: 16 },
+  card: { backgroundColor: palette.surface, borderRadius: 18, padding: 16 },
+  cardKicker: { color: palette.textSecondary, fontSize: 12, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  cardSub: { color: palette.textSecondary, fontSize: 13 },
+  section: { color: palette.textPrimary, fontSize: 16, fontWeight: 'bold', marginTop: 24, marginBottom: 10 },
+  sectionRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  link: { color: palette.primary, fontSize: 13, fontWeight: '600', marginTop: 24, marginBottom: 10 },
+  inlineLink: { color: palette.primary, fontSize: 13, fontWeight: '600', marginTop: 8 },
 
-  hero: { borderRadius: 20, padding: 18, gap: 14 },
-  heroTop: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  heroStreak: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  heroNumber: { color: palette.textPrimary, fontSize: 46, fontWeight: 'bold', lineHeight: 50 },
-  heroDays: { color: palette.textPrimary, fontSize: 14, fontWeight: 'bold' },
-  heroLabel: { color: palette.textSecondary, fontSize: 11 },
-  heroRecord: { color: palette.textSecondary, fontSize: 12, marginTop: 6 },
-  heroMsg: { color: '#F4F4F5', fontSize: 13, fontWeight: '600' },
-  heroTrack: { height: 8, borderRadius: 999, backgroundColor: 'rgba(255,255,255,0.12)', overflow: 'hidden' },
-  heroFill: { height: '100%', borderRadius: 999, backgroundColor: palette.primary },
-  weekRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  weekDay: { alignItems: 'center', gap: 4 },
-  weekLetter: { color: palette.textSecondary, fontSize: 10 },
-  weekLetterToday: { color: palette.textPrimary, fontWeight: 'bold' },
-  weekCircle: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
-  weekCircleDone: { backgroundColor: palette.primary },
-  weekCircleToday: { borderWidth: 2, borderColor: palette.primary },
+  weekCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: palette.surface,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: palette.primary + '40',
+  },
+  weekMessage: { color: palette.textPrimary, fontSize: 16, fontWeight: 'bold' },
+  weekLoadRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
+  weekLoad: { color: palette.textPrimary, fontSize: 14, fontWeight: '600' },
+  trend: { flexDirection: 'row', alignItems: 'center', gap: 2 },
+  trendText: { fontSize: 12, fontWeight: '600' },
+  weekCal: { color: palette.textSecondary, fontSize: 12 },
 
-  card: { backgroundColor: palette.surface, borderRadius: 16, padding: 16 },
-  cardTitle: { color: palette.textPrimary, fontWeight: 'bold', fontSize: 15 },
-  cardSub: { color: palette.textSecondary, fontSize: 12, marginTop: 3 },
-  actionBtn: { paddingVertical: 4 },
-  doneCard: { flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: palette.primary },
-  againLink: { color: palette.textSecondary, fontSize: 12 },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  tile: { flexBasis: '47%', flexGrow: 1, backgroundColor: palette.surface, borderRadius: 16, padding: 14, gap: 6 },
+  tileTop: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  tileLabel: { color: palette.textSecondary, fontSize: 12, fontWeight: '600', flexShrink: 1 },
+  tileValue: { color: palette.textPrimary, fontSize: 26, fontWeight: 'bold' },
+  tileTrack: { height: 5, borderRadius: 3, backgroundColor: palette.surfaceVariant, overflow: 'hidden' },
+  tileFill: { height: '100%', borderRadius: 3 },
+  tileHint: { color: palette.textSecondary, fontSize: 11 },
 
-  sectionTitle: { color: palette.textPrimary, fontWeight: 'bold', fontSize: 14 },
-  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
-  link: { color: palette.primary, fontSize: 12, fontWeight: '600' },
+  goalCard: {
+    flexDirection: 'row',
+    gap: 14,
+    backgroundColor: palette.surface,
+    borderRadius: 18,
+    padding: 16,
+    marginTop: 10,
+  },
+  goalIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    backgroundColor: palette.primary + '26',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  goalText: { color: palette.textPrimary, fontSize: 15, fontWeight: 'bold', marginTop: 4 },
+  goalTrack: { height: 6, borderRadius: 3, backgroundColor: palette.surfaceVariant, overflow: 'hidden', marginTop: 10 },
+  goalFill: { height: '100%', borderRadius: 3, backgroundColor: palette.primary },
+  goalCount: { color: palette.textSecondary, fontSize: 11, marginTop: 4 },
 
-  weekHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  weekLink: { flexDirection: 'row', alignItems: 'center' },
-  loadRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
-  loadMain: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  loadIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: palette.surfaceVariant, alignItems: 'center', justifyContent: 'center' },
-  loadValue: { color: palette.textPrimary, fontSize: 22, fontWeight: 'bold' },
-  loadLabel: { color: palette.textSecondary, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.5 },
-  trend: { flexDirection: 'row', alignItems: 'center', gap: 4, borderRadius: 999, paddingHorizontal: 10, paddingVertical: 5 },
-  trendUp: { backgroundColor: 'rgba(22,163,74,0.15)' },
-  trendDown: { backgroundColor: 'rgba(229,72,77,0.15)' },
-  trendText: { fontSize: 12, fontWeight: '700' },
-  calRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.surfaceVariant },
-  calText: { color: palette.textSecondary, fontSize: 13 },
+  emptySubs: { alignItems: 'flex-start', gap: 0 },
 
-  goalCard: { flexDirection: 'row', alignItems: 'center', gap: 14 },
-  goalLabel: { color: palette.textSecondary, fontSize: 11, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-  goalText: { color: palette.textPrimary, fontSize: 14, fontWeight: 'bold', marginTop: 3 },
-
-  activityRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 10 },
-  activityDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.surfaceVariant },
-  activityText: { color: '#E4E4E7', fontSize: 12, flex: 1, lineHeight: 16 },
-  activityTime: { color: palette.textSecondary, fontSize: 10 },
-
-  beltRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 12 },
-  beltVisual: { width: 90 },
-  beltName: { color: palette.textPrimary, fontSize: 15, fontWeight: 'bold' },
-  beltMeta: { color: palette.textSecondary, fontSize: 12, marginTop: 2 },
+  tools: { flexDirection: 'row', gap: 10 },
+  tool: { flex: 1, backgroundColor: palette.surface, borderRadius: 16, padding: 14, gap: 10, minHeight: 96 },
+  toolIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  toolLabel: { color: palette.textPrimary, fontSize: 13, fontWeight: '600' },
 
   timelineRow: { flexDirection: 'row', gap: 12 },
-  timelineRail: { alignItems: 'center', width: 14 },
-  timelineDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: palette.primary, marginTop: 3 },
+  timelineRail: { alignItems: 'center', width: 12 },
+  timelineDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: palette.primary, marginTop: 5 },
   timelineLine: { flex: 1, width: 2, backgroundColor: palette.surfaceVariant, marginVertical: 2 },
-  timelineBody: { flex: 1, paddingBottom: 16 },
-  timelineTitle: { color: palette.textPrimary, fontSize: 13, fontWeight: '600' },
-  timelineDate: { color: palette.textSecondary, fontSize: 11, marginTop: 2 },
+  timelineBody: { flex: 1, paddingBottom: 14 },
+  timelineTitle: { color: palette.textPrimary, fontSize: 14, fontWeight: '600' },
+  timelineDate: { color: palette.textSecondary, fontSize: 12, marginTop: 2 },
+  moreBtn: { alignSelf: 'flex-start' },
 
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 24 },
   modalCard: { backgroundColor: palette.surface, borderRadius: 18, padding: 20 },

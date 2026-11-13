@@ -94,7 +94,7 @@ export default function CreateProductScreen({ navigation }: { navigation: { goBa
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={headerHeight}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Pressable style={styles.imagePicker} onPress={pickImage}>
           {image ? (
             <Image source={{ uri: image.uri }} style={styles.imagePreview} resizeMode="cover" />

@@ -65,7 +65,7 @@ export default function MfaScreen() {
   }
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+    <ScrollView showsVerticalScrollIndicator={false} style={styles.screen} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
       <Text style={styles.subtitle}>{t('mfa.subtitle')}</Text>
 
       {settings.mfaEnabled ? (

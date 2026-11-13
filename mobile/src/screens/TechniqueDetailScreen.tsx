@@ -53,7 +53,7 @@ export default function TechniqueDetailScreen() {
   const belt = beltLabel(tech.beltSlug);
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
+    <ScrollView showsVerticalScrollIndicator={false} style={styles.screen} contentContainerStyle={styles.body}>
       <View style={styles.headRow}>
         <View style={[styles.tag, { backgroundColor: (CATEGORY_COLORS[tech.category] ?? palette.primary) + '26' }]}>
           <Text style={[styles.tagText, { color: CATEGORY_COLORS[tech.category] ?? palette.primary }]}>

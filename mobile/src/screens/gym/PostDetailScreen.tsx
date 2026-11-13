@@ -178,6 +178,7 @@ export default function PostDetailScreen({ route }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={headerHeight}>
       <FlatList
+        showsVerticalScrollIndicator={false}
         data={comments.data ?? []}
         keyExtractor={(c: Comment) => String(c.id)}
         ListHeaderComponent={Header}

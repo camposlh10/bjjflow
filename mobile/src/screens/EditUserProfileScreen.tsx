@@ -236,7 +236,7 @@ function Form({ profile }: { profile: UserProfile }) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={headerHeight}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {/* Banner / thumbnail */}
         <Text style={styles.sectionTitle}>{t('profile.edit.banner')}</Text>
         {banner ? (

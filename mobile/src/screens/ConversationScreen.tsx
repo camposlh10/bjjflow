@@ -216,6 +216,7 @@ export default function ConversationScreen() {
         </View>
       ) : (
         <FlatList
+          showsVerticalScrollIndicator={false}
           ref={listRef}
           data={data}
           keyExtractor={(m) => m.outboxId ?? String(m.id)}

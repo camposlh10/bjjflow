@@ -63,7 +63,7 @@ export default function LogInScreen({ navigation }: Props) {
     <KeyboardAvoidingView
       style={[styles.container, { paddingTop: insets.top + 24 }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Animated.View entering={FadeInRight.duration(300)}>
           {mfaToken ? (
             <>

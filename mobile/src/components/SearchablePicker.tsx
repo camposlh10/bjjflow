@@ -78,6 +78,7 @@ export default function SearchablePicker({
             </Pressable>
           </View>
           <FlatList
+            showsVerticalScrollIndicator={false}
             data={filtered}
             keyExtractor={(o) => o.key}
             keyboardShouldPersistTaps="handled"

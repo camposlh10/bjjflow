@@ -82,6 +82,7 @@ export default function PersonalTechniqueEditorScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={headerHeight}>
       <ScrollView
+        showsVerticalScrollIndicator={false}
         style={styles.screen}
         contentContainerStyle={styles.body}
         keyboardShouldPersistTaps="handled"

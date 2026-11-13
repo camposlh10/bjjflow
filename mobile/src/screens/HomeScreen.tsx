@@ -228,6 +228,7 @@ export default function HomeScreen() {
   if (searchOpen) {
     return (
       <FlatList
+        showsVerticalScrollIndicator={false}
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
         data={searching ? users : []}
@@ -264,6 +265,7 @@ export default function HomeScreen() {
 
   return (
     <FlatList
+      showsVerticalScrollIndicator={false}
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
       data={items}

@@ -235,7 +235,7 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
             <View style={styles.handle} />
             <Text style={styles.title}>{t('checkin.sheet.title')}</Text>
             <ScrollView
-              showsVerticalScrollIndicator
+              showsVerticalScrollIndicator={false}
               style={[styles.scroll, { maxHeight: height * 0.7 }]}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"

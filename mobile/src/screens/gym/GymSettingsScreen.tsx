@@ -57,7 +57,7 @@ export default function GymSettingsScreen() {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView showsVerticalScrollIndicator={false} style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <Text style={styles.section}>{t('gym.settings.rules')}</Text>
 
       <View style={styles.card}>

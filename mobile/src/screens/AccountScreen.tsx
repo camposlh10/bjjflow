@@ -40,7 +40,7 @@ export default function AccountScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.section}>{t('account.email')}</Text>
         <View style={styles.card}>
           <Text style={styles.current}>

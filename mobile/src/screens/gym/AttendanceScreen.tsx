@@ -48,6 +48,7 @@ export default function AttendanceScreen({ route }: Props) {
 
   return (
     <FlatList
+      showsVerticalScrollIndicator={false}
       style={styles.container}
       data={data}
       keyExtractor={(r) => String(r.userId)}

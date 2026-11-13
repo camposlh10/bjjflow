@@ -77,7 +77,7 @@ export default function CreateClassScreen({ navigation }: { navigation: { goBack
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={headerHeight}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <TextInput
           mode="outlined"
           label={t('agenda.class.name')}

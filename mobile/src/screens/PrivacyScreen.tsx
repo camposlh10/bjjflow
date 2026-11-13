@@ -25,7 +25,7 @@ export default function PrivacyScreen() {
   const s = settings.data;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView showsVerticalScrollIndicator={false} style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.card}>
         <View style={styles.row}>
           <View style={{ flex: 1 }}>
