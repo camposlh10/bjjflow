@@ -74,7 +74,7 @@ export default function SettingsScreen() {
     ]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView showsVerticalScrollIndicator={false} style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.section}>{t('settings.account')}</Text>
       <View style={styles.card}>
         <Row icon="account-edit" label={t('settings.editProfile')} onPress={() => navigation.navigate('EditUserProfile')} />

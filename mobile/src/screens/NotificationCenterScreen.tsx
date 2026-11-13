@@ -112,6 +112,7 @@ export default function NotificationCenterScreen() {
         </Pressable>
       )}
       <FlatList
+        showsVerticalScrollIndicator={false}
         data={items}
         keyExtractor={(n) => String(n.id)}
         contentContainerStyle={styles.list}

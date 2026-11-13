@@ -191,7 +191,7 @@ function EditForm({ gym, goBack }: { gym: Gym; goBack: () => void }) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={headerHeight}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.logoRow}>
           <Pressable style={styles.logoPicker} onPress={pickLogo} disabled={busy}>
             {logo ? (

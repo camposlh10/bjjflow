@@ -86,6 +86,7 @@ export default function DirectInboxScreen() {
 
   return (
     <FlatList
+      showsVerticalScrollIndicator={false}
       style={styles.container}
       contentContainerStyle={styles.content}
       data={items}

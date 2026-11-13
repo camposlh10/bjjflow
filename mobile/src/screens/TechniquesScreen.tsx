@@ -71,7 +71,7 @@ export default function TechniquesScreen() {
       </View>
 
       {tab === 'library' ? (
-        <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <TextInput
             mode="outlined"
             dense
@@ -125,7 +125,7 @@ export default function TechniquesScreen() {
           )}
         </ScrollView>
       ) : (
-        <ScrollView contentContainerStyle={styles.body}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
           <Pressable
             style={styles.addBtn}
             onPress={() => navigation.navigate('PersonalTechniqueEditor', {})}>

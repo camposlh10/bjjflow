@@ -161,7 +161,7 @@ export default function BodyMapScreen() {
   };
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
+    <ScrollView showsVerticalScrollIndicator={false} style={styles.screen} contentContainerStyle={styles.body}>
       {/* New vs History */}
       <View style={styles.segment}>
         {(['new', 'history'] as const).map((m) => (
@@ -555,7 +555,7 @@ function AssessmentDetailModal({ id, onClose, bodyWidth }: { id: number | null; 
         {!a ? (
           <ActivityIndicator style={{ marginTop: 40 }} color={palette.primary} />
         ) : (
-          <ScrollView contentContainerStyle={styles.body}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.body}>
             <View style={styles.viewToggle}>
               {(['front', 'back'] as const).map((v) => (
                 <Pressable key={v} style={[styles.toggleBtn, view === v && styles.toggleActive]} onPress={() => setView(v)}>

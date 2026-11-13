@@ -81,7 +81,7 @@ function NoGymView() {
   const suggestions = useQuery({ queryKey: ['gymSuggestions'], queryFn: getGymSuggestions });
 
   return (
-    <ScrollView contentContainerStyle={styles.noGymContent}>
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.noGymContent}>
       <View style={styles.noGymIcon}>
         <MaterialCommunityIcons name="town-hall" size={30} color={palette.primary} />
       </View>
@@ -355,6 +355,7 @@ function MembersList({ gym }: { gym: Gym }) {
 
   return (
     <ScrollView
+      showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.membersContent}
       refreshControl={
         <RefreshControl

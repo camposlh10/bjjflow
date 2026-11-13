@@ -15,7 +15,7 @@ const LINKS: { key: string; icon: string; label: TranslationKey; url: string }[]
 
 export default function DonationsScreen() {
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.body}>
+    <ScrollView showsVerticalScrollIndicator={false} style={styles.screen} contentContainerStyle={styles.body}>
       <View style={styles.hero}>
         <MaterialCommunityIcons name="heart" size={40} color={palette.primary} />
         <Text style={styles.intro}>{t('donations.intro')}</Text>

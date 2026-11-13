@@ -53,9 +53,11 @@ export default function MetricRing({
           {sublabel ? <Text style={styles.sub}>{sublabel}</Text> : null}
         </View>
       </View>
-      <Text style={styles.label} numberOfLines={1}>
-        {label}
-      </Text>
+      {label ? (
+        <Text style={styles.label} numberOfLines={1}>
+          {label}
+        </Text>
+      ) : null}
     </View>
   );
 }

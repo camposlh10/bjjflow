@@ -44,7 +44,7 @@ export default function SubmissionsScreen() {
 
   return (
     <>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.container} contentContainerStyle={styles.content}>
         {/* Month selector */}
         <View style={styles.monthRow}>
           <Pressable style={styles.monthBtn} onPress={() => setMonth((m) => addMonth(m, -1))} hitSlop={8}>

@@ -99,7 +99,7 @@ export default function CreatePostScreen({ navigation }: { navigation: any }) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={headerHeight}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         <TextInput
           onChangeText={setContent}
           placeholder={t('mural.compose.placeholder')}

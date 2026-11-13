@@ -28,7 +28,7 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.error) {
       return (
-        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+        <ScrollView showsVerticalScrollIndicator={false} style={styles.container} contentContainerStyle={styles.content}>
           <Text style={styles.title}>App error</Text>
           <Text style={styles.msg}>{this.state.error.message}</Text>
           <Pressable style={styles.retry} onPress={this.reset}>

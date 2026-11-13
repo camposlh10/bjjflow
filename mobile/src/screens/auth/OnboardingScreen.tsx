@@ -176,7 +176,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
       {step === 'about' && (
         <Animated.View key="about" entering={FadeInRight.duration(300)} exiting={FadeOutLeft.duration(200)} style={styles.step}>
-          <ScrollView contentContainerStyle={styles.formScroll} keyboardShouldPersistTaps="handled">
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.formScroll} keyboardShouldPersistTaps="handled">
             <Text variant="headlineMedium" style={styles.title}>{t('onboarding.about.title')}</Text>
             <Text variant="bodyLarge" style={styles.subtitle}>{t('onboarding.about.subtitle')}</Text>
 
@@ -242,7 +242,7 @@ export default function OnboardingScreen({ navigation }: Props) {
         <Animated.View key="belt" entering={FadeInRight.duration(300)} exiting={FadeOutLeft.duration(200)} style={styles.step}>
           <Text variant="headlineMedium" style={styles.title}>{t('onboarding.belt.title')}</Text>
           <Text variant="bodyLarge" style={styles.subtitle}>{t('onboarding.belt.subtitle')}</Text>
-          <ScrollView contentContainerStyle={styles.beltList}>
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.beltList}>
             {beltOptionsForAge(ageValid ? age : 18).map((belt) => (
               <TouchableOpacity
                 key={belt.slug}
@@ -275,7 +275,7 @@ export default function OnboardingScreen({ navigation }: Props) {
 
       {step === 'experience' && (
         <Animated.View key="experience" entering={FadeInRight.duration(300)} exiting={FadeOutLeft.duration(200)} style={styles.step}>
-          <ScrollView contentContainerStyle={styles.formScroll} keyboardShouldPersistTaps="handled">
+          <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.formScroll} keyboardShouldPersistTaps="handled">
             <Text variant="headlineMedium" style={styles.title}>{t('onboarding.experience.title')}</Text>
             <Text variant="bodyLarge" style={styles.subtitle}>{t('onboarding.experience.subtitle')}</Text>
 

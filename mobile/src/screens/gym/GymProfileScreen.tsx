@@ -323,7 +323,7 @@ export default function GymProfileScreen() {
   const medalTotal = g.medals.reduce((sum, m) => sum + m.count, 0);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView showsVerticalScrollIndicator={false} style={styles.container} contentContainerStyle={styles.content}>
       <LinearGradient colors={['#5A171D', palette.background]} style={styles.banner} />
 
       {g.verified && (

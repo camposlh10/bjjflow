@@ -35,7 +35,7 @@ export default function CreateGymScreen({ navigation }: { navigation: { goBack: 
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <TextInput
           mode="outlined"
           label={t('gym.create.name')}

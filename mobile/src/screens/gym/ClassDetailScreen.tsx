@@ -92,7 +92,7 @@ export default function ClassDetailScreen({ route, navigation }: Props) {
   const tag = SESSION_TAG[occ.sessionType];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView showsVerticalScrollIndicator={false} style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.card}>
         <View style={styles.cardTop}>
           <Text style={styles.time}>

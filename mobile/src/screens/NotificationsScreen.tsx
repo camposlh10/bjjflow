@@ -31,7 +31,7 @@ export default function NotificationsScreen() {
   ];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView showsVerticalScrollIndicator={false} style={styles.container} contentContainerStyle={styles.content}>
       <View style={styles.card}>
         {rows.map((r, i) => (
           <View key={r.key} style={[styles.row, i > 0 && styles.divider]}>

@@ -218,7 +218,7 @@ export default function UserProfileScreen() {
   const timeline = Array.isArray(journey.data?.timeline) ? journey.data.timeline : [];
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView showsVerticalScrollIndicator={false} style={styles.container} contentContainerStyle={styles.content}>
       {p.bannerUrl ? (
         <Image source={{ uri: resolveMediaUrl(p.bannerUrl) }} style={styles.banner} resizeMode="cover" />
       ) : (

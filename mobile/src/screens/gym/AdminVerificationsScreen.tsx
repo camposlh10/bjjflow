@@ -38,7 +38,7 @@ export default function AdminVerificationsScreen() {
 
   return (
     <>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.container} contentContainerStyle={styles.content}>
         {items.length === 0 ? (
           <Text style={styles.empty}>{t('admin.verifications.empty')}</Text>
         ) : (

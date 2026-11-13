@@ -68,6 +68,7 @@ export default function FeedCommentsScreen({ route, navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={headerHeight}>
       <FlatList
+        showsVerticalScrollIndicator={false}
         data={comments.data ?? []}
         keyExtractor={(c: FeedComment) => String(c.id)}
         ListHeaderComponent={Header}

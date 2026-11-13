@@ -35,7 +35,7 @@ export default function MetricsScreen() {
   const trend = delta === 0 ? t('metrics.flat') : `${delta > 0 ? '+' : '−'}${Math.abs(delta)}min`;
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView showsVerticalScrollIndicator={false} style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.section}>{t('metrics.yours')}</Text>
       <View style={styles.grid}>
         <MetricWidget

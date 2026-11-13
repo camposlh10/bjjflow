@@ -93,6 +93,7 @@ function Body({ s }: { s: StudentAdmin }) {
 
   return (
     <ScrollView
+      showsVerticalScrollIndicator={false}
       style={styles.container}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"

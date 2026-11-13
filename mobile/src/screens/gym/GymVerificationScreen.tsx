@@ -121,7 +121,7 @@ function Form({ gym, goBack }: { gym: Gym; goBack: () => void }) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={headerHeight}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {status && (
           <View style={[styles.statusBanner, { borderColor: STATUS_STYLE[status].color }]}>
             <MaterialCommunityIcons name={STATUS_STYLE[status].icon} size={18} color={STATUS_STYLE[status].color} />
