@@ -38,6 +38,7 @@ import { countryCodeByName, countryName } from '../constants/locations';
 import { t } from '../i18n';
 import { useAuthStore } from '../store/authStore';
 import { makeStyles, palette } from '../theme/theme';
+import { isQueued } from '../offline/write';
 
 const TIERS: { key: MedalTier; color: string }[] = [
   { key: 'GOLD', color: '#F5C518' },
@@ -185,8 +186,10 @@ function Form({ profile }: { profile: UserProfile }) {
 
   const removePhoto = useMutation({
     mutationFn: (id: number) => deleteMyPhoto(id),
+    // Remove it from view at once; offline, the queue deletes it on the server later.
+    onMutate: (id) => setPhotos((current) => current.filter((p) => p.id !== id)),
     onSuccess: (data) => {
-      setPhotos(data.photos);
+      if (!isQueued(data)) setPhotos(data.photos);
       invalidate();
     },
   });

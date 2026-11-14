@@ -2,6 +2,7 @@ import { Journey } from './activity';
 import { MedalInput, MedalTier } from './gyms';
 import { api } from './client';
 import { useAuthStore } from '../store/authStore';
+import { offlineWrite, onlineWrite, type Queued } from '../offline/write';
 
 export type ProfileBelt = {
   slug: string;
@@ -94,14 +95,12 @@ export async function getUserJourney(id: number): Promise<Journey> {
   return data;
 }
 
-export async function followUser(id: number): Promise<UserProfile> {
-  const { data } = await api.post<UserProfile>(`/users/${id}/follow`);
-  return data;
+export async function followUser(id: number): Promise<UserProfile | Queued> {
+  return offlineWrite<UserProfile>({ method: 'post', url: `/users/${id}/follow`, label: 'offline.label.follow', invalidate: [['userProfile'], ['home']] });
 }
 
-export async function unfollowUser(id: number): Promise<UserProfile> {
-  const { data } = await api.delete<UserProfile>(`/users/${id}/follow`);
-  return data;
+export async function unfollowUser(id: number): Promise<UserProfile | Queued> {
+  return offlineWrite<UserProfile>({ method: 'delete', url: `/users/${id}/follow`, label: 'offline.label.follow', invalidate: [['userProfile'], ['home']] });
 }
 
 export type UpdateProfilePayload = {
@@ -114,9 +113,8 @@ export type UpdateProfilePayload = {
   username?: string;
 };
 
-export async function updateMyProfile(payload: UpdateProfilePayload): Promise<UserProfile> {
-  const { data } = await api.put<UserProfile>('/users/me/profile', payload);
-  return data;
+export async function updateMyProfile(payload: UpdateProfilePayload): Promise<UserProfile | Queued> {
+  return offlineWrite<UserProfile>({ method: 'put', url: '/users/me/profile', data: payload, label: 'offline.label.profile', invalidate: [['userProfile'], ['home']] });
 }
 
 export type CompleteProfilePayload = {
@@ -135,29 +133,24 @@ export type CompleteProfilePayload = {
 
 /** Fill in / edit profile basics (belt, age, location) — e.g. for social-login accounts. */
 export async function completeProfile(payload: CompleteProfilePayload): Promise<UserProfile> {
-  const { data } = await api.put<UserProfile>('/users/me/onboarding', payload);
-  return data;
+  return onlineWrite<UserProfile>({ method: 'put', url: '/users/me/onboarding', data: payload });
 }
 
 export async function addMyPhoto(key: string): Promise<UserProfile> {
-  const { data } = await api.post<UserProfile>('/users/me/photos', { key });
-  return data;
+  return onlineWrite<UserProfile>({ method: 'post', url: '/users/me/photos', data: { key } });
 }
 
-export async function deleteMyPhoto(photoId: number): Promise<UserProfile> {
-  const { data } = await api.delete<UserProfile>(`/users/me/photos/${photoId}`);
-  return data;
+export async function deleteMyPhoto(photoId: number): Promise<UserProfile | Queued> {
+  return offlineWrite<UserProfile>({ method: 'delete', url: `/users/me/photos/${photoId}`, label: 'offline.label.profile', invalidate: [['userProfile'], ['home']] });
 }
 
-export async function updateMyMedals(medals: MedalInput[]): Promise<UserProfile> {
-  const { data } = await api.put<UserProfile>('/users/me/medals', { medals });
-  return data;
+export async function updateMyMedals(medals: MedalInput[]): Promise<UserProfile | Queued> {
+  return offlineWrite<UserProfile>({ method: 'put', url: '/users/me/medals', data: { medals }, label: 'offline.label.profile', invalidate: [['userProfile'], ['home']] });
 }
 
 /** TEMP — preview the PRO badge before subscriptions exist. */
 export async function togglePro(): Promise<UserProfile> {
-  const { data } = await api.post<UserProfile>('/users/me/pro');
-  return data;
+  return onlineWrite<UserProfile>({ method: 'post', url: '/users/me/pro' });
 }
 
 export type Settings = {
@@ -177,22 +170,20 @@ export async function getSettings(): Promise<Settings> {
   return data;
 }
 
-export async function updateSettings(payload: Partial<Omit<Settings, 'email' | 'username' | 'pro'>>): Promise<Settings> {
-  const { data } = await api.put<Settings>('/users/me/settings', payload);
-  return data;
+export async function updateSettings(payload: Partial<Omit<Settings, 'email' | 'username' | 'pro'>>): Promise<Settings | Queued> {
+  return offlineWrite<Settings>({ method: 'put', url: '/users/me/settings', data: payload, label: 'offline.label.settings', invalidate: [['settings']] });
 }
 
 export async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
   // Sending our refresh token keeps this device signed in; every other device is signed out.
   const refreshToken = useAuthStore.getState().refreshToken;
-  await api.put('/users/me/password', { currentPassword, newPassword, refreshToken });
+  await onlineWrite({ method: 'put', url: '/users/me/password', data: { currentPassword, newPassword, refreshToken } });
 }
 
 export async function changeEmail(password: string, email: string): Promise<Settings> {
-  const { data } = await api.put<Settings>('/users/me/email', { password, email });
-  return data;
+  return onlineWrite<Settings>({ method: 'put', url: '/users/me/email', data: { password, email } });
 }
 
 export async function sendFeedback(message: string): Promise<void> {
-  await api.post('/users/me/feedback', { message });
+  await offlineWrite({ method: 'post', url: '/users/me/feedback', data: { message }, label: 'offline.label.feedback' });
 }

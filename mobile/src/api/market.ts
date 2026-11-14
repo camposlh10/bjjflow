@@ -1,4 +1,5 @@
 import { api } from './client';
+import { offlineWrite, onlineWrite } from '../offline/write';
 
 export type Product = {
   id: number;
@@ -32,15 +33,13 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 export async function createProduct(payload: CreateProductPayload): Promise<Product> {
-  const { data } = await api.post<Product>('/gyms/market', payload);
-  return data;
+  return onlineWrite<Product>({ method: 'post', url: '/gyms/market', data: payload });
 }
 
 export async function deleteProduct(id: number): Promise<void> {
-  await api.delete(`/gyms/market/${id}`);
+  await offlineWrite({ method: 'delete', url: `/gyms/market/${id}`, label: 'offline.label.productDelete', invalidate: [['gymProducts']] });
 }
 
 export async function buyProduct(id: number): Promise<Product> {
-  const { data } = await api.post<Product>(`/gyms/market/${id}/buy`);
-  return data;
+  return onlineWrite<Product>({ method: 'post', url: `/gyms/market/${id}/buy` });
 }

@@ -1,4 +1,5 @@
 import { api } from './client';
+import { offlineWrite, onlineWrite, type Queued } from '../offline/write';
 
 export type GymRole = 'OWNER' | 'INSTRUCTOR' | 'MEMBER';
 
@@ -135,13 +136,11 @@ export async function getMyGym(): Promise<Gym | null> {
 }
 
 export async function createGym(payload: CreateGymPayload): Promise<Gym> {
-  const { data } = await api.post<Gym>('/gyms', payload);
-  return data;
+  return onlineWrite<Gym>({ method: 'post', url: '/gyms', data: payload });
 }
 
 export async function joinGymByCode(inviteCode: string): Promise<Gym> {
-  const { data } = await api.post<Gym>('/gyms/join', { inviteCode });
-  return data;
+  return onlineWrite<Gym>({ method: 'post', url: '/gyms/join', data: { inviteCode } });
 }
 
 export async function getGymMembers(): Promise<GymMember[]> {
@@ -155,7 +154,7 @@ export async function getGymSuggestions(): Promise<GymSuggestion[]> {
 }
 
 export async function leaveGym(): Promise<void> {
-  await api.post('/gyms/leave');
+  await onlineWrite({ method: 'post', url: '/gyms/leave' });
 }
 
 export async function promoteMember(
@@ -163,40 +162,35 @@ export async function promoteMember(
   beltSlug: string,
   stripes: number,
 ): Promise<GymMember> {
-  const { data } = await api.post<GymMember>(`/gyms/me/members/${userId}/promote`, {
+  return onlineWrite<GymMember>({ method: 'post', url: `/gyms/me/members/${userId}/promote`, data: {
     beltSlug,
     stripes,
-  });
-  return data;
+  } });
 }
 
-export async function updateGym(payload: UpdateGymPayload): Promise<Gym> {
-  const { data } = await api.put<Gym>('/gyms/me', payload);
-  return data;
+export async function updateGym(payload: UpdateGymPayload): Promise<Gym | Queued> {
+  return offlineWrite<Gym>({ method: 'put', url: '/gyms/me', data: payload, label: 'offline.label.gymEdit', invalidate: [['myGym']] });
 }
 
 /** Owner-only: update gym rules without touching the rest of the gym profile. */
 export async function updateGymRules(payload: {
   graduationTarget?: number;
   instructorsOnlyPosts?: boolean;
-}): Promise<Gym> {
-  const { data } = await api.put<Gym>('/gyms/me/rules', payload);
-  return data;
+}): Promise<Gym | Queued> {
+  return offlineWrite<Gym>({ method: 'put', url: '/gyms/me/rules', data: payload, label: 'offline.label.gymEdit', invalidate: [['myGym']] });
 }
 
 /** TEMP testing aid: add the BJJ Bot student to my gym + seed feed/attendance. */
 export async function addTestBot(): Promise<{ userId: number; username: string; displayName: string }> {
-  const { data } = await api.post('/dev/bot');
-  return data;
+  return onlineWrite<{ userId: number; username: string; displayName: string }>({ method: 'post', url: '/dev/bot' });
 }
 
 export async function addGymPhoto(key: string): Promise<GymPhoto> {
-  const { data } = await api.post<GymPhoto>('/gyms/me/photos', { key });
-  return data;
+  return onlineWrite<GymPhoto>({ method: 'post', url: '/gyms/me/photos', data: { key } });
 }
 
 export async function deleteGymPhoto(photoId: number): Promise<void> {
-  await api.delete(`/gyms/me/photos/${photoId}`);
+  await offlineWrite({ method: 'delete', url: `/gyms/me/photos/${photoId}`, label: 'offline.label.gymEdit', invalidate: [['myGym']] });
 }
 
 export async function getRanking(): Promise<RankingEntry[]> {
@@ -206,14 +200,12 @@ export async function getRanking(): Promise<RankingEntry[]> {
 
 /** TEMP testing aid — flip your own role to preview instructor/owner features. */
 export async function setMyGymRole(role: GymRole): Promise<Gym> {
-  const { data } = await api.post<Gym>('/gyms/me/role', { role });
-  return data;
+  return onlineWrite<Gym>({ method: 'post', url: '/gyms/me/role', data: { role } });
 }
 
 /** TEMP testing aid — toggle the gym's verified badge (owner only). */
 export async function toggleGymVerified(): Promise<Gym> {
-  const { data } = await api.post<Gym>('/gyms/me/verify');
-  return data;
+  return onlineWrite<Gym>({ method: 'post', url: '/gyms/me/verify' });
 }
 
 export async function getGymReviews(): Promise<GymReviewsResponse> {
@@ -221,16 +213,14 @@ export async function getGymReviews(): Promise<GymReviewsResponse> {
   return data;
 }
 
-export async function upsertGymReview(rating: number, comment?: string): Promise<GymReviewsResponse> {
-  const { data } = await api.post<GymReviewsResponse>('/gyms/me/reviews', { rating, comment });
-  return data;
+export async function upsertGymReview(rating: number, comment?: string): Promise<GymReviewsResponse | Queued> {
+  return offlineWrite<GymReviewsResponse>({ method: 'post', url: '/gyms/me/reviews', data: { rating, comment }, label: 'offline.label.review', invalidate: [['gymReviews'], ['myGym']] });
 }
 
 export type MedalInput = { competition: string; tier: MedalTier; count: number };
 
-export async function updateGymMedals(medals: MedalInput[]): Promise<Gym> {
-  const { data } = await api.put<Gym>('/gyms/me/medals', { medals });
-  return data;
+export async function updateGymMedals(medals: MedalInput[]): Promise<Gym | Queued> {
+  return offlineWrite<Gym>({ method: 'put', url: '/gyms/me/medals', data: { medals }, label: 'offline.label.gymEdit', invalidate: [['myGym']] });
 }
 
 export type SubmitVerificationPayload = {
@@ -240,8 +230,7 @@ export type SubmitVerificationPayload = {
 };
 
 export async function submitGymVerification(payload: SubmitVerificationPayload): Promise<Gym> {
-  const { data } = await api.post<Gym>('/gyms/me/verification', payload);
-  return data;
+  return onlineWrite<Gym>({ method: 'post', url: '/gyms/me/verification', data: payload });
 }
 
 export type VerificationAdminItem = {
@@ -268,9 +257,8 @@ export async function decideVerification(
   approve: boolean,
   notes?: string,
 ): Promise<VerificationAdminItem> {
-  const { data } = await api.post<VerificationAdminItem>(`/admin/verifications/${id}/decision`, {
+  return onlineWrite<VerificationAdminItem>({ method: 'post', url: `/admin/verifications/${id}/decision`, data: {
     approve,
     notes,
-  });
-  return data;
+  } });
 }

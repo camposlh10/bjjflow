@@ -1,5 +1,5 @@
 import { NavigationContainer } from '@react-navigation/native';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { PaperProvider } from 'react-native-paper';
@@ -7,7 +7,8 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import ErrorBoundary from './src/components/ErrorBoundary';
 import RootNavigator from './src/navigation/RootNavigator';
-import { queryClient } from './src/queryClient';
+import './src/offline/network';
+import { CACHE_BUSTER, CACHE_MAX_AGE, asyncStoragePersister, queryClient } from './src/queryClient';
 import { useAuthStore } from './src/store/authStore';
 import { useLocaleStore } from './src/store/localeStore';
 import { useThemeStore } from './src/store/themeStore';
@@ -28,7 +29,16 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <QueryClientProvider client={queryClient}>
+      {/* The query cache is saved on the device, so screens show their last data
+          offline and right after launch, then refresh when the network allows. */}
+      <PersistQueryClientProvider
+        client={queryClient}
+        persistOptions={{
+          persister: asyncStoragePersister,
+          maxAge: CACHE_MAX_AGE,
+          buster: CACHE_BUSTER,
+          dehydrateOptions: { shouldDehydrateQuery: (query) => query.state.status === 'success' },
+        }}>
         <PaperProvider theme={paperThemeFor(scheme)}>
           {/* Remount the tree on locale/scheme change so t() + themed styles re-read. */}
           <NavigationContainer key={`${locale}-${scheme}`} theme={navigationThemeFor(scheme)}>
@@ -38,7 +48,7 @@ export default function App() {
             <StatusBar style={scheme === 'light' ? 'dark' : 'light'} />
           </NavigationContainer>
         </PaperProvider>
-      </QueryClientProvider>
+      </PersistQueryClientProvider>
     </SafeAreaProvider>
   );
 }

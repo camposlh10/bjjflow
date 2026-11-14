@@ -24,6 +24,7 @@ import { t, tf } from '../../i18n';
 import { GymStackParamList } from '../../navigation/GymNavigator';
 import { makeStyles, palette } from '../../theme/theme';
 import { dayHeader } from '../../utils/time';
+import { isQueued } from '../../offline/write';
 
 type Props = NativeStackScreenProps<GymStackParamList, 'ClassDetail'>;
 
@@ -49,7 +50,8 @@ export default function ClassDetailScreen({ route, navigation }: Props) {
   const checkIn = useMutation({
     mutationFn: () => checkInClass(occ.classId, occ.date),
     onSuccess: async (updated) => {
-      setOcc(updated);
+      // Offline: show it as checked in now; the queue sends it when back online.
+      setOcc((current) => (isQueued(updated) ? { ...current, checkedIn: true, canCheckIn: false } : updated));
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       queryClient.invalidateQueries({ queryKey: ['agenda'] });
       queryClient.invalidateQueries({ queryKey: ['stats'] });
@@ -68,7 +70,7 @@ export default function ClassDetailScreen({ route, navigation }: Props) {
     mutationFn: () => reserveClass(occ.classId, occ.date),
     onSuccess: (updated) => {
       Haptics.selectionAsync();
-      setOcc(updated);
+      setOcc((current) => (isQueued(updated) ? { ...current, reserved: !current.reserved } : updated));
       queryClient.invalidateQueries({ queryKey: ['agenda'] });
       queryClient.invalidateQueries({ queryKey: ['attendees', occ.classId, occ.date] });
     },

@@ -1,4 +1,5 @@
 import { api } from './client';
+import { offlineWrite, type Queued } from '../offline/write';
 
 export type ActivityType =
   | 'BELT_PROMOTION'
@@ -54,7 +55,6 @@ export async function logCompetition(payload: {
   name: string;
   placement?: number;
   date: string;
-}): Promise<Journey> {
-  const { data } = await api.post<Journey>('/users/me/competitions', payload);
-  return data;
+}): Promise<Journey | Queued> {
+  return offlineWrite<Journey>({ method: 'post', url: '/users/me/competitions', data: payload, label: 'offline.label.competition', invalidate: [['journey'], ['userJourney']] });
 }

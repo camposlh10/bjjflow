@@ -20,6 +20,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.bjjflow.backend.auth.JwtAuthFilter;
+import com.bjjflow.backend.common.idempotency.IdempotencyFilter;
+import com.bjjflow.backend.common.idempotency.IdempotencyStore;
 
 import lombok.RequiredArgsConstructor;
 
@@ -30,6 +32,7 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final AuthRateLimitFilter authRateLimitFilter;
+    private final IdempotencyStore idempotencyStore;
 
     /**
      * Browser origins allowed to call the API (the CRM). Comma-separated; entries
@@ -70,6 +73,8 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(authRateLimitFilter, JwtAuthFilter.class)
+                // After authentication: idempotency records are scoped to the signed-in user.
+                .addFilterAfter(new IdempotencyFilter(idempotencyStore), JwtAuthFilter.class)
                 // h2-console renders inside a frame
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
         return http.build();

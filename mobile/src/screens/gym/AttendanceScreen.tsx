@@ -27,7 +27,13 @@ export default function AttendanceScreen({ route }: Props) {
   const mark = useMutation({
     mutationFn: (v: { userId: number; present: boolean }) =>
       markAttendance(classId, date, v.userId, v.present),
-    onSuccess: () => {
+    // Instant tick, even offline (the roll call often happens with no signal).
+    onMutate: (v) =>
+      queryClient.setQueryData<RosterEntry[]>(['roster', classId, date], (old) =>
+        old?.map((entry) => (entry.userId === v.userId ? { ...entry, present: v.present } : entry)),
+      ),
+    onError: () => queryClient.invalidateQueries({ queryKey: ['roster', classId, date] }),
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['roster', classId, date] });
       queryClient.invalidateQueries({ queryKey: ['attendees', classId, date] });
       queryClient.invalidateQueries({ queryKey: ['agenda'] });

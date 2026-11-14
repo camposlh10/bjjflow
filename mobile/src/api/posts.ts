@@ -3,6 +3,8 @@ import { Platform } from 'react-native';
 
 import { GymRole } from './gyms';
 import { API_ORIGIN, api } from './client';
+import { isOnline } from '../offline/network';
+import { OfflineRequiredError, offlineWrite, type Queued } from '../offline/write';
 
 export type MediaType = 'IMAGE' | 'VIDEO';
 
@@ -104,6 +106,8 @@ type UploadTicket = {
  * web preview, or the file size can't be read).
  */
 export async function uploadMedia(file: UploadFile): Promise<UploadedMedia> {
+  // Files are too big to keep in the offline queue: uploading needs a connection.
+  if (!isOnline()) throw new OfflineRequiredError();
   const direct = await tryDirectUpload(file);
   return direct ?? uploadViaApi(file);
 }
@@ -166,28 +170,24 @@ async function uploadViaApi(file: UploadFile): Promise<UploadedMedia> {
 export async function createPost(
   content: string,
   media: { key: string; type: MediaType }[] = [],
-): Promise<Post> {
-  const { data } = await api.post<Post>('/gyms/posts', { content, media });
-  return data;
+): Promise<Post | Queued> {
+  return offlineWrite<Post>({ method: 'post', url: '/gyms/posts', data: { content, media }, label: 'offline.label.post', invalidate: [['gymFeed'], ['post'], ['comments'], ['savedPosts']] });
 }
 
 export async function deletePost(id: number): Promise<void> {
-  await api.delete(`/gyms/posts/${id}`);
+  await offlineWrite({ method: 'delete', url: `/gyms/posts/${id}`, label: 'offline.label.postDelete', invalidate: [['gymFeed'], ['post'], ['comments'], ['savedPosts']] });
 }
 
-export async function toggleLike(id: number): Promise<{ liked: boolean; likeCount: number }> {
-  const { data } = await api.post(`/gyms/posts/${id}/like`);
-  return data;
+export async function toggleLike(id: number): Promise<{ liked: boolean; likeCount: number } | Queued> {
+  return offlineWrite<{ liked: boolean; likeCount: number }>({ method: 'post', url: `/gyms/posts/${id}/like`, label: 'offline.label.like', invalidate: [['gymFeed'], ['post'], ['comments'], ['savedPosts']] });
 }
 
-export async function sharePost(id: number): Promise<{ shareCount: number }> {
-  const { data } = await api.post(`/gyms/posts/${id}/share`);
-  return data;
+export async function sharePost(id: number): Promise<{ shareCount: number } | Queued> {
+  return offlineWrite<{ shareCount: number }>({ method: 'post', url: `/gyms/posts/${id}/share`, label: 'offline.label.share', invalidate: [['gymFeed'], ['post'], ['comments'], ['savedPosts']] });
 }
 
-export async function toggleSave(id: number): Promise<{ saved: boolean }> {
-  const { data } = await api.post(`/gyms/posts/${id}/save`);
-  return data;
+export async function toggleSave(id: number): Promise<{ saved: boolean } | Queued> {
+  return offlineWrite<{ saved: boolean }>({ method: 'post', url: `/gyms/posts/${id}/save`, label: 'offline.label.save', invalidate: [['gymFeed'], ['post'], ['comments'], ['savedPosts']] });
 }
 
 export async function getSavedPosts(): Promise<Post[]> {
@@ -195,9 +195,8 @@ export async function getSavedPosts(): Promise<Post[]> {
   return data;
 }
 
-export async function setPinned(id: number, pinned: boolean): Promise<Post> {
-  const { data } = await api.put<Post>(`/gyms/posts/${id}/pin`, { pinned });
-  return data;
+export async function setPinned(id: number, pinned: boolean): Promise<Post | Queued> {
+  return offlineWrite<Post>({ method: 'put', url: `/gyms/posts/${id}/pin`, data: { pinned }, label: 'offline.label.pin', invalidate: [['gymFeed'], ['post'], ['comments'], ['savedPosts']] });
 }
 
 export async function getComments(id: number): Promise<Comment[]> {
@@ -205,7 +204,6 @@ export async function getComments(id: number): Promise<Comment[]> {
   return data;
 }
 
-export async function addComment(id: number, content: string): Promise<Comment> {
-  const { data } = await api.post<Comment>(`/gyms/posts/${id}/comments`, { content });
-  return data;
+export async function addComment(id: number, content: string): Promise<Comment | Queued> {
+  return offlineWrite<Comment>({ method: 'post', url: `/gyms/posts/${id}/comments`, data: { content }, label: 'offline.label.comment', invalidate: [['gymFeed'], ['post'], ['comments'], ['savedPosts']] });
 }

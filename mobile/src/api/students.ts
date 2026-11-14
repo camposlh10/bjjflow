@@ -1,5 +1,6 @@
 import { AssessmentSummary, PainAssessment } from './pain';
 import { api } from './client';
+import { offlineWrite, type Queued } from '../offline/write';
 
 export type AdminBelt = { slug: string; name: string; namePt: string; colorHex: string; stripes: number };
 
@@ -54,13 +55,12 @@ export async function getStudentNotes(userId: number): Promise<StudentNote[]> {
   return data;
 }
 
-export async function addStudentNote(userId: number, content: string): Promise<StudentNote> {
-  const { data } = await api.post<StudentNote>(`/gyms/me/students/${userId}/notes`, { content });
-  return data;
+export async function addStudentNote(userId: number, content: string): Promise<StudentNote | Queued> {
+  return offlineWrite<StudentNote>({ method: 'post', url: `/gyms/me/students/${userId}/notes`, data: { content }, label: 'offline.label.note', invalidate: [['studentNotes'], ['studentAdmin']] });
 }
 
 export async function deleteStudentNote(userId: number, noteId: number): Promise<void> {
-  await api.delete(`/gyms/me/students/${userId}/notes/${noteId}`);
+  await offlineWrite({ method: 'delete', url: `/gyms/me/students/${userId}/notes/${noteId}`, label: 'offline.label.note', invalidate: [['studentNotes'], ['studentAdmin']] });
 }
 
 /** Staff-only: a student's 5 most recent pain assessments (for graduation decisions). */

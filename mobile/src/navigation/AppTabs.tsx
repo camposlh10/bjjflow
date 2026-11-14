@@ -1,9 +1,10 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { BottomTabBar, createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import CheckInSheet from '../components/CheckInSheet';
 import SyncBridge from '../components/SyncBridge';
+import SyncStatus from '../components/SyncStatus';
 import { t } from '../i18n';
 import { useCheckInSheet } from '../store/checkInSheetStore';
 import GymNavigator from './GymNavigator';
@@ -34,6 +35,13 @@ export default function AppTabs() {
   return (
     <>
     <Tab.Navigator
+      // The sync status pill floats just above the tab bar, on every tab.
+      tabBar={(props) => (
+        <View>
+          <SyncStatus />
+          <BottomTabBar {...props} />
+        </View>
+      )}
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,

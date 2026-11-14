@@ -1,4 +1,5 @@
 import { api } from './client';
+import { offlineWrite, type Queued } from '../offline/write';
 
 export type SessionType = 'GI' | 'NOGI' | 'OPEN_MAT';
 export type RestrictionMode = 'ALL' | 'KIDS' | 'ADULTS' | 'BELTS';
@@ -76,13 +77,12 @@ export async function listClasses(): Promise<ClassDef[]> {
   return data;
 }
 
-export async function createClass(payload: CreateClassPayload): Promise<ClassDef> {
-  const { data } = await api.post<ClassDef>('/gyms/classes', payload);
-  return data;
+export async function createClass(payload: CreateClassPayload): Promise<ClassDef | Queued> {
+  return offlineWrite<ClassDef>({ method: 'post', url: '/gyms/classes', data: payload, label: 'offline.label.classEdit', invalidate: [['gymClasses'], ['agenda']] });
 }
 
 export async function deleteClass(id: number): Promise<void> {
-  await api.delete(`/gyms/classes/${id}`);
+  await offlineWrite({ method: 'delete', url: `/gyms/classes/${id}`, label: 'offline.label.classEdit', invalidate: [['gymClasses'], ['agenda']] });
 }
 
 export async function getAgenda(from: string, to: string): Promise<AgendaOccurrence[]> {
@@ -90,15 +90,13 @@ export async function getAgenda(from: string, to: string): Promise<AgendaOccurre
   return data;
 }
 
-export async function checkInClass(id: number, date: string): Promise<AgendaOccurrence> {
-  const { data } = await api.post<AgendaOccurrence>(`/gyms/classes/${id}/checkin`, { date });
-  return data;
+export async function checkInClass(id: number, date: string): Promise<AgendaOccurrence | Queued> {
+  return offlineWrite<AgendaOccurrence>({ method: 'post', url: `/gyms/classes/${id}/checkin`, data: { date }, label: 'offline.label.classCheckIn', invalidate: [['agenda'], ['attendees'], ['stats']] });
 }
 
 /** Reserva (ou cancela a reserva, se já reservado) de uma aula futura. */
-export async function reserveClass(id: number, date: string): Promise<AgendaOccurrence> {
-  const { data } = await api.post<AgendaOccurrence>(`/gyms/classes/${id}/reserve`, { date });
-  return data;
+export async function reserveClass(id: number, date: string): Promise<AgendaOccurrence | Queued> {
+  return offlineWrite<AgendaOccurrence>({ method: 'post', url: `/gyms/classes/${id}/reserve`, data: { date }, label: 'offline.label.reservation', invalidate: [['agenda'], ['attendees']] });
 }
 
 export async function getAttendees(id: number, date: string): Promise<Attendee[]> {
@@ -117,5 +115,5 @@ export async function markAttendance(
   userId: number,
   present: boolean,
 ): Promise<void> {
-  await api.post(`/gyms/classes/${id}/attendance`, { date, userId, present });
+  await offlineWrite({ method: 'post', url: `/gyms/classes/${id}/attendance`, data: { date, userId, present }, label: 'offline.label.attendance', invalidate: [['roster'], ['attendees'], ['agenda']] });
 }
