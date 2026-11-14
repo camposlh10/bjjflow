@@ -103,11 +103,38 @@ class MediaUploadTest {
         assertThat(MediaKeys.extensionFor("image/png", "whatever.exe")).isEqualTo(".png");
     }
 
+    /** Private bucket (Railway): stable app URLs, reads signed per request, virtual-host addressing. */
+    @Test
+    void s3PrivateBucketServesStableUrlsAndSignsReads() {
+        S3MediaStorage s3 = new S3MediaStorage("https://t3.storageapi.dev", "auto", "bjjflow-media",
+                "test-access-key", "test-secret-key", "", false);
+        try {
+            assertThat(s3.urlFor("posts/abc.jpg")).isEqualTo("/media/posts/abc.jpg");
+
+            URI read = URI.create(s3.presignRead("posts/abc.jpg"));
+            assertThat(read.getHost()).isEqualTo("bjjflow-media.t3.storageapi.dev");
+            assertThat(read.getPath()).isEqualTo("/posts/abc.jpg");
+            assertThat(read.getQuery()).contains("X-Amz-Signature=").contains("X-Amz-Expires=3600");
+
+            var controller = new MediaReadController(s3);
+            var ok = new org.springframework.mock.web.MockHttpServletRequest("GET", "/media/posts/abc.jpg");
+            var response = controller.read(ok);
+            assertThat(response.getStatusCode().value()).isEqualTo(302);
+            assertThat(response.getHeaders().getLocation().getHost()).isEqualTo("bjjflow-media.t3.storageapi.dev");
+            assertThat(response.getHeaders().getCacheControl()).contains("max-age=3000").contains("private");
+
+            var traversal = new org.springframework.mock.web.MockHttpServletRequest("GET", "/media/posts/../secret");
+            assertThat(controller.read(traversal).getStatusCode().value()).isEqualTo(404);
+        } finally {
+            s3.close();
+        }
+    }
+
     /** Signing is pure computation, so this needs no bucket or network. */
     @Test
     void s3PresignedUploadPinsKeyTypeAndSize() {
         S3MediaStorage s3 = new S3MediaStorage("https://account.r2.cloudflarestorage.com", "auto", "bjjflow-media",
-                "test-access-key", "test-secret-key", "https://media.example.com/");
+                "test-access-key", "test-secret-key", "https://media.example.com/", true);
         try {
             var upload = s3.presignUpload("posts/abc.jpg", "image/jpeg", 2048).orElseThrow();
 
