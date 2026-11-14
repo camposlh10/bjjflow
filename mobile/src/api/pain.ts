@@ -1,4 +1,5 @@
 import { api } from './client';
+import { offlineWrite, type Queued } from '../offline/write';
 
 export type PainEntry = {
   region: string;
@@ -37,9 +38,8 @@ export async function getPainMonthly(month?: string): Promise<PainMonthly> {
   return data;
 }
 
-export async function logPain(body: { region: string; intensity: number; note?: string | null }): Promise<PainMap> {
-  const { data } = await api.post<PainMap>('/users/me/pain', body);
-  return data;
+export async function logPain(body: { region: string; intensity: number; note?: string | null }): Promise<PainMap | Queued> {
+  return offlineWrite<PainMap>({ method: 'post', url: '/users/me/pain', data: body, label: 'offline.label.pain', invalidate: [['painDaily'], ['painMonthly'], ['pain'], ['studentPain']] });
 }
 
 export async function getPainHistory(limit?: number): Promise<PainHistoryItem[]> {
@@ -89,9 +89,8 @@ export type CreateAssessmentBody = {
   areas: { region: string; painType?: string | null; intensity: number; note?: string | null }[];
 };
 
-export async function createAssessment(body: CreateAssessmentBody): Promise<PainAssessment> {
-  const { data } = await api.post<PainAssessment>('/users/me/pain/assessments', body);
-  return data;
+export async function createAssessment(body: CreateAssessmentBody): Promise<PainAssessment | Queued> {
+  return offlineWrite<PainAssessment>({ method: 'post', url: '/users/me/pain/assessments', data: body, label: 'offline.label.assessment', invalidate: [['painAssessments'], ['painAssessmentLatest'], ['painAssessment'], ['studentPainDetail']] });
 }
 
 export async function listAssessments(limit?: number): Promise<AssessmentSummary[]> {
@@ -110,5 +109,5 @@ export async function getLatestAssessment(): Promise<PainAssessment | null> {
 }
 
 export async function deleteAssessment(id: number): Promise<void> {
-  await api.delete(`/users/me/pain/assessments/${id}`);
+  await offlineWrite({ method: 'delete', url: `/users/me/pain/assessments/${id}`, label: 'offline.label.assessment', invalidate: [['painAssessments'], ['painAssessmentLatest'], ['painAssessment'], ['studentPainDetail']] });
 }

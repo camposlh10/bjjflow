@@ -37,6 +37,8 @@ import { makeStyles, palette } from '../../theme/theme';
 import { downloadPostMedia } from '../../utils/download';
 import { renderRichText } from '../../utils/richText';
 import { formatDateTime, timeAgo } from '../../utils/time';
+import { isQueued } from '../../offline/write';
+import { useAuthStore } from '../../store/authStore';
 
 type Props = NativeStackScreenProps<GymStackParamList, 'PostDetail'>;
 
@@ -98,9 +100,26 @@ export default function PostDetailScreen({ route }: Props) {
 
   const like = useMutation({ mutationFn: () => toggleLike(postId), onSuccess: refreshPost });
   const save = useMutation({ mutationFn: () => toggleSave(postId), onSuccess: refreshPost });
+  const me = useAuthStore((s) => s.user);
   const send = useMutation({
     mutationFn: () => addComment(postId, reply.trim()),
-    onSuccess: () => {
+    onSuccess: (saved) => {
+      if (isQueued(saved) && me) {
+        // Offline: show it now; the queue posts it when the connection returns.
+        const myRole = queryClient.getQueryData<{ role?: GymRole } | null>(['myGym'])?.role ?? 'MEMBER';
+        const pending: Comment = {
+          id: -Date.now(),
+          author: {
+            userId: me.id,
+            displayName: me.displayName,
+            role: myRole,
+            belt: me.belt ? { slug: me.belt.slug, namePt: me.belt.namePt, colorHex: me.belt.colorHex, stripes: me.belt.stripes } : null,
+          },
+          content: reply.trim(),
+          createdAt: new Date().toISOString(),
+        };
+        queryClient.setQueryData<Comment[]>(['comments', postId], (old) => [...(old ?? []), pending]);
+      }
       setReply('');
       queryClient.invalidateQueries({ queryKey: ['comments', postId] });
       refreshPost();

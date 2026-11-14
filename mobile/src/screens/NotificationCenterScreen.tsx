@@ -8,6 +8,7 @@ import { ActivityIndicator, Text } from 'react-native-paper';
 
 import {
   NotificationItem,
+  NotificationList,
   NotificationType,
   getNotifications,
   markAllNotificationsRead,
@@ -54,13 +55,28 @@ export default function NotificationCenterScreen() {
       .catch(() => undefined);
   }, [qc]);
 
+  // Read state updates at once (also offline); the server confirms in the background.
   const read = useMutation({
     mutationFn: markNotificationRead,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onMutate: (id: number) =>
+      qc.setQueryData<NotificationList>(['notifications'], (old) =>
+        old
+          ? {
+              ...old,
+              unread: Math.max(0, old.unread - (old.items.some((n) => n.id === id && !n.read) ? 1 : 0)),
+              items: old.items.map((n) => (n.id === id ? { ...n, read: true } : n)),
+            }
+          : old,
+      ),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
   const readAll = useMutation({
     mutationFn: markAllNotificationsRead,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
+    onMutate: () =>
+      qc.setQueryData<NotificationList>(['notifications'], (old) =>
+        old ? { ...old, unread: 0, items: old.items.map((n) => ({ ...n, read: true })) } : old,
+      ),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['notifications'] }),
   });
 
   const open = (n: NotificationItem) => {

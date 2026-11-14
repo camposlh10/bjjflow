@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
 import { t } from '../i18n';
+import { useIsOnline } from '../offline/network';
 import { makeStyles, palette } from '../theme/theme';
 
 /**
@@ -19,6 +20,16 @@ export default function QueryState({
   isError: boolean;
   onRetry: () => void;
 }) {
+  const online = useIsOnline();
+  // Offline with nothing cached: say so instead of spinning until the network returns.
+  if (!online && !isError) {
+    return (
+      <View style={styles.wrap}>
+        <MaterialCommunityIcons name="cloud-off-outline" size={44} color={palette.surfaceVariant} />
+        <Text style={styles.text}>{t('offline.notCached')}</Text>
+      </View>
+    );
+  }
   if (isError && !isLoading) {
     return (
       <View style={styles.wrap}>

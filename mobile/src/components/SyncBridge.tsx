@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
+import { onConnectivityChange } from '../offline/network';
 import { flushOutbox, useOutbox } from '../offline/outbox';
 import { onRealtimeEvent, startRealtime, stopRealtime } from '../realtime/realtime';
 
@@ -60,6 +61,10 @@ export default function SyncBridge() {
   const pending = useOutbox((state) => state.items.length);
   useEffect(() => {
     void flushOutbox();
+    // Back online: send what was saved while offline, right away.
+    return onConnectivityChange((online) => {
+      if (online) void flushOutbox();
+    });
   }, []);
   useEffect(() => {
     if (pending === 0) return;

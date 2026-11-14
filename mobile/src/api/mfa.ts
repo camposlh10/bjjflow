@@ -1,4 +1,5 @@
 import { api } from './client';
+import { onlineWrite } from '../offline/write';
 
 export type MfaEnrollResponse = {
   secret: string;
@@ -7,16 +8,13 @@ export type MfaEnrollResponse = {
 };
 
 export async function enrollMfa(): Promise<MfaEnrollResponse> {
-  const { data } = await api.post<MfaEnrollResponse>('/users/me/mfa/enroll');
-  return data;
+  return onlineWrite<MfaEnrollResponse>({ method: 'post', url: '/users/me/mfa/enroll' });
 }
 
 export async function enableMfa(code: string): Promise<{ enabled: boolean }> {
-  const { data } = await api.post<{ enabled: boolean }>('/users/me/mfa/enable', { code });
-  return data;
+  return onlineWrite<{ enabled: boolean }>({ method: 'post', url: '/users/me/mfa/enable', data: { code } });
 }
 
 export async function disableMfa(password: string): Promise<{ enabled: boolean }> {
-  const { data } = await api.post<{ enabled: boolean }>('/users/me/mfa/disable', { password });
-  return data;
+  return onlineWrite<{ enabled: boolean }>({ method: 'post', url: '/users/me/mfa/disable', data: { password } });
 }

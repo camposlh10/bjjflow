@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { onlineManager, type QueryKey } from '@tanstack/react-query';
 import { AxiosError } from 'axios';
 import * as Crypto from 'expo-crypto';
 import { Alert } from 'react-native';
@@ -6,13 +7,15 @@ import { create } from 'zustand';
 
 import { apiErrorMessage } from '../api/auth';
 import { CreateCheckInPayload, createCheckIn } from '../api/checkins';
+import { api } from '../api/client';
 import { DirectMessage, sendMessage } from '../api/messages';
 import { logPain } from '../api/pain';
-import { t } from '../i18n';
+import { t, TranslationKey } from '../i18n';
 import { queryClient } from '../queryClient';
 
 /**
- * Writes that must survive a bad connection: chat messages and check-ins.
+ * The app's queue of changes waiting for the server: chat messages, check-ins
+ * and every other write made through `offlineWrite` (see ./write.ts).
  *
  * Each item carries an id generated on the phone, sent to the server as
  * `clientId`. The server stores it with the row, so resending an item whose
@@ -42,13 +45,37 @@ export type OutboxCheckIn = {
   createdAt: string;
 };
 
-export type OutboxItem = OutboxMessage | OutboxCheckIn;
+/** Any other queued write: replayed as is, with its id as the Idempotency-Key. */
+export type OutboxRequest = {
+  kind: 'request';
+  id: string;
+  method: 'post' | 'put' | 'patch' | 'delete';
+  url: string;
+  data?: unknown;
+  label: TranslationKey;
+  invalidate: QueryKey[];
+  createdAt: string;
+  /** The server refused it (not a connection problem); waits for the user. */
+  failed?: boolean;
+  error?: string;
+};
+
+export type OutboxItem = OutboxMessage | OutboxCheckIn | OutboxRequest;
+
+function isFailed(item: OutboxItem): boolean {
+  return (item.kind === 'message' || item.kind === 'request') && !!item.failed;
+}
+
+/** True while something is still waiting to be sent (refused items don't count). */
+export function outboxHasPending(): boolean {
+  return useOutbox.getState().items.some((item) => !isFailed(item));
+}
 
 type OutboxState = {
   items: OutboxItem[];
   add: (item: OutboxItem) => void;
   remove: (id: string) => void;
-  setFailed: (id: string, failed: boolean) => void;
+  setFailed: (id: string, failed: boolean, error?: string) => void;
   clear: () => void;
 };
 
@@ -58,9 +85,11 @@ export const useOutbox = create<OutboxState>()((set) => ({
   items: [],
   add: (item) => set((state) => ({ items: [...state.items, item] })),
   remove: (id) => set((state) => ({ items: state.items.filter((i) => i.id !== id) })),
-  setFailed: (id, failed) =>
+  setFailed: (id, failed, error) =>
     set((state) => ({
-      items: state.items.map((i) => (i.id === id && i.kind === 'message' ? { ...i, failed } : i)),
+      items: state.items.map((i) =>
+        i.id === id && (i.kind === 'message' || i.kind === 'request') ? { ...i, failed, error } : i,
+      ),
     })),
   clear: () => set({ items: [] }),
 }));
@@ -105,8 +134,31 @@ export function newClientId(): string {
  * server failing, or rate limiting. Anything else is a real refusal.
  */
 export function isRetryable(error: unknown): boolean {
-  const status = (error as AxiosError).response?.status;
-  return status === undefined || status >= 500 || status === 429;
+  const response = (error as AxiosError<{ code?: string }>).response;
+  const status = response?.status;
+  return (
+    status === undefined ||
+    status >= 500 ||
+    status === 429 ||
+    status === 408 ||
+    // The server is still applying an earlier copy of this same change.
+    (status === 409 && response?.data?.code === 'IDEMPOTENCY_IN_PROGRESS')
+  );
+}
+
+/** Retries a change the server refused (after the user fixed the cause, or just to try again). */
+export function retryItem(id: string) {
+  useOutbox.getState().setFailed(id, false);
+  void flushOutbox();
+}
+
+/** Drops a refused change for good and reloads what it touched. */
+export function discardItem(id: string) {
+  const item = useOutbox.getState().items.find((i) => i.id === id);
+  useOutbox.getState().remove(id);
+  if (item?.kind === 'request') {
+    for (const key of item.invalidate) queryClient.invalidateQueries({ queryKey: key });
+  }
 }
 
 /** Puts a chat message in the queue and starts sending it. */
@@ -201,9 +253,11 @@ export function flushOutbox(): Promise<void> {
 async function runFlush() {
   // Never send before the saved queue is in memory (it may hold older items).
   await outboxLoaded;
+  // Offline: nothing would get through; the reconnect listener flushes later.
+  if (!onlineManager.isOnline()) return;
   // Re-read each round: items may be added or removed while we send.
   for (;;) {
-    const item = useOutbox.getState().items.find((i) => !(i.kind === 'message' && i.failed));
+    const item = useOutbox.getState().items.find((i) => !isFailed(i));
     if (!item) return;
     try {
       if (item.kind === 'message') {
@@ -212,14 +266,27 @@ async function runFlush() {
         addToThread(item.conversationId, saved);
         useOutbox.getState().remove(item.id);
         queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      } else {
+      } else if (item.kind === 'checkin') {
         await sendCheckIn(item);
         useOutbox.getState().remove(item.id);
+      } else {
+        await api.request({
+          method: item.method,
+          url: item.url,
+          data: item.data,
+          headers: { 'Idempotency-Key': item.id },
+        });
+        useOutbox.getState().remove(item.id);
+        for (const key of item.invalidate) queryClient.invalidateQueries({ queryKey: key });
       }
     } catch (error) {
       if (isRetryable(error)) return; // try again later
       if (item.kind === 'message') {
         useOutbox.getState().setFailed(item.id, true);
+      } else if (item.kind === 'request') {
+        useOutbox.getState().setFailed(item.id, true, apiErrorMessage(error));
+        // Show the server's truth again instead of the optimistic guess.
+        for (const key of item.invalidate) queryClient.invalidateQueries({ queryKey: key });
       } else {
         useOutbox.getState().remove(item.id);
         Alert.alert(t('checkin.queued.rejected'), apiErrorMessage(error));

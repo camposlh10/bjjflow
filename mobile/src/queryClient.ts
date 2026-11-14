@@ -3,8 +3,9 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import { QueryClient } from '@tanstack/react-query';
 
 // Bump when a cached response SHAPE changes incompatibly — invalidates old caches.
-export const CACHE_BUSTER = 'v2';
-export const CACHE_MAX_AGE = 1000 * 60 * 60 * 24; // 24h
+export const CACHE_BUSTER = 'v3';
+// A week: screens opened in that time keep working offline.
+export const CACHE_MAX_AGE = 1000 * 60 * 60 * 24 * 7;
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -18,6 +19,11 @@ export const queryClient = new QueryClient({
       retryDelay: (attempt) => Math.min(800 * 2 ** attempt, 3000),
       refetchOnReconnect: 'always',
       refetchOnWindowFocus: false,
+    },
+    mutations: {
+      // Mutations must run while offline: offlineWrite queues them itself, and
+      // onlineWrite reports "needs a connection" at once instead of pausing.
+      networkMode: 'always',
     },
   },
 });

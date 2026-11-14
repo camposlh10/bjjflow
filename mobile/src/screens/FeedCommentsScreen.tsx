@@ -21,6 +21,8 @@ import { t } from '../i18n';
 import type { HomeStackParamList } from '../navigation/HomeNavigator';
 import { makeStyles, palette } from '../theme/theme';
 import { timeAgo } from '../utils/time';
+import { isQueued } from '../offline/write';
+import { useAuthStore } from '../store/authStore';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'FeedComments'>;
 
@@ -38,9 +40,20 @@ export default function FeedCommentsScreen({ route, navigation }: Props) {
 
   const comments = useQuery({ queryKey: ['feedComments', checkInId], queryFn: () => getFeedComments(checkInId) });
 
+  const me = useAuthStore((s) => s.user);
   const send = useMutation({
     mutationFn: () => addFeedComment(checkInId, reply.trim()),
-    onSuccess: () => {
+    onSuccess: (saved) => {
+      if (isQueued(saved) && me) {
+        // Offline: show it now; the queue posts it when the connection returns.
+        const pending: FeedComment = {
+          id: -Date.now(),
+          author: { id: me.id, username: me.username ?? null, displayName: me.displayName, pro: !!me.pro, avatarUrl: null, belt: me.belt },
+          content: reply.trim(),
+          createdAt: new Date().toISOString(),
+        };
+        queryClient.setQueryData<FeedComment[]>(['feedComments', checkInId], (old) => [...(old ?? []), pending]);
+      }
       setReply('');
       queryClient.invalidateQueries({ queryKey: ['feedComments', checkInId] });
       queryClient.invalidateQueries({ queryKey: ['communityFeed'] });

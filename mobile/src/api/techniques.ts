@@ -1,4 +1,5 @@
 import { api } from './client';
+import { offlineWrite, type Queued } from '../offline/write';
 
 export type TechniqueCategory =
   | 'GUARD'
@@ -57,9 +58,13 @@ export async function getTechnique(id: number): Promise<Technique> {
   return data;
 }
 
-export async function toggleTechniqueFavorite(id: number): Promise<{ favorite: boolean }> {
-  const { data } = await api.post<{ favorite: boolean }>(`/techniques/${id}/favorite`);
-  return data;
+export async function toggleTechniqueFavorite(id: number): Promise<{ favorite: boolean } | Queued> {
+  return offlineWrite<{ favorite: boolean }>({
+    method: 'post',
+    url: `/techniques/${id}/favorite`,
+    label: 'offline.label.favorite',
+    invalidate: [['favoriteTechniques'], ['techniques'], ['technique']],
+  });
 }
 
 export async function getFavoriteTechniques(): Promise<Technique[]> {
@@ -72,19 +77,17 @@ export async function getPersonalTechniques(): Promise<PersonalTechnique[]> {
   return data;
 }
 
-export async function createPersonalTechnique(body: PersonalTechniqueInput): Promise<PersonalTechnique> {
-  const { data } = await api.post<PersonalTechnique>('/users/me/techniques', body);
-  return data;
+export async function createPersonalTechnique(body: PersonalTechniqueInput): Promise<PersonalTechnique | Queued> {
+  return offlineWrite<PersonalTechnique>({ method: 'post', url: '/users/me/techniques', data: body, label: 'offline.label.technique', invalidate: [['personalTechniques']] });
 }
 
 export async function updatePersonalTechnique(
   id: number,
   body: PersonalTechniqueInput,
-): Promise<PersonalTechnique> {
-  const { data } = await api.put<PersonalTechnique>(`/users/me/techniques/${id}`, body);
-  return data;
+): Promise<PersonalTechnique | Queued> {
+  return offlineWrite<PersonalTechnique>({ method: 'put', url: `/users/me/techniques/${id}`, data: body, label: 'offline.label.technique', invalidate: [['personalTechniques']] });
 }
 
 export async function deletePersonalTechnique(id: number): Promise<void> {
-  await api.delete(`/users/me/techniques/${id}`);
+  await offlineWrite({ method: 'delete', url: `/users/me/techniques/${id}`, label: 'offline.label.technique', invalidate: [['personalTechniques']] });
 }

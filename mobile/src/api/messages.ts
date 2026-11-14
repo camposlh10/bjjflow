@@ -1,4 +1,5 @@
 import { api } from './client';
+import { onlineWrite } from '../offline/write';
 
 export type DMParticipant = {
   id: number;
@@ -32,8 +33,7 @@ export async function getConversations(): Promise<Conversation[]> {
 
 /** Get-or-create a 1:1 conversation with a user. */
 export async function startConversation(userId: number): Promise<Conversation> {
-  const { data } = await api.post<Conversation>('/conversations', { userId });
-  return data;
+  return onlineWrite<Conversation>({ method: 'post', url: '/conversations', data: { userId } });
 }
 
 /**

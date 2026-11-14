@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, RefreshControl, Share, StyleSheet, Text } fro
 import Animated, { FadeInDown, FadeOutUp, LinearTransition } from 'react-native-reanimated';
 
 import { Gym } from '../api/gyms';
+import { isQueued } from '../offline/write';
 import { Post, PostPage, deletePost, setPinned, sharePost, toggleLike, toggleSave } from '../api/posts';
 import { t } from '../i18n';
 import { GymStackParamList } from '../navigation/GymNavigator';
@@ -75,14 +76,18 @@ export default function PostList({
         likedByMe: !post.likedByMe,
         likeCount: Math.max(0, post.likeCount + (post.likedByMe ? -1 : 1)),
       })),
-    onSuccess: (result, id) =>
-      patchPost(id, (post) => ({ ...post, likedByMe: result.liked, likeCount: result.likeCount })),
+    // Queued offline: keep the optimistic state; the queue confirms it later.
+    onSuccess: (result, id) => {
+      if (isQueued(result)) return;
+      patchPost(id, (post) => ({ ...post, likedByMe: result.liked, likeCount: result.likeCount }));
+    },
     onError: invalidate,
   });
   const save = useMutation({
     mutationFn: (id: number) => toggleSave(id),
     onMutate: (id) => patchPost(id, (post) => ({ ...post, savedByMe: !post.savedByMe })),
     onSuccess: (result, id) => {
+      if (isQueued(result)) return;
       patchPost(id, (post) => ({ ...post, savedByMe: result.saved }));
       queryClient.invalidateQueries({ queryKey: ['savedPosts'] });
     },

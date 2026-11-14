@@ -1,4 +1,5 @@
 import { api } from './client';
+import { offlineWrite, type Queued } from '../offline/write';
 
 export type FeedBelt = {
   slug: string;
@@ -55,14 +56,12 @@ export async function getCommunityFeed(cursor?: number): Promise<FeedPage> {
   return data;
 }
 
-export async function toggleFeedLike(checkInId: number): Promise<{ liked: boolean; likeCount: number }> {
-  const { data } = await api.post(`/feed/${checkInId}/like`);
-  return data;
+export async function toggleFeedLike(checkInId: number): Promise<{ liked: boolean; likeCount: number } | Queued> {
+  return offlineWrite<{ liked: boolean; likeCount: number }>({ method: 'post', url: `/feed/${checkInId}/like`, label: 'offline.label.like', invalidate: [['communityFeed']] });
 }
 
-export async function shareFeedItem(checkInId: number): Promise<{ shareCount: number }> {
-  const { data } = await api.post(`/feed/${checkInId}/share`);
-  return data;
+export async function shareFeedItem(checkInId: number): Promise<{ shareCount: number } | Queued> {
+  return offlineWrite<{ shareCount: number }>({ method: 'post', url: `/feed/${checkInId}/share`, label: 'offline.label.share', invalidate: [['communityFeed']] });
 }
 
 export async function getFeedComments(checkInId: number): Promise<FeedComment[]> {
@@ -70,7 +69,6 @@ export async function getFeedComments(checkInId: number): Promise<FeedComment[]>
   return data;
 }
 
-export async function addFeedComment(checkInId: number, content: string): Promise<FeedComment> {
-  const { data } = await api.post<FeedComment>(`/feed/${checkInId}/comments`, { content });
-  return data;
+export async function addFeedComment(checkInId: number, content: string): Promise<FeedComment | Queued> {
+  return offlineWrite<FeedComment>({ method: 'post', url: `/feed/${checkInId}/comments`, data: { content }, label: 'offline.label.comment', invalidate: [['feedComments'], ['communityFeed']] });
 }

@@ -73,6 +73,10 @@ export async function resetPassword(email: string, code: string, newPassword: st
 
 /** Converte erros da API em mensagens pt-BR para exibir ao usuário. */
 export function apiErrorMessage(error: unknown): string {
+  // Online-only actions attempted offline (see offline/write.ts).
+  if (typeof error === 'object' && error !== null && (error as { offlineRequired?: boolean }).offlineRequired) {
+    return t('offline.required');
+  }
   const axiosError = error as AxiosError<{ code?: string }>;
   if (axiosError?.isAxiosError) {
     if (!axiosError.response) {
