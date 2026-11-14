@@ -83,8 +83,11 @@ app:
       bucket: ${APP_MEDIA_S3_BUCKET:}
       access-key: ${APP_MEDIA_S3_ACCESS_KEY:}
       secret-key: ${APP_MEDIA_S3_SECRET_KEY:}
-      # Public/CDN domain files are read from, e.g. https://media.example.com
+      # Public/CDN domain files are read from, e.g. https://media.example.com.
+      # Empty = private bucket (Railway): reads go through /media/** redirects.
       public-base-url: ${APP_MEDIA_S3_PUBLIC_BASE_URL:}
+      # Railway buckets: false (virtual-host style). R2/MinIO: true.
+      path-style: ${APP_MEDIA_S3_PATH_STYLE:true}
   jobs:
     # How often the background worker looks for due jobs (push, email, fan-out).
     poll-interval-ms: ${APP_JOBS_POLL_INTERVAL_MS:1000}

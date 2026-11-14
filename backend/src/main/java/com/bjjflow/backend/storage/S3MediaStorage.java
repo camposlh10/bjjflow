@@ -3,6 +3,8 @@ package com.bjjflow.backend.storage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -22,8 +24,12 @@ import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.S3Configuration;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
@@ -33,14 +39,18 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
  *
  * Clients upload straight to the bucket through a short-lived presigned URL
  * ({@link #presignUpload}), so large videos never pass through this server.
- * Files are read back from {@code app.media.s3.public-base-url}: the bucket's
- * public/CDN domain.
+ * Files are read back from {@code app.media.s3.public-base-url} (the bucket's
+ * public/CDN domain) when one is set. Private buckets (Railway) leave it empty:
+ * files then keep the stable {@code /media/<key>} URL and {@link MediaReadController}
+ * redirects each read to a short-lived signed URL.
  */
 @Component
 @ConditionalOnProperty(name = "app.media.provider", havingValue = "s3")
 public class S3MediaStorage implements MediaStorage {
 
     private static final Duration UPLOAD_URL_TTL = Duration.ofMinutes(10);
+    /** How long a signed read URL works; the redirect is cached for less than this. */
+    static final Duration READ_URL_TTL = Duration.ofHours(1);
 
     private final S3Client client;
     private final S3Presigner presigner;
@@ -53,13 +63,15 @@ public class S3MediaStorage implements MediaStorage {
             @Value("${app.media.s3.bucket}") String bucket,
             @Value("${app.media.s3.access-key}") String accessKey,
             @Value("${app.media.s3.secret-key}") String secretKey,
-            @Value("${app.media.s3.public-base-url}") String publicBaseUrl) {
+            @Value("${app.media.s3.public-base-url:}") String publicBaseUrl,
+            @Value("${app.media.s3.path-style:true}") boolean pathStyle) {
         this.bucket = bucket;
         this.publicBaseUrl = publicBaseUrl.replaceAll("/+$", "");
 
         var credentials = StaticCredentialsProvider.create(AwsBasicCredentials.create(accessKey, secretKey));
-        // Path-style addressing works on every S3-compatible provider.
-        S3Configuration s3Config = S3Configuration.builder().pathStyleAccessEnabled(true).build();
+        // Path-style addressing works on most S3-compatible providers; Railway
+        // buckets want virtual-host style (app.media.s3.path-style=false).
+        S3Configuration s3Config = S3Configuration.builder().pathStyleAccessEnabled(pathStyle).build();
 
         var clientBuilder = S3Client.builder()
                 .region(Region.of(region))
@@ -116,7 +128,41 @@ public class S3MediaStorage implements MediaStorage {
 
     @Override
     public String urlFor(String key) {
-        return publicBaseUrl + "/" + key;
+        // Private bucket: a stable app URL the read redirect resolves on each fetch.
+        return publicBaseUrl.isEmpty() ? "/media/" + key : publicBaseUrl + "/" + key;
+    }
+
+    /** True when files are served through {@link MediaReadController}. */
+    boolean isPrivate() {
+        return publicBaseUrl.isEmpty();
+    }
+
+    /** True when the bucket already holds this key. */
+    boolean exists(String key) {
+        try {
+            client.headObject(HeadObjectRequest.builder().bucket(bucket).key(key).build());
+            return true;
+        } catch (NoSuchKeyException e) {
+            return false;
+        } catch (S3Exception e) {
+            if (e.statusCode() == 404) {
+                return false;
+            }
+            throw e;
+        }
+    }
+
+    /** Uploads a file under a key chosen by the caller (used to copy existing media in). */
+    void put(String key, Path file, String contentType) throws IOException {
+        client.putObject(putRequest(key, contentType, Files.size(file)), RequestBody.fromFile(file));
+    }
+
+    /** A short-lived URL that reads one object straight from the bucket. */
+    String presignRead(String key) {
+        return presigner.presignGetObject(GetObjectPresignRequest.builder()
+                .signatureDuration(READ_URL_TTL)
+                .getObjectRequest(GetObjectRequest.builder().bucket(bucket).key(key).build())
+                .build()).url().toString();
     }
 
     @Override

@@ -66,7 +66,7 @@ public class SecurityConfig {
                         // POS/gateway webhooks authenticate with an integration
                         // key (X-Webhook-Key header), not a user JWT.
                         .requestMatchers("/api/v1/payments/webhooks/**").permitAll()
-                        // Local media files (dev). Cloud storage uses signed URLs instead.
+                        // Media files: local disk (dev) or redirects to signed private-bucket URLs.
                         .requestMatchers("/media/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().authenticated())
