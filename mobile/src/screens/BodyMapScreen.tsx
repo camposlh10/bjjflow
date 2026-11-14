@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { ReactNode, useState } from 'react';
@@ -189,13 +189,13 @@ export default function BodyMapScreen() {
             <View style={styles.toolBtns}>
               {latest.data && (
                 <Pressable style={styles.ghostBtn} onPress={copyLast} hitSlop={6}>
-                  <MaterialCommunityIcons name="content-copy" size={14} color={palette.textSecondary} />
+                  <Icon name="content-copy" size={14} color={palette.textSecondary} />
                   <Text style={styles.ghostText}>{t('pain.assess.copyLast')}</Text>
                 </Pressable>
               )}
               {areaEntries.length > 0 && (
                 <Pressable style={styles.ghostBtn} onPress={() => setAreas({})} hitSlop={6}>
-                  <MaterialCommunityIcons name="trash-can-outline" size={14} color={palette.primary} />
+                  <Icon name="trash-can-outline" size={14} color={palette.primary} />
                   <Text style={[styles.ghostText, { color: palette.primary }]}>{t('pain.assess.clear')}</Text>
                 </Pressable>
               )}
@@ -230,7 +230,7 @@ export default function BodyMapScreen() {
                     <Text style={styles.areaName} numberOfLines={1}>{bodyRegionLabel(region)}</Text>
                     {a.painType && (
                       <View style={styles.areaTypeRow}>
-                        {meta && <MaterialCommunityIcons name={meta.icon} size={12} color={meta.color} />}
+                        {meta && <Icon name={meta.icon} size={12} color={meta.color} />}
                         <Text style={styles.areaType}>{painTypeLabel(a.painType)}</Text>
                       </View>
                     )}
@@ -242,7 +242,7 @@ export default function BodyMapScreen() {
                     <Text style={[styles.areaVal, { color: intensityColor(a.intensity) }]}>{a.intensity}</Text>
                   </View>
                   <Pressable onPress={() => setEditing(region)} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('a11y.edit')} style={styles.iconBtn}>
-                    <MaterialCommunityIcons name="pencil" size={16} color={palette.textSecondary} />
+                    <Icon name="pencil" size={16} color={palette.textSecondary} />
                   </Pressable>
                   <Pressable
                     onPress={() => setAreas((p) => { const n = { ...p }; delete n[region]; return n; })}
@@ -250,7 +250,7 @@ export default function BodyMapScreen() {
                     accessibilityRole="button"
                     accessibilityLabel={t('a11y.delete')}
                     style={styles.iconBtn}>
-                    <MaterialCommunityIcons name="trash-can-outline" size={16} color={palette.primary} />
+                    <Icon name="trash-can-outline" size={16} color={palette.primary} />
                   </Pressable>
                 </View>
               );
@@ -270,12 +270,12 @@ export default function BodyMapScreen() {
                   onPress={() => setOnset(null)}
                   accessibilityRole="button"
                   accessibilityLabel={t('a11y.remove')}>
-                  <MaterialCommunityIcons name="close-circle" size={22} color={palette.textSecondary} />
+                  <Icon name="close-circle" size={22} color={palette.textSecondary} />
                 </Pressable>
               </View>
             ) : (
               <Pressable style={styles.onsetAdd} onPress={() => setOnset(new Date())} accessibilityRole="button">
-                <MaterialCommunityIcons name="calendar-plus" size={18} color={palette.textSecondary} />
+                <Icon name="calendar-plus" size={18} color={palette.textSecondary} />
                 <Text style={styles.onsetAddText}>{t('pain.assess.onset.add')}</Text>
               </Pressable>
             )}
@@ -327,7 +327,7 @@ export default function BodyMapScreen() {
               {summary.predominant ? (
                 <View style={styles.summaryTypeRow}>
                   {painTypeMeta(summary.predominant) && (
-                    <MaterialCommunityIcons name={painTypeMeta(summary.predominant)!.icon} size={18} color={painTypeMeta(summary.predominant)!.color} />
+                    <Icon name={painTypeMeta(summary.predominant)!.icon} size={18} color={painTypeMeta(summary.predominant)!.color} />
                   )}
                   <Text style={styles.summaryMid}>{painTypeLabel(summary.predominant)}</Text>
                 </View>
@@ -457,7 +457,7 @@ function AreaEditorSheet({
                   key={pt.key}
                   onPress={() => setPainType(on ? null : pt.key)}
                   style={[styles.typeChip, on && { borderColor: pt.color, backgroundColor: pt.color + '22' }]}>
-                  <MaterialCommunityIcons name={pt.icon} size={16} color={on ? pt.color : palette.textSecondary} />
+                  <Icon name={pt.icon} size={16} color={on ? pt.color : palette.textSecondary} />
                   <Text style={[styles.typeLabel, on && { color: palette.textPrimary }]}>{painTypeLabel(pt.key)}</Text>
                 </Pressable>
               );
@@ -519,7 +519,7 @@ function HistoryList({
           </View>
           {s.trend && (
             <View style={[styles.trendTag, { backgroundColor: trendColor(s.trend) + '22' }]}>
-              <MaterialCommunityIcons
+              <Icon
                 name={s.trend === 'BETTER' ? 'arrow-down' : s.trend === 'WORSE' ? 'arrow-up' : 'minus'}
                 size={12}
                 color={trendColor(s.trend)}
@@ -528,7 +528,7 @@ function HistoryList({
             </View>
           )}
           <Pressable onPress={() => onDelete(s.id)} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('a11y.delete')} style={styles.iconBtn}>
-            <MaterialCommunityIcons name="trash-can-outline" size={16} color={palette.primary} />
+            <Icon name="trash-can-outline" size={16} color={palette.primary} />
           </Pressable>
         </Pressable>
       ))}
@@ -549,7 +549,7 @@ function AssessmentDetailModal({ id, onClose, bodyWidth }: { id: number | null; 
         <View style={styles.detailHead}>
           <Text style={styles.detailTitle}>{a ? formatDay(a.assessedOn) : t('pain.assess.detail.title')}</Text>
           <Pressable onPress={onClose} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('a11y.close')}>
-            <MaterialCommunityIcons name="close" size={24} color={palette.textPrimary} />
+            <Icon name="close" size={24} color={palette.textPrimary} />
           </Pressable>
         </View>
         {!a ? (
@@ -578,7 +578,7 @@ function AssessmentDetailModal({ id, onClose, bodyWidth }: { id: number | null; 
                     <Text style={styles.areaName}>{bodyRegionLabel(x.region)}</Text>
                     {x.painType && (
                       <View style={styles.areaTypeRow}>
-                        {meta && <MaterialCommunityIcons name={meta.icon} size={12} color={meta.color} />}
+                        {meta && <Icon name={meta.icon} size={12} color={meta.color} />}
                         <Text style={styles.areaType}>{painTypeLabel(x.painType)}{x.note ? ` · ${x.note}` : ''}</Text>
                       </View>
                     )}

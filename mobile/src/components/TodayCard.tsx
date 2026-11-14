@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import { useMutation } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
 import { Alert, Pressable, View } from 'react-native';
@@ -41,7 +41,7 @@ export default function TodayCard({ stats }: { stats: Stats | undefined }) {
     <View style={styles.card}>
       <View style={styles.top}>
         <View style={styles.streak}>
-          <MaterialCommunityIcons name="fire" size={26} color={palette.primary} />
+          <Icon name="fire" size={26} color={palette.primary} />
           <Text style={styles.streakNumber}>{stats.currentStreak}</Text>
           <Text style={styles.streakLabel}>
             {stats.currentStreak === 1 ? t('home.hero.days.one') : t('home.hero.days.many')}
@@ -58,7 +58,7 @@ export default function TodayCard({ stats }: { stats: Stats | undefined }) {
         {WEEK_LETTERS.map((letter, i) => (
           <View key={i} style={styles.day}>
             <View style={[styles.dot, weekDays[i] && styles.dotDone, i === todayIndex && !weekDays[i] && styles.dotToday]}>
-              {weekDays[i] && <MaterialCommunityIcons name="check" size={11} color="#fff" />}
+              {weekDays[i] && <Icon name="check" size={11} color="#fff" />}
             </View>
             <Text style={[styles.letter, i === todayIndex && styles.letterToday]}>{letter}</Text>
           </View>
@@ -68,7 +68,7 @@ export default function TodayCard({ stats }: { stats: Stats | undefined }) {
       {done ? (
         <View style={styles.doneRow}>
           <View style={styles.doneLabel}>
-            <MaterialCommunityIcons name="check-circle" size={18} color={palette.primary} />
+            <Icon name="check-circle" size={18} color={palette.primary} />
             <Text style={styles.doneText}>{t('today.done')}</Text>
           </View>
           <Pressable onPress={openSheet} hitSlop={8} accessibilityRole="button">

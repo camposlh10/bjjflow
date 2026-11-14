@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
@@ -17,15 +17,15 @@ export default function DonationsScreen() {
   return (
     <ScrollView showsVerticalScrollIndicator={false} style={styles.screen} contentContainerStyle={styles.body}>
       <View style={styles.hero}>
-        <MaterialCommunityIcons name="heart" size={40} color={palette.primary} />
+        <Icon name="heart" size={40} color={palette.primary} />
         <Text style={styles.intro}>{t('donations.intro')}</Text>
       </View>
 
       {LINKS.map((l) => (
         <Pressable key={l.key} style={styles.row} onPress={() => Linking.openURL(l.url)}>
-          <MaterialCommunityIcons name={l.icon as never} size={22} color={palette.primary} />
+          <Icon name={l.icon as never} size={22} color={palette.primary} />
           <Text style={styles.rowLabel}>{t(l.label)}</Text>
-          <MaterialCommunityIcons name="open-in-new" size={18} color={palette.textSecondary} />
+          <Icon name="open-in-new" size={18} color={palette.textSecondary} />
         </Pressable>
       ))}
 

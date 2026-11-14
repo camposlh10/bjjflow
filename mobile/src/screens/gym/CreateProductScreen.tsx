@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../../components/Icon';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
@@ -102,7 +102,7 @@ export default function CreateProductScreen({ navigation }: { navigation: { goBa
             <ActivityIndicator />
           ) : (
             <>
-              <MaterialCommunityIcons name="camera-plus" size={28} color={palette.primary} />
+              <Icon name="camera-plus" size={28} color={palette.primary} />
               <Text style={styles.imageHint}>{t('market.create.photo')}</Text>
             </>
           )}

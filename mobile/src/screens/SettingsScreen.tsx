@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { useNavigation } from '@react-navigation/native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ComponentProps } from 'react';
@@ -12,7 +12,7 @@ import { useLocaleStore } from '../store/localeStore';
 import { useThemeStore } from '../store/themeStore';
 import { makeStyles, palette } from '../theme/theme';
 
-type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+type IconName = ComponentProps<typeof Icon>['name'];
 
 function Row({
   icon,
@@ -34,7 +34,7 @@ function Row({
       style={styles.row}
       onPress={onPress ?? (soon ? () => Alert.alert(t('common.soon')) : undefined)}
       android_ripple={{ color: palette.surfaceVariant }}>
-      <MaterialCommunityIcons name={icon} size={20} color={danger ? palette.primary : palette.textSecondary} />
+      <Icon name={icon} size={20} color={danger ? palette.primary : palette.textSecondary} />
       <Text style={[styles.rowLabel, danger && { color: palette.primary }]} numberOfLines={1}>
         {label}
       </Text>
@@ -44,7 +44,7 @@ function Row({
         </Text>
       ) : null}
       {soon && <Text style={styles.soon}>{t('settings.soon')}</Text>}
-      {!danger && !soon && <MaterialCommunityIcons name="chevron-right" size={18} color={palette.outline} />}
+      {!danger && !soon && <Icon name="chevron-right" size={18} color={palette.outline} />}
     </Pressable>
   );
 }

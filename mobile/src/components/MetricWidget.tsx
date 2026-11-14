@@ -1,11 +1,11 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import { ComponentProps } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
 import { makeStyles, palette } from '../theme/theme';
 
-type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+type IconName = ComponentProps<typeof Icon>['name'];
 
 /** A dashboard metric tile (2-per-row). `locked` greys it out for wearable-only metrics. */
 export default function MetricWidget({
@@ -27,9 +27,9 @@ export default function MetricWidget({
     <View style={[styles.tile, locked && styles.tileLocked]}>
       <View style={styles.top}>
         <View style={[styles.iconWrap, { backgroundColor: locked ? palette.surfaceVariant : `${color}22` }]}>
-          <MaterialCommunityIcons name={icon} size={18} color={locked ? palette.textSecondary : color} />
+          <Icon name={icon} size={18} color={locked ? palette.textSecondary : color} />
         </View>
-        {locked && <MaterialCommunityIcons name="lock" size={14} color={palette.outline} />}
+        {locked && <Icon name="lock" size={14} color={palette.outline} />}
       </View>
       <Text style={[styles.value, locked && styles.valueLocked]} numberOfLines={1}>
         {locked ? '—' : (value ?? '—')}

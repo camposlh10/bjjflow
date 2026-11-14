@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useNavigation } from '@react-navigation/native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -246,12 +246,12 @@ function Form({ profile }: { profile: UserProfile }) {
           <View style={styles.bannerWrap}>
             <Image source={{ uri: banner.uri }} style={styles.bannerImg} resizeMode="cover" />
             <Pressable style={styles.bannerRemove} onPress={removeBanner} hitSlop={8}>
-              <MaterialCommunityIcons name="close" size={16} color="#fff" />
+              <Icon name="close" size={16} color="#fff" />
             </Pressable>
           </View>
         ) : (
           <Pressable style={styles.bannerAdd} onPress={pickBanner} disabled={busy}>
-            <MaterialCommunityIcons name="image-plus" size={22} color={palette.textSecondary} />
+            <Icon name="image-plus" size={22} color={palette.textSecondary} />
             <Text style={styles.bannerAddText}>{t('profile.edit.banner.add')}</Text>
           </Pressable>
         )}
@@ -268,7 +268,7 @@ function Form({ profile }: { profile: UserProfile }) {
               </View>
             )}
             <View style={styles.avatarBadge}>
-              {busy ? <ActivityIndicator size={12} color="#fff" /> : <MaterialCommunityIcons name="camera" size={13} color="#fff" />}
+              {busy ? <ActivityIndicator size={12} color="#fff" /> : <Icon name="camera" size={13} color="#fff" />}
             </View>
           </Pressable>
           <Text style={styles.hint}>{t('profile.edit.photo')}</Text>
@@ -342,11 +342,11 @@ function Form({ profile }: { profile: UserProfile }) {
             <Text style={styles.fieldLabel}>{t('profile.edit.stripes')}</Text>
             <View style={styles.counter}>
               <Pressable onPress={() => setStripes((s) => Math.max(0, s - 1))} hitSlop={6} style={styles.counterBtn}>
-                <MaterialCommunityIcons name="minus" size={16} color={palette.textPrimary} />
+                <Icon name="minus" size={16} color={palette.textPrimary} />
               </Pressable>
               <Text style={styles.counterValue}>{stripes}</Text>
               <Pressable onPress={() => setStripes((s) => Math.min(maxStripesFor(beltSlug), s + 1))} hitSlop={6} style={styles.counterBtn}>
-                <MaterialCommunityIcons name="plus" size={16} color={palette.textPrimary} />
+                <Icon name="plus" size={16} color={palette.textPrimary} />
               </Pressable>
             </View>
           </View>
@@ -402,11 +402,11 @@ function Form({ profile }: { profile: UserProfile }) {
                 </Text>
                 <View style={styles.counter}>
                   <Pressable onPress={() => setCount(comp.label, entry.count - 1)} hitSlop={6} style={styles.counterBtn}>
-                    <MaterialCommunityIcons name="minus" size={15} color={palette.textPrimary} />
+                    <Icon name="minus" size={15} color={palette.textPrimary} />
                   </Pressable>
                   <Text style={styles.counterValue}>{entry.count}</Text>
                   <Pressable onPress={() => setCount(comp.label, entry.count + 1)} hitSlop={6} style={styles.counterBtn}>
-                    <MaterialCommunityIcons name="plus" size={15} color={palette.textPrimary} />
+                    <Icon name="plus" size={15} color={palette.textPrimary} />
                   </Pressable>
                 </View>
                 {active && (
@@ -433,7 +433,7 @@ function Form({ profile }: { profile: UserProfile }) {
             <View key={ph.id} style={styles.photoWrap}>
               <Image source={{ uri: resolveMediaUrl(ph.url) }} style={styles.photo} resizeMode="cover" />
               <Pressable style={styles.photoX} hitSlop={6} onPress={() => removePhoto.mutate(ph.id)}>
-                <MaterialCommunityIcons name="close" size={12} color="#fff" />
+                <Icon name="close" size={12} color="#fff" />
               </Pressable>
             </View>
           ))}
@@ -442,7 +442,7 @@ function Form({ profile }: { profile: UserProfile }) {
               <ActivityIndicator size="small" color={palette.primary} />
             ) : (
               <>
-                <MaterialCommunityIcons name="plus" size={22} color={palette.primary} />
+                <Icon name="plus" size={22} color={palette.primary} />
                 <Text style={styles.addPhotoText}>{t('profile.edit.photos.add')}</Text>
               </>
             )}
@@ -456,7 +456,7 @@ function Form({ profile }: { profile: UserProfile }) {
             <Image source={{ uri: cert.uri }} style={styles.certImage} resizeMode="cover" />
           ) : (
             <View style={styles.certPlaceholder}>
-              <MaterialCommunityIcons name="certificate-outline" size={26} color={palette.textSecondary} />
+              <Icon name="certificate-outline" size={26} color={palette.textSecondary} />
               <Text style={styles.hint}>{t('profile.edit.certificate.add')}</Text>
             </View>
           )}

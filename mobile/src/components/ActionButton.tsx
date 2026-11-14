@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import { ComponentProps } from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
@@ -6,7 +6,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-na
 import { makeStyles, palette } from '../theme/theme';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
-type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+type IconName = ComponentProps<typeof Icon>['name'];
 
 /** Post action icon (like/comment/share/download/save) with a smooth scale pop on press. */
 export default function ActionButton({
@@ -40,7 +40,7 @@ export default function ActionButton({
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       style={[styles.btn, animStyle]}>
-      <MaterialCommunityIcons name={icon} size={size} color={color} />
+      <Icon name={icon} size={size} color={color} />
       {count !== undefined && <Text style={[styles.count, { color }]}>{count}</Text>}
     </AnimatedPressable>
   );

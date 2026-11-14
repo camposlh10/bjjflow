@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../../components/Icon';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
@@ -124,7 +124,7 @@ function Form({ gym, goBack }: { gym: Gym; goBack: () => void }) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         {status && (
           <View style={[styles.statusBanner, { borderColor: STATUS_STYLE[status].color }]}>
-            <MaterialCommunityIcons name={STATUS_STYLE[status].icon} size={18} color={STATUS_STYLE[status].color} />
+            <Icon name={STATUS_STYLE[status].icon} size={18} color={STATUS_STYLE[status].color} />
             <View style={{ flex: 1 }}>
               <Text style={[styles.statusText, { color: STATUS_STYLE[status].color }]}>
                 {t(`verify.status.${status}`)}
@@ -154,7 +154,7 @@ function Form({ gym, goBack }: { gym: Gym; goBack: () => void }) {
             <Image source={{ uri: cert.uri }} style={styles.certImage} resizeMode="cover" />
           ) : (
             <View style={styles.certPlaceholder}>
-              <MaterialCommunityIcons name="certificate-outline" size={28} color={palette.textSecondary} />
+              <Icon name="certificate-outline" size={28} color={palette.textSecondary} />
               <Text style={styles.uploadText}>{t('verify.certificate.add')}</Text>
             </View>
           )}
@@ -169,7 +169,7 @@ function Form({ gym, goBack }: { gym: Gym; goBack: () => void }) {
                 style={styles.photoX}
                 hitSlop={6}
                 onPress={() => setEstablishment((prev) => prev.filter((_, idx) => idx !== i))}>
-                <MaterialCommunityIcons name="close" size={12} color="#fff" />
+                <Icon name="close" size={12} color="#fff" />
               </Pressable>
             </View>
           ))}
@@ -181,7 +181,7 @@ function Form({ gym, goBack }: { gym: Gym; goBack: () => void }) {
               <ActivityIndicator size="small" color={palette.primary} />
             ) : (
               <>
-                <MaterialCommunityIcons name="plus" size={22} color={palette.primary} />
+                <Icon name="plus" size={22} color={palette.primary} />
                 <Text style={styles.uploadText}>{t('verify.establishment.add')}</Text>
               </>
             )}

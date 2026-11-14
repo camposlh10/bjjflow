@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
@@ -22,7 +22,7 @@ function FaqItem({ qKey, aKey }: { qKey: string; aKey: string }) {
     <Pressable style={styles.faqRow} onPress={() => setOpen((o) => !o)}>
       <View style={styles.faqHead}>
         <Text style={styles.faqQ}>{t(qKey as never)}</Text>
-        <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={palette.textSecondary} />
+        <Icon name={open ? 'chevron-up' : 'chevron-down'} size={20} color={palette.textSecondary} />
       </View>
       {open && <Text style={styles.faqA}>{t(aKey as never)}</Text>}
     </Pressable>

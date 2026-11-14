@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../../components/Icon';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -205,7 +205,7 @@ function EditForm({ gym, goBack }: { gym: Gym; goBack: () => void }) {
               {busy ? (
                 <ActivityIndicator size={12} color="#fff" />
               ) : (
-                <MaterialCommunityIcons name="camera" size={13} color="#fff" />
+                <Icon name="camera" size={13} color="#fff" />
               )}
             </View>
           </Pressable>
@@ -268,14 +268,14 @@ function EditForm({ gym, goBack }: { gym: Gym; goBack: () => void }) {
                     onPress={() => setCount(comp.label, entry.count - 1)}
                     hitSlop={6}
                     style={styles.counterBtn}>
-                    <MaterialCommunityIcons name="minus" size={15} color={palette.textPrimary} />
+                    <Icon name="minus" size={15} color={palette.textPrimary} />
                   </Pressable>
                   <Text style={styles.counterValue}>{entry.count}</Text>
                   <Pressable
                     onPress={() => setCount(comp.label, entry.count + 1)}
                     hitSlop={6}
                     style={styles.counterBtn}>
-                    <MaterialCommunityIcons name="plus" size={15} color={palette.textPrimary} />
+                    <Icon name="plus" size={15} color={palette.textPrimary} />
                   </Pressable>
                 </View>
                 {active && (
@@ -305,7 +305,7 @@ function EditForm({ gym, goBack }: { gym: Gym; goBack: () => void }) {
             <View key={p.id} style={styles.photoWrap}>
               <Image source={{ uri: resolveMediaUrl(p.url) }} style={styles.photo} resizeMode="cover" />
               <Pressable style={styles.photoX} onPress={() => removePhoto.mutate(p.id)} hitSlop={6}>
-                <MaterialCommunityIcons name="close" size={12} color="#fff" />
+                <Icon name="close" size={12} color="#fff" />
               </Pressable>
             </View>
           ))}
@@ -317,7 +317,7 @@ function EditForm({ gym, goBack }: { gym: Gym; goBack: () => void }) {
               <ActivityIndicator size="small" color={palette.primary} />
             ) : (
               <>
-                <MaterialCommunityIcons name="plus" size={22} color={palette.primary} />
+                <Icon name="plus" size={22} color={palette.primary} />
                 <Text style={styles.addPhotoText}>{t('gymProfile.edit.addPhoto')}</Text>
               </>
             )}

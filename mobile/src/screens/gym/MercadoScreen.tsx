@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../../components/Icon';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -84,7 +84,7 @@ export default function MercadoScreen({ gym }: { gym: Gym }) {
             {item.imageUrl ? (
               <Image source={{ uri: resolveMediaUrl(item.imageUrl) }} style={styles.image} resizeMode="contain" />
             ) : (
-              <MaterialCommunityIcons name="tshirt-crew" size={32} color={palette.outline} />
+              <Icon name="tshirt-crew" size={32} color={palette.outline} />
             )}
           </View>
           <Text numberOfLines={1} style={styles.name}>

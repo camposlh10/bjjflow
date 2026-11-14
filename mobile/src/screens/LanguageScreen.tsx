@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
@@ -22,7 +22,7 @@ export default function LanguageScreen() {
         {OPTIONS.map((o) => (
           <Pressable key={o.code} style={styles.row} onPress={() => setLocale(o.code)} android_ripple={{ color: palette.surfaceVariant }}>
             <Text style={styles.label}>{o.label}</Text>
-            {locale === o.code && <MaterialCommunityIcons name="check" size={20} color={palette.primary} />}
+            {locale === o.code && <Icon name="check" size={20} color={palette.primary} />}
           </Pressable>
         ))}
       </View>

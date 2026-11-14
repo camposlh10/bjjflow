@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../../components/Icon';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
@@ -110,7 +110,7 @@ export default function ClassDetailScreen({ route, navigation }: Props) {
         </Text>
         {occ.restrictionLabel && (
           <View style={styles.restrict}>
-            <MaterialCommunityIcons name="lock" size={11} color={palette.textSecondary} />
+            <Icon name="lock" size={11} color={palette.textSecondary} />
             <Text style={styles.restrictText}>{occ.restrictionLabel}</Text>
           </View>
         )}
@@ -118,12 +118,12 @@ export default function ClassDetailScreen({ route, navigation }: Props) {
 
       {occ.checkedIn ? (
         <View style={styles.doneBox}>
-          <MaterialCommunityIcons name="check-circle" size={18} color="#4ADE80" />
+          <Icon name="check-circle" size={18} color="#4ADE80" />
           <Text style={styles.doneText}>{t('agenda.checkinDone')}</Text>
         </View>
       ) : !occ.eligible ? (
         <View style={styles.lockedBox}>
-          <MaterialCommunityIcons name="lock" size={16} color={palette.textSecondary} />
+          <Icon name="lock" size={16} color={palette.textSecondary} />
           <Text style={styles.lockedText}>{occ.restrictionLabel ?? t('agenda.restricted')}</Text>
         </View>
       ) : occ.canCheckIn ? (
@@ -140,7 +140,7 @@ export default function ClassDetailScreen({ route, navigation }: Props) {
       ) : occ.reserved ? (
         <>
           <View style={styles.reservedBox}>
-            <MaterialCommunityIcons name="clock-check-outline" size={16} color={palette.textPrimary} />
+            <Icon name="clock-check-outline" size={16} color={palette.textPrimary} />
             <Text style={styles.reservedText}>{t('agenda.reserved')}</Text>
           </View>
           <Button
@@ -163,7 +163,7 @@ export default function ClassDetailScreen({ route, navigation }: Props) {
         </Button>
       ) : (
         <View style={styles.lockedBox}>
-          <MaterialCommunityIcons name="clock-outline" size={16} color={palette.textSecondary} />
+          <Icon name="clock-outline" size={16} color={palette.textSecondary} />
           <Text style={styles.lockedText}>{t('agenda.window')}</Text>
         </View>
       )}
@@ -211,7 +211,7 @@ export default function ClassDetailScreen({ route, navigation }: Props) {
               )}
             </View>
             <View style={styles.statusChip}>
-              <MaterialCommunityIcons
+              <Icon
                 name={a.status === 'PRESENT' ? 'check-circle' : 'clock-outline'}
                 size={12}
                 color={a.status === 'PRESENT' ? '#4ADE80' : palette.textSecondary}
@@ -238,14 +238,14 @@ export default function ClassDetailScreen({ route, navigation }: Props) {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <View style={styles.successCircle}>
-              <MaterialCommunityIcons name="check" size={34} color="#fff" />
+              <Icon name="check" size={34} color="#fff" />
             </View>
             <Text style={styles.successTitle}>{t('agenda.success.title')}</Text>
             <Text style={styles.successSub}>
               {occ.name} · {SESSION_LABEL[occ.sessionType]} · {occ.startTime}
             </Text>
             <View style={styles.streakChip}>
-              <MaterialCommunityIcons name="fire" size={18} color={palette.primary} />
+              <Icon name="fire" size={18} color={palette.primary} />
               <Text style={styles.streakText}>
                 {successStreak === 1
                   ? t('agenda.success.streakOne')

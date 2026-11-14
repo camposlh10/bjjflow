@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../../components/Icon';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
@@ -116,7 +116,7 @@ export default function CreatePostScreen({ navigation }: { navigation: any }) {
               <View key={i} style={styles.thumb}>
                 <Image source={{ uri: m.uri }} style={styles.thumbImg} />
                 {m.type === 'VIDEO' && (
-                  <MaterialCommunityIcons
+                  <Icon
                     name="play-circle"
                     size={26}
                     color="#fff"
@@ -124,7 +124,7 @@ export default function CreatePostScreen({ navigation }: { navigation: any }) {
                   />
                 )}
                 <Pressable style={styles.thumbX} onPress={() => removeAt(i)} hitSlop={6}>
-                  <MaterialCommunityIcons name="close" size={13} color="#fff" />
+                  <Icon name="close" size={13} color="#fff" />
                 </Pressable>
               </View>
             ))}
@@ -136,10 +136,10 @@ export default function CreatePostScreen({ navigation }: { navigation: any }) {
 
       <View style={styles.toolbar}>
         <Pressable onPress={() => pick('image')} hitSlop={8}>
-          <MaterialCommunityIcons name="image-outline" size={24} color={palette.primary} />
+          <Icon name="image-outline" size={24} color={palette.primary} />
         </Pressable>
         <Pressable onPress={() => pick('video')} hitSlop={8}>
-          <MaterialCommunityIcons name="video-outline" size={24} color={palette.primary} />
+          <Icon name="video-outline" size={24} color={palette.primary} />
         </Pressable>
         {uploading && <ActivityIndicator size="small" color={palette.primary} />}
       </View>

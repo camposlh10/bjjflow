@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMutation } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
@@ -54,7 +54,7 @@ function Section({
   onToggle,
   children,
 }: {
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  icon: keyof typeof Icon.glyphMap;
   title: string;
   summary: string;
   open: boolean;
@@ -68,12 +68,12 @@ function Section({
         onPress={onToggle}
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}>
-        <MaterialCommunityIcons name={icon} size={18} color={palette.textSecondary} />
+        <Icon name={icon} size={18} color={palette.textSecondary} />
         <Text style={styles.sectionTitle}>{title}</Text>
         <Text style={styles.sectionSummary} numberOfLines={1}>
           {summary}
         </Text>
-        <MaterialCommunityIcons name={open ? 'chevron-up' : 'chevron-down'} size={20} color={palette.textSecondary} />
+        <Icon name={open ? 'chevron-up' : 'chevron-down'} size={20} color={palette.textSecondary} />
       </Pressable>
       {open && <View style={styles.sectionBody}>{children}</View>}
     </View>
@@ -266,7 +266,7 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
                 style={[styles.chip, (pickingDate || (!isToday && !isYesterday)) && styles.chipOn]}
                 onPress={() => setPickingDate(true)}
                 accessibilityLabel={t('checkin.date.other')}>
-                <MaterialCommunityIcons
+                <Icon
                   name="calendar"
                   size={15}
                   color={pickingDate || (!isToday && !isYesterday) ? '#fff' : palette.textSecondary}
@@ -330,11 +330,11 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
                       {s.label}
                     </Text>
                     <Pressable onPress={() => bump(s.key, -1)} hitSlop={8} style={styles.stepBtn} disabled={n === 0} accessibilityRole="button" accessibilityLabel={`${t('a11y.decrease')} ${s.label}`}>
-                      <MaterialCommunityIcons name="minus" size={15} color={n === 0 ? palette.outline : palette.textPrimary} />
+                      <Icon name="minus" size={15} color={n === 0 ? palette.outline : palette.textPrimary} />
                     </Pressable>
                     <Text style={styles.stepNum}>{n}</Text>
                     <Pressable onPress={() => bump(s.key, 1)} hitSlop={8} style={styles.stepBtn} accessibilityRole="button" accessibilityLabel={`${t('a11y.increase')} ${s.label}`}>
-                      <MaterialCommunityIcons name="plus" size={15} color={palette.primary} />
+                      <Icon name="plus" size={15} color={palette.primary} />
                     </Pressable>
                   </View>
                 );
@@ -410,7 +410,7 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
               <View style={styles.photoWrap}>
                 <Image source={{ uri: photo.uri }} style={styles.photo} />
                 <Pressable style={styles.photoRemove} onPress={() => setPhoto(null)} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('a11y.remove')}>
-                  <MaterialCommunityIcons name="close" size={16} color="#fff" />
+                  <Icon name="close" size={16} color="#fff" />
                 </Pressable>
               </View>
             ) : (
@@ -419,7 +419,7 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
                   <ActivityIndicator color={palette.primary} />
                 ) : (
                   <>
-                    <MaterialCommunityIcons name="camera-plus-outline" size={22} color={palette.textSecondary} />
+                    <Icon name="camera-plus-outline" size={22} color={palette.textSecondary} />
                     <Text style={styles.photoAddText}>{t('checkin.sheet.photo.add')}</Text>
                   </>
                 )}
@@ -435,7 +435,7 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
                   key={v}
                   style={[styles.segBtn, visibility === v && styles.segBtnOn]}
                   onPress={() => chooseVisibility(v)}>
-                  <MaterialCommunityIcons
+                  <Icon
                     name={v === 'PUBLIC' ? 'earth' : 'lock'}
                     size={15}
                     color={visibility === v ? palette.textPrimary : palette.textSecondary}

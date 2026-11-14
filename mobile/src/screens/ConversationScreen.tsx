@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -298,7 +298,7 @@ export default function ConversationScreen() {
           hitSlop={6}
           accessibilityRole="button"
           accessibilityLabel={t('a11y.send')}>
-          <MaterialCommunityIcons name="arrow-up" size={20} color="#fff" />
+          <Icon name="arrow-up" size={20} color="#fff" />
         </Pressable>
       </View>
     </KeyboardAvoidingView>

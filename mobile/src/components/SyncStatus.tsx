@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import { useState } from 'react';
 import { FlatList, Modal, Pressable, View } from 'react-native';
 import { Text } from 'react-native-paper';
@@ -58,7 +58,7 @@ export default function SyncStatus() {
           accessibilityRole="button"
           accessibilityLiveRegion="polite"
           accessibilityLabel={text}>
-          <MaterialCommunityIcons
+          <Icon
             name={tone === 'offline' ? 'cloud-off-outline' : tone === 'failed' ? 'alert-circle-outline' : 'cloud-sync-outline'}
             size={15}
             color={tone === 'failed' ? '#fff' : palette.textPrimary}
@@ -85,7 +85,7 @@ export default function SyncStatus() {
               const bad = isFailed(item);
               return (
                 <View style={styles.row}>
-                  <MaterialCommunityIcons
+                  <Icon
                     name={bad ? 'alert-circle-outline' : 'clock-outline'}
                     size={18}
                     color={bad ? palette.primary : palette.textSecondary}
@@ -114,7 +114,7 @@ export default function SyncStatus() {
           />
           {online && items.length > 0 && (
             <Pressable style={styles.syncNow} onPress={() => void flushOutbox()} accessibilityRole="button">
-              <MaterialCommunityIcons name="sync" size={16} color={palette.primary} />
+              <Icon name="sync" size={16} color={palette.primary} />
               <Text style={styles.syncNowText}>{t('offline.sync.now')}</Text>
             </Pressable>
           )}

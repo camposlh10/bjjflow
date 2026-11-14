@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import { useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Image, Pressable, Share, StyleSheet, View } from 'react-native';
@@ -171,7 +171,7 @@ export default function TrainingCard({
             </Text>
           </View>
         </Pressable>
-        <MaterialCommunityIcons name="karate" size={22} color={palette.primary} />
+        <Icon name="karate" size={22} color={palette.primary} />
       </View>
 
       {/* Title */}

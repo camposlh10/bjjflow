@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import DateTimePicker, { DateTimePickerAndroid, type DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useState } from 'react';
 import { Modal, Platform, Pressable, View } from 'react-native';
@@ -54,9 +54,9 @@ export default function DateField({
   return (
     <>
       <Pressable onPress={openPicker} style={styles.field} accessibilityRole="button" accessibilityLabel={label(value, mode)}>
-        <MaterialCommunityIcons name={mode === 'time' ? 'clock-outline' : 'calendar'} size={18} color={palette.textSecondary} />
+        <Icon name={mode === 'time' ? 'clock-outline' : 'calendar'} size={18} color={palette.textSecondary} />
         <Text style={styles.fieldText}>{label(value, mode)}</Text>
-        <MaterialCommunityIcons name="chevron-down" size={18} color={palette.textSecondary} />
+        <Icon name="chevron-down" size={18} color={palette.textSecondary} />
       </Pressable>
       {Platform.OS === 'ios' && (
         <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>

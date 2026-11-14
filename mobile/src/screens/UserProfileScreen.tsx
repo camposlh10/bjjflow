@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -36,7 +36,7 @@ import { useAuthStore } from '../store/authStore';
 import { makeStyles, palette } from '../theme/theme';
 import { formatMonthYear } from '../utils/time';
 
-type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+type IconName = ComponentProps<typeof Icon>['name'];
 const ALL_BELTS = [...ADULT_BELTS, ...KIDS_BELTS];
 const MONTHS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
@@ -80,7 +80,7 @@ function timelineText(item: TimelineItem): string {
 function ProBadge() {
   return (
     <View style={styles.proBadge}>
-      <MaterialCommunityIcons name="star" size={11} color="#0D0D10" />
+      <Icon name="star" size={11} color="#0D0D10" />
       <Text style={styles.proText}>{t('profile.pro')}</Text>
     </View>
   );
@@ -260,13 +260,13 @@ export default function UserProfileScreen() {
           <View style={styles.metaChips}>
             {p.favoriteArt && (
               <View style={styles.metaChip}>
-                <MaterialCommunityIcons name={martialArtIcon(p.favoriteArt)} size={13} color={palette.textSecondary} />
+                <Icon name={martialArtIcon(p.favoriteArt)} size={13} color={palette.textSecondary} />
                 <Text style={styles.metaChipText}>{martialArtLabel(p.favoriteArt)}</Text>
               </View>
             )}
             {(p.city || p.state) && (
               <View style={styles.metaChip}>
-                <MaterialCommunityIcons name="map-marker-outline" size={13} color={palette.textSecondary} />
+                <Icon name="map-marker-outline" size={13} color={palette.textSecondary} />
                 <Text style={styles.metaChipText}>{[p.city, p.state].filter(Boolean).join(', ')}</Text>
               </View>
             )}
@@ -360,7 +360,7 @@ export default function UserProfileScreen() {
             style={styles.snapHead}
             onPress={() => navigation.navigate('Submissions', { userId: targetId })}>
             <Text style={styles.sectionTitle}>{t('profile.submissions')}</Text>
-            <MaterialCommunityIcons name="chevron-right" size={18} color={palette.textSecondary} />
+            <Icon name="chevron-right" size={18} color={palette.textSecondary} />
           </Pressable>
           <View style={styles.card}>
             {(submissions.data?.items.length ?? 0) === 0 ? (
@@ -403,7 +403,7 @@ export default function UserProfileScreen() {
           {p.photos.length > 6 && (
             <Pressable style={styles.seeMore} onPress={() => setPhotosExpanded((v) => !v)}>
               <Text style={styles.seeMoreText}>{photosExpanded ? t('profile.seeLess') : t('profile.seeMore')}</Text>
-              <MaterialCommunityIcons
+              <Icon
                 name={photosExpanded ? 'chevron-up' : 'chevron-down'}
                 size={16}
                 color={palette.primary}
@@ -470,12 +470,12 @@ export default function UserProfileScreen() {
                 <Text style={styles.gymName} numberOfLines={1}>
                   {p.gym.name}
                 </Text>
-                {p.gym.verified && <MaterialCommunityIcons name="check-decagram" size={15} color={palette.verified} />}
+                {p.gym.verified && <Icon name="check-decagram" size={15} color={palette.verified} />}
               </View>
               <View style={styles.gymStatsRow}>
                 {p.gym.ratingCount > 0 ? (
                   <View style={styles.gymStat}>
-                    <MaterialCommunityIcons name="star" size={13} color="#FACC15" />
+                    <Icon name="star" size={13} color="#FACC15" />
                     <Text style={styles.gymStatText}>
                       {p.gym.ratingAverage.toFixed(1)} ({p.gym.ratingCount})
                     </Text>
@@ -511,7 +511,7 @@ export default function UserProfileScreen() {
             <View key={i} style={styles.tlRow}>
               <View style={styles.tlRail}>
                 <View style={styles.tlDot}>
-                  <MaterialCommunityIcons name={TL_ICON[item.type] ?? 'star'} size={11} color="#fff" />
+                  <Icon name={TL_ICON[item.type] ?? 'star'} size={11} color="#fff" />
                 </View>
                 {i < arr.length - 1 && <View style={styles.tlLine} />}
               </View>
@@ -525,7 +525,7 @@ export default function UserProfileScreen() {
         {timeline.length > 6 && (
           <Pressable style={styles.seeMoreInline} onPress={() => setJourneyExpanded((v) => !v)}>
             <Text style={styles.seeMoreText}>{journeyExpanded ? t('profile.seeLess') : t('profile.seeMore')}</Text>
-            <MaterialCommunityIcons
+            <Icon
               name={journeyExpanded ? 'chevron-up' : 'chevron-down'}
               size={16}
               color={palette.primary}

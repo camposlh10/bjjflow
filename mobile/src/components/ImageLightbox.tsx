@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import { useRef } from 'react';
 import { Dimensions, Image, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -23,7 +23,7 @@ export default function ImageLightbox({
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <Pressable style={styles.close} onPress={onClose} hitSlop={10}>
-          <MaterialCommunityIcons name="close" size={28} color="#fff" />
+          <Icon name="close" size={28} color="#fff" />
         </Pressable>
         <ScrollView
           ref={scrollRef}

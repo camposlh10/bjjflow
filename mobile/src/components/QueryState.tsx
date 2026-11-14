@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import { ActivityIndicator, Pressable, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
@@ -25,7 +25,7 @@ export default function QueryState({
   if (!online && !isError) {
     return (
       <View style={styles.wrap}>
-        <MaterialCommunityIcons name="cloud-off-outline" size={44} color={palette.surfaceVariant} />
+        <Icon name="cloud-off-outline" size={44} color={palette.surfaceVariant} />
         <Text style={styles.text}>{t('offline.notCached')}</Text>
       </View>
     );
@@ -33,14 +33,14 @@ export default function QueryState({
   if (isError && !isLoading) {
     return (
       <View style={styles.wrap}>
-        <MaterialCommunityIcons name="cloud-off-outline" size={44} color={palette.surfaceVariant} />
+        <Icon name="cloud-off-outline" size={44} color={palette.surfaceVariant} />
         <Text style={styles.text}>{t('common.loadError')}</Text>
         <Pressable
           style={styles.retry}
           onPress={onRetry}
           accessibilityRole="button"
           accessibilityLabel={t('common.retry')}>
-          <MaterialCommunityIcons name="refresh" size={16} color={palette.primary} />
+          <Icon name="refresh" size={16} color={palette.primary} />
           <Text style={styles.retryText}>{t('common.retry')}</Text>
         </Pressable>
       </View>

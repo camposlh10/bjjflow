@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import { useMutation } from '@tanstack/react-query';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
@@ -74,7 +74,7 @@ function GoogleAuth() {
         <ActivityIndicator color={palette.primary} style={{ marginVertical: 12 }} />
       ) : (
         <Pressable style={styles.btn} onPress={onGoogle} accessibilityRole="button">
-          <MaterialCommunityIcons name="google" size={20} color={palette.textPrimary} />
+          <Icon name="google" size={20} color={palette.textPrimary} />
           <Text style={styles.btnText}>{t('social.google')}</Text>
         </Pressable>
       )}
