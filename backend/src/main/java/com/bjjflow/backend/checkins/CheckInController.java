@@ -7,6 +7,7 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -41,6 +42,13 @@ public class CheckInController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
         return checkInService.list(Long.parseLong(auth.getName()), from, to);
+    }
+
+    @PutMapping("/api/v1/users/me/weekly-goal")
+    public CheckInDtos.WeeklyGoalRequest setWeeklyGoal(Authentication auth,
+            @Valid @RequestBody CheckInDtos.WeeklyGoalRequest request) {
+        checkInService.setWeeklyGoal(Long.parseLong(auth.getName()), request.weeklyGoal());
+        return request;
     }
 
     @GetMapping("/api/v1/users/me/stats")

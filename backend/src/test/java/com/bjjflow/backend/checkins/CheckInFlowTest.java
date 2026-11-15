@@ -2,6 +2,7 @@ package com.bjjflow.backend.checkins;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -42,6 +43,26 @@ class CheckInFlowTest {
                 .andExpect(status().isOk())
                 .andReturn();
         return JsonPath.read(result.getResponse().getContentAsString(), "$.accessToken");
+    }
+
+    @Test
+    void weeklyGoalCanBeChangedWithinOneToSevenDays() throws Exception {
+        String token = registerAndGetToken("goal@bjjflow.com");
+
+        mockMvc.perform(put("/api/v1/users/me/weekly-goal").header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON).content("{\"weeklyGoal\": 5}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.weeklyGoal").value(5));
+        mockMvc.perform(get("/api/v1/users/me/stats").header("Authorization", "Bearer " + token))
+                .andExpect(jsonPath("$.weeklyGoal").value(5));
+
+        for (String bad : new String[] { "0", "8", "null" }) {
+            mockMvc.perform(put("/api/v1/users/me/weekly-goal").header("Authorization", "Bearer " + token)
+                    .contentType(MediaType.APPLICATION_JSON).content("{\"weeklyGoal\": " + bad + "}"))
+                    .andExpect(status().isBadRequest());
+        }
+        mockMvc.perform(get("/api/v1/users/me/stats").header("Authorization", "Bearer " + token))
+                .andExpect(jsonPath("$.weeklyGoal").value(5));
     }
 
     @Test
