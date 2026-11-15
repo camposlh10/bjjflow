@@ -5,6 +5,7 @@ import { api, API_BASE, ApiError } from '../lib/api';
 import { dateTime } from '../lib/format';
 import { useDevices, useGym } from '../lib/hooks';
 import type { DeviceWithKeyResponse } from '../lib/types';
+import BridgesSection from './BridgesSection';
 import {
   Badge,
   Button,
@@ -165,6 +166,8 @@ export default function DevicesPage() {
           </table>
         )}
       </Card>
+
+      <BridgesSection isOwner={isOwner} />
 
       <RegisterDeviceModal
         open={registerModal}
