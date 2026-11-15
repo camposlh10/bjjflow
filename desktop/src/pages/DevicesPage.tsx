@@ -1,10 +1,10 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Copy, Fingerprint, Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { api, API_BASE, ApiError } from '../lib/api';
 import { dateTime } from '../lib/format';
 import { useDevices, useGym } from '../lib/hooks';
-import type { DeviceWithKeyResponse } from '../lib/types';
+import type { BridgeResponse, DeviceResponse, DeviceWithKeyResponse } from '../lib/types';
 import BridgesSection from './BridgesSection';
 import {
   Badge,
@@ -35,6 +35,13 @@ export default function DevicesPage() {
 
   const [registerModal, setRegisterModal] = useState(false);
   const [issuedKey, setIssuedKey] = useState<DeviceWithKeyResponse | null>(null);
+  const [linking, setLinking] = useState<DeviceResponse | null>(null);
+  const bridges = useQuery<BridgeResponse[], ApiError>({
+    queryKey: ['bridges'],
+    queryFn: () => api<BridgeResponse[]>('/crm/bridges'),
+  });
+  const bridgeName = (id: number | null) =>
+    (bridges.data ?? []).find((b) => b.id === id)?.name ?? 'Sem bridge';
 
   const rotate = useMutation({
     mutationFn: (deviceId: number) =>
@@ -119,7 +126,14 @@ export default function DevicesPage() {
                   <td className="py-3 text-zinc-400">
                     {DEVICE_TYPES[device.type] ?? device.type}
                   </td>
-                  <td className="py-3 text-zinc-400">{device.location ?? '—'}</td>
+                  <td className="py-3 text-zinc-400">
+                    {device.location ?? '—'}
+                    {device.lanHost && (
+                      <p className="text-xs text-zinc-500">
+                        {bridgeName(device.bridgeId)} · {device.lanHost}
+                      </p>
+                    )}
+                  </td>
                   <td className="py-3 text-zinc-400">
                     {device.lastSeenAt ? dateTime(device.lastSeenAt) : 'Nunca conectado'}
                   </td>
@@ -132,6 +146,12 @@ export default function DevicesPage() {
                     <td className="py-3 text-right space-x-3 whitespace-nowrap">
                       {device.active && (
                         <>
+                          <button
+                            className="text-xs font-semibold text-accent-soft hover:underline"
+                            onClick={() => setLinking(device)}
+                          >
+                            Conectar
+                          </button>
                           <button
                             className="text-xs font-semibold text-accent-soft hover:underline"
                             onClick={() => {
@@ -168,6 +188,16 @@ export default function DevicesPage() {
       </Card>
 
       <BridgesSection isOwner={isOwner} />
+
+      <LinkDeviceModal
+        device={linking}
+        bridges={(bridges.data ?? []).filter((b) => b.active)}
+        onClose={() => setLinking(null)}
+        onSaved={async () => {
+          await queryClient.invalidateQueries({ queryKey: ['devices'] });
+          setLinking(null);
+        }}
+      />
 
       <RegisterDeviceModal
         open={registerModal}
@@ -354,5 +384,90 @@ function ControlIdSetup({ apiKey }: { apiKey: string }) {
         </p>
       )}
     </div>
+  );
+}
+
+/** Which bridge reaches the device, and the device's IP on the gym's network. */
+function LinkDeviceModal({
+  device,
+  bridges,
+  onClose,
+  onSaved,
+}: {
+  device: DeviceResponse | null;
+  bridges: BridgeResponse[];
+  onClose: () => void;
+  onSaved: () => Promise<void>;
+}) {
+  const [bridgeId, setBridgeId] = useState('');
+  const [lanHost, setLanHost] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [openedFor, setOpenedFor] = useState<number | null>(null);
+  if (device && openedFor !== device.id) {
+    setOpenedFor(device.id);
+    setBridgeId(device.bridgeId ? String(device.bridgeId) : bridges[0] ? String(bridges[0].id) : '');
+    setLanHost(device.lanHost ?? '');
+    setError('');
+  }
+  if (!device && openedFor !== null) setOpenedFor(null);
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!device) return;
+    setError('');
+    setBusy(true);
+    try {
+      await api(`/crm/devices/${device.id}`, {
+        method: 'PUT',
+        body: { bridgeId: bridgeId ? Number(bridgeId) : 0, lanHost },
+      });
+      await onSaved();
+    } catch (exception) {
+      setError(exception instanceof ApiError ? exception.message : 'Erro ao salvar.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title={`Conectar ${device?.name ?? ''}`} open={device !== null} onClose={onClose}>
+      {bridges.length === 0 ? (
+        <p className="text-sm text-zinc-400">
+          Registre e instale uma bridge primeiro (seção Bridges, abaixo). Ela é quem fala com o aparelho
+          na rede da academia.
+        </p>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <p className="text-sm text-zinc-400">
+            Necessário para cadastrar alunos no aparelho pelo CRM. O IP também precisa estar em{' '}
+            <code className="text-accent-soft">devices</code> no config.json da bridge.
+          </p>
+          <Field label="Bridge">
+            <select value={bridgeId} onChange={(event) => setBridgeId(event.target.value)}>
+              {bridges.map((bridge) => (
+                <option key={bridge.id} value={bridge.id}>
+                  {bridge.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="IP do aparelho na rede da academia">
+            <input
+              required
+              maxLength={100}
+              value={lanHost}
+              onChange={(event) => setLanHost(event.target.value)}
+              placeholder="Ex.: 192.168.0.50"
+              pattern="[A-Za-z0-9.\-]+(:[0-9]{1,5})?"
+            />
+          </Field>
+          <ErrorText>{error}</ErrorText>
+          <Button type="submit" disabled={busy} className="w-full">
+            {busy ? 'Salvando…' : 'Salvar'}
+          </Button>
+        </form>
+      )}
+    </Modal>
   );
 }

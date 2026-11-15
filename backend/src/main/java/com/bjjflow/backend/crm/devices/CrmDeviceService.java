@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.bjjflow.backend.access.bridge.AccessBridgeRepository;
 import com.bjjflow.backend.access.AccessDevice;
 import com.bjjflow.backend.access.AccessDeviceRepository;
 import com.bjjflow.backend.access.DeviceKeys;
@@ -25,6 +26,7 @@ public class CrmDeviceService {
 
     private final CrmAccessService crmAccessService;
     private final AccessDeviceRepository accessDeviceRepository;
+    private final AccessBridgeRepository accessBridgeRepository;
 
     @Transactional
     public DeviceWithKeyResponse register(Long userId, CreateDeviceRequest request) {
@@ -76,6 +78,20 @@ public class CrmDeviceService {
         if (request.active() != null) {
             device.setActive(request.active());
         }
+        if (request.bridgeId() != null) {
+            if (request.bridgeId() == 0) {
+                device.setBridgeId(null);
+            } else {
+                // Only a bridge of this same gym can be linked.
+                accessBridgeRepository.findByIdAndGymId(request.bridgeId(), crm.gymId())
+                        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "BRIDGE_NOT_FOUND",
+                                "Bridge not found"));
+                device.setBridgeId(request.bridgeId());
+            }
+        }
+        if (request.lanHost() != null) {
+            device.setLanHost(blankToNull(request.lanHost()));
+        }
         return response(accessDeviceRepository.save(device));
     }
 
@@ -106,7 +122,7 @@ public class CrmDeviceService {
         return new DeviceResponse(
                 device.getId(), device.getGymId(), device.getName(), device.getType(),
                 device.getProvider(), device.getLocation(), Boolean.TRUE.equals(device.getActive()),
-                device.getCreatedAt(), device.getLastSeenAt());
+                device.getCreatedAt(), device.getLastSeenAt(), device.getBridgeId(), device.getLanHost());
     }
 
     private static String blankToNull(String value) {

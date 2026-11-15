@@ -50,6 +50,14 @@ public class AccessDevice {
     @Column(name = "last_seen_at")
     private Instant lastSeenAt;
 
+    /** The gym's bridge that can reach this device on the local network. */
+    @Column(name = "bridge_id")
+    private Long bridgeId;
+
+    /** The device's address on the gym's network (IP or host name). */
+    @Column(name = "lan_host")
+    private String lanHost;
+
     @PrePersist
     void onCreate() {
         if (createdAt == null) {

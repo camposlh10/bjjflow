@@ -1,6 +1,6 @@
 {
   "name": "bjjflow-bridge",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Runs on the gym's front-desk PC: relays access-device notifications to BJJ Flow (with an offline queue) and runs device commands from the cloud.",
   "type": "module",

@@ -7,8 +7,10 @@
 //    order. If the internet is down, notifications wait on disk and go out
 //    when it's back, so no passage is lost and devices never see an error.
 // 2. Commands: the bridge checks in with the cloud every few seconds and runs
-//    the commands waiting for it (PING, or an HTTP call to a device listed in
-//    allowedDeviceHosts). It only ever calls out, so it works behind any router.
+//    the commands waiting for it: PING, an HTTP call to a device listed in
+//    allowedDeviceHosts, or enrolling/removing a member on a device listed in
+//    devices (whose admin login stays here, never in the cloud). It only ever
+//    calls out, so it works behind any router.
 //
 // No dependencies: needs Node.js 20 or newer.
 //
@@ -20,7 +22,12 @@ import { appendFile, mkdir, readdir, readFile, rename, rm, stat, writeFile } fro
 import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const VERSION = '0.1.0';
+import * as controlid from './drivers/controlid.mjs';
+
+export const VERSION = '0.2.0';
+
+/** Device drivers by vendor, for enrolling and removing members. */
+const DRIVERS = { controlid };
 
 const RELAY_PREFIX = '/api/v1/access/';
 const FORWARD_HEADERS = ['content-type', 'x-device-key'];
@@ -185,10 +192,28 @@ export async function startBridge(rawConfig) {
           result: JSON.stringify({ status: response.status, body: text.slice(0, 3500) }),
         };
       }
+      if (command.type === 'DEVICE_ENROLL' || command.type === 'DEVICE_REMOVE') {
+        const payload = command.payload ?? {};
+        const device = config.devices.find((d) => d.host === payload.host);
+        if (!device) {
+          return fail(`device ${payload.host} is not in this bridge's config.json (devices)`);
+        }
+        const driver = DRIVERS[device.vendor ?? payload.vendor];
+        if (!driver) return fail(`no driver for vendor ${device.vendor ?? payload.vendor}`);
+        const done =
+          command.type === 'DEVICE_ENROLL' ? await driver.enroll(device, payload) : await driver.remove(device, payload);
+        log(`${command.type} user ${payload.userId} on ${device.host}: ok`);
+        return { success: true, result: JSON.stringify(done) };
+      }
       return { success: false, result: `unknown command type ${command.type}` };
     } catch (error) {
-      return { success: false, result: `${error.name}: ${error.message}`.slice(0, 4000) };
+      log(`${command.type} failed: ${error.message}`);
+      return fail(error instanceof controlid.DeviceError ? error.message : `${error.name}: ${error.message}`);
     }
+  }
+
+  function fail(message) {
+    return { success: false, result: JSON.stringify({ error: String(message).slice(0, 3900) }) };
   }
 
   function cloud(path, body) {
@@ -232,7 +257,12 @@ function normalizeConfig(raw) {
     listenPort: raw.listenPort ?? 8085,
     dataDir: resolve(raw.dataDir ?? 'data'),
     pollSeconds: raw.pollSeconds ?? 5,
-    allowedDeviceHosts: (raw.allowedDeviceHosts ?? []).map(String),
+    // Devices the bridge may log in to: [{ host, vendor, login, password }].
+    devices: (raw.devices ?? []).map((d) => ({ ...d, host: String(d.host) })),
+    allowedDeviceHosts: [
+      ...(raw.allowedDeviceHosts ?? []).map(String),
+      ...(raw.devices ?? []).map((d) => String(d.host).split(':')[0]),
+    ],
     logToFile: raw.logToFile ?? true,
     quiet: raw.quiet ?? false,
   };

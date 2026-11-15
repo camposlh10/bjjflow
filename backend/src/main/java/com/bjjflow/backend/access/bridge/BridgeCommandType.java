@@ -8,5 +8,14 @@ public enum BridgeCommandType {
      * {@code {"method","url","headers","body"}}. The bridge only calls hosts
      * listed in its own config, whatever the cloud asks.
      */
-    DEVICE_HTTP
+    DEVICE_HTTP,
+    /**
+     * Register a member on a device: {@code {"vendor","host","userId","name",
+     * "method":"FACE"|"CARD","cardValue"}}. The bridge logs in with the device
+     * credentials from its own config; for FACE the device captures the face
+     * itself and keeps it (the photo is not sent back to the cloud).
+     */
+    DEVICE_ENROLL,
+    /** Remove a member (and their face/cards) from a device: {@code {"vendor","host","userId"}}. */
+    DEVICE_REMOVE
 }

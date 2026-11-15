@@ -9,9 +9,13 @@ access devices (turnstiles, face, card and fingerprint readers) and BJJ Flow.
   BJJ Flow over HTTPS, oldest first. If the internet drops, notifications wait
   in `data/queue` and go out when it's back. Nothing is lost on a restart.
 - **Commands from the cloud.** Every few seconds the bridge checks in with BJJ
-  Flow and runs the commands waiting for it (a connection test now; enrolling
-  members on devices later). It only ever calls out, so no router setup is
-  needed. It only talks to device addresses listed in `allowedDeviceHosts`.
+  Flow and runs the commands waiting for it: a connection test, or registering
+  and removing members on the devices (face or card) when staff do it in the
+  CRM. It only ever calls out, so no router setup is needed, and it only talks
+  to the devices listed in its own `config.json`.
+- **Device logins stay here.** Each device's admin login and password live only
+  in this computer's `config.json`, never in BJJ Flow. Faces are captured by the
+  device and stay on it; the bridge drops the photo the device returns.
 
 Use it when a device can't reach the internet itself, can't use HTTPS (for
 example Control iD Monitor), or when passages must survive internet outages.
@@ -25,7 +29,8 @@ example Control iD Monitor), or when passages must survive internet outages.
 4. Copy `config.example.json` to `config.json` and fill it in:
    - `server`: the BJJ Flow API address (already filled for production)
    - `bridgeKey`: the key from step 3
-   - `allowedDeviceHosts`: the IP address of each device on the gym's network
+   - `devices`: one entry per device on the gym's network, with its IP, brand
+     (`"controlid"`) and its admin login and password
 5. In PowerShell **as Administrator**, in this folder:
 
    ```powershell
@@ -39,6 +44,10 @@ example Control iD Monitor), or when passages must survive internet outages.
 
 The CRM shows the bridge as **online** within a few seconds; **Testar conexão**
 sends a round trip through it.
+
+7. In the CRM, on each device, use **Conectar** to pick this bridge and type the
+   device's IP (the same one as in `devices`). Then members can be registered
+   on it from their page (**Cadastrar rosto** / **Cartão**).
 
 To remove it: `uninstall-windows.ps1` (as Administrator).
 
@@ -63,6 +72,16 @@ with their `X-Device-Key` header, as they would to the cloud. The bridge answers
 - `data/failed/` notifications BJJ Flow refused for good (e.g. wrong device key)
 - `data/bridge.log` activity log (rotates at 5 MB)
 - `GET http://<bridge>:8085/health` version and queue size
+
+## Testing without hardware
+
+```bash
+node ../tools/device-simulator/controlid-device.mjs --port 8099   # a fake Control iD device
+node ../tools/device-simulator/controlid.mjs --server http://127.0.0.1:8085/api/v1 --key <device key> --user <member id>
+```
+
+Add `{ "host": "127.0.0.1:8099", "vendor": "controlid", "login": "admin", "password": "admin" }`
+to `devices` to register members on the fake device.
 
 ## Development
 
