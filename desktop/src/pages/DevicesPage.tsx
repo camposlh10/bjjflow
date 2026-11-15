@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Copy, Fingerprint, Plus } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
-import { api, ApiError } from '../lib/api';
+import { api, API_BASE, ApiError } from '../lib/api';
 import { dateTime } from '../lib/format';
 import { useDevices, useGym } from '../lib/hooks';
 import type { DeviceWithKeyResponse } from '../lib/types';
@@ -183,6 +183,7 @@ export default function DevicesPage() {
       >
         {issuedKey && (
           <div className="space-y-4">
+            {isControlId(issuedKey.device.provider) && <ControlIdSetup apiKey={issuedKey.apiKey} />}
             <p className="text-sm text-zinc-400">
               Configure esta chave no dispositivo <b className="text-white">{issuedKey.device.name}</b>.
               Ela é exibida <b className="text-accent-soft">apenas uma vez</b> — o servidor guarda
@@ -279,7 +280,11 @@ function RegisterDeviceModal({
               value={provider}
               onChange={(event) => setProvider(event.target.value)}
               placeholder="Ex.: Control iD"
+              list="device-providers"
             />
+            <datalist id="device-providers">
+              <option value="Control iD" />
+            </datalist>
           </Field>
           <Field label="Local (opcional)">
             <input
@@ -296,5 +301,55 @@ function RegisterDeviceModal({
         </Button>
       </form>
     </Modal>
+  );
+}
+
+function isControlId(provider: string | null | undefined) {
+  return /control\s*-?\s*id/i.test(provider ?? '');
+}
+
+/** What to type in the Control iD web interface (Monitor) so it reports to us. */
+function ControlIdSetup({ apiKey }: { apiKey: string }) {
+  const server = new URL(API_BASE, window.location.href);
+  const https = server.protocol === 'https:';
+  const port = server.port || (https ? '443' : '80');
+  const apiPath = server.pathname.replace(/^\/+|\/+$/g, '');
+  const rows: [string, string][] = [
+    ['Servidor (hostname)', server.hostname],
+    ['Porta', port],
+    ['Caminho (path)', `${apiPath}/access/vendors/controlid/${apiKey}`],
+  ];
+  return (
+    <div className="space-y-3 text-sm">
+      <p className="text-zinc-400">
+        No aparelho Control iD, ative o <b className="text-white">Monitor</b> e preencha:
+      </p>
+      <div className="bg-panel2 border border-edge rounded-xl divide-y divide-edge/60">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-center gap-3 px-3 py-2">
+            <span className="w-36 shrink-0 text-xs text-zinc-500">{label}</span>
+            <code className="flex-1 font-mono text-ok break-all">{value}</code>
+            <button
+              className="text-zinc-400 hover:text-white shrink-0"
+              title="Copiar"
+              onClick={() => navigator.clipboard.writeText(value)}
+            >
+              <Copy size={14} />
+            </button>
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-zinc-500">
+        Cadastre cada aluno no aparelho usando o ID dele no BJJ Flow — ou deixe como está: a
+        primeira passagem de cada aluno cai na fila de revisão em Frequência e, ao vincular, o
+        sistema aprende o ID do aparelho para as próximas.
+      </p>
+      {https && (
+        <p className="text-xs text-warn">
+          O servidor só aceita HTTPS. Se o modelo do aparelho não permitir HTTPS no Monitor, ele
+          precisará do BJJ Flow Bridge instalado no computador da recepção.
+        </p>
+      )}
+    </div>
   );
 }

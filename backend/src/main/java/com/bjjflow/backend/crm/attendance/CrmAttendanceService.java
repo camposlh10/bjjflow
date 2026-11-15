@@ -16,6 +16,10 @@ import com.bjjflow.backend.automations.GymZones;
 import com.bjjflow.backend.access.AccessDevice;
 import com.bjjflow.backend.access.AccessDeviceRepository;
 import com.bjjflow.backend.access.AccessEventProcessor;
+import com.bjjflow.backend.access.AccessEventSource;
+import com.bjjflow.backend.access.CredentialType;
+import com.bjjflow.backend.access.MemberCredential;
+import com.bjjflow.backend.access.MemberCredentialRepository;
 import com.bjjflow.backend.access.AccessEventStatus;
 import com.bjjflow.backend.access.RawAccessEvent;
 import com.bjjflow.backend.access.RawAccessEventRepository;
@@ -60,6 +64,7 @@ public class CrmAttendanceService {
     private final GymMemberRepository gymMemberRepository;
     private final UserRepository userRepository;
     private final GymZones gymZones;
+    private final MemberCredentialRepository memberCredentialRepository;
 
     @Transactional
     public AttendanceChangeResponse mark(Long callerId, MarkAttendanceRequest request) {
@@ -120,6 +125,7 @@ public class CrmAttendanceService {
         requireReviewable(event);
         requireMemberInGym(memberUserId, crm.gymId());
 
+        learnCredential(event, memberUserId);
         event.setStudentUserId(memberUserId);
         event.setStatus(AccessEventStatus.RECEIVED);
         event.setProcessed(false);
@@ -235,6 +241,43 @@ public class CrmAttendanceService {
             throw new ApiException(HttpStatus.NOT_FOUND, "CLASS_NOT_FOUND", "Class not found");
         }
         return gymClass;
+    }
+
+    /**
+     * Linking a scan the device identified by its own id (card UID, Control iD
+     * user id...) teaches that id, so the member's next scans resolve without
+     * staff. Skipped when the id already belongs to someone.
+     */
+    private void learnCredential(RawAccessEvent event, Long memberUserId) {
+        String value = event.getExternalMemberId();
+        if (value == null || value.isBlank()
+                || memberCredentialRepository.existsByGymIdAndValueIgnoreCaseAndActiveTrue(event.getGymId(), value)) {
+            return;
+        }
+        String deviceName = accessDeviceRepository.findById(event.getDeviceId())
+                .map(AccessDevice::getName).orElse("dispositivo");
+        MemberCredential credential = new MemberCredential();
+        credential.setGymId(event.getGymId());
+        credential.setUserId(memberUserId);
+        credential.setType(credentialTypeFor(event.getSource()));
+        credential.setValue(value.trim());
+        credential.setLabel(clip("Aprendido de " + deviceName, 100));
+        credential.setActive(true);
+        memberCredentialRepository.save(credential);
+    }
+
+    private static CredentialType credentialTypeFor(AccessEventSource source) {
+        return switch (source) {
+            case CARD -> CredentialType.CARD;
+            case FINGERPRINT -> CredentialType.FINGERPRINT;
+            case QR -> CredentialType.QR;
+            case FACE -> CredentialType.FACE;
+            default -> CredentialType.OTHER;
+        };
+    }
+
+    private static String clip(String value, int max) {
+        return value.length() <= max ? value : value.substring(0, max);
     }
 
     private RawAccessEvent requireAccessEventInGym(Long eventId, Long gymId) {
