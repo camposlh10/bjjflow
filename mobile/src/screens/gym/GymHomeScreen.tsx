@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../../components/Icon';
 import * as Clipboard from 'expo-clipboard';
 import * as Haptics from 'expo-haptics';
 import { useNavigation } from '@react-navigation/native';
@@ -83,7 +83,7 @@ function NoGymView() {
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.noGymContent}>
       <View style={styles.noGymIcon}>
-        <MaterialCommunityIcons name="town-hall" size={30} color={palette.primary} />
+        <Icon name="town-hall" size={30} color={palette.primary} />
       </View>
       <Text variant="titleMedium" style={styles.noGymTitle}>
         {t('gym.none.title')}
@@ -203,7 +203,7 @@ function GymView({ gym }: { gym: Gym }) {
                 {gym.name}
               </Text>
               {gym.verified && (
-                <MaterialCommunityIcons name="check-decagram" size={16} color={palette.verified} />
+                <Icon name="check-decagram" size={16} color={palette.verified} />
               )}
             </View>
             <Text style={styles.gymMeta}>
@@ -219,7 +219,7 @@ function GymView({ gym }: { gym: Gym }) {
             disabled={changeRole.isPending}
             accessibilityHint={t('gym.role.testHint')}>
             <Text style={styles.roleChipText}>{roleLabel(gym.role)}</Text>
-            <MaterialCommunityIcons name="swap-horizontal" size={13} color={palette.textSecondary} />
+            <Icon name="swap-horizontal" size={13} color={palette.textSecondary} />
           </Pressable>
         )}
         <Menu
@@ -277,7 +277,7 @@ function GymView({ gym }: { gym: Gym }) {
 
       {copied && (
         <View style={styles.inviteRow}>
-          <MaterialCommunityIcons name="check" size={14} color="#4ADE80" />
+          <Icon name="check" size={14} color="#4ADE80" />
           <Text style={styles.inviteText}>
             {t('gym.invite.copied')}: <Text style={styles.inviteCode}>{gym.inviteCode}</Text>
           </Text>
@@ -292,7 +292,7 @@ function GymView({ gym }: { gym: Gym }) {
             style={styles.extraBack}
             accessibilityRole="button"
             accessibilityLabel={t('common.back')}>
-            <MaterialCommunityIcons name="arrow-left" size={20} color={palette.textPrimary} />
+            <Icon name="arrow-left" size={20} color={palette.textPrimary} />
           </Pressable>
           <Text style={styles.extraTitle}>{t(EXTRA_SECTIONS[activeTab]!)}</Text>
         </View>
@@ -418,7 +418,7 @@ function MembersList({ gym }: { gym: Gym }) {
             {staff ? (
               <Text style={styles.graduarLink}>{t('member.promote')}</Text>
             ) : (
-              <MaterialCommunityIcons name="chevron-right" size={18} color={palette.textSecondary} />
+              <Icon name="chevron-right" size={18} color={palette.textSecondary} />
             )}
           </Pressable>
         );
@@ -430,7 +430,7 @@ function MembersList({ gym }: { gym: Gym }) {
 function ComingSoon() {
   return (
     <View style={styles.center}>
-      <MaterialCommunityIcons name="hammer" size={36} color={palette.surfaceVariant} />
+      <Icon name="hammer" size={36} color={palette.surfaceVariant} />
       <Text style={styles.soon}>{t('gym.soon')}</Text>
     </View>
   );

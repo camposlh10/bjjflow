@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../../components/Icon';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQuery } from '@tanstack/react-query';
@@ -52,13 +52,13 @@ function ClassRow({ occ, onPress }: { occ: AgendaOccurrence; onPress: () => void
         <View style={styles.metaRow}>
           {occ.restrictionLabel && (
             <View style={styles.restrict}>
-              <MaterialCommunityIcons name="lock" size={9} color={palette.textSecondary} />
+              <Icon name="lock" size={9} color={palette.textSecondary} />
               <Text style={styles.metaText}>{occ.restrictionLabel}</Text>
             </View>
           )}
           {occ.attendeeCount > 0 && (
             <View style={styles.restrict}>
-              <MaterialCommunityIcons name="account-group" size={10} color={palette.textSecondary} />
+              <Icon name="account-group" size={10} color={palette.textSecondary} />
               <Text style={styles.metaText}>{tf('agenda.attendeesCount', { n: occ.attendeeCount })}</Text>
             </View>
           )}
@@ -66,21 +66,21 @@ function ClassRow({ occ, onPress }: { occ: AgendaOccurrence; onPress: () => void
       </View>
       {occ.checkedIn ? (
         <View style={styles.stateDone}>
-          <MaterialCommunityIcons name="check-circle" size={14} color="#4ADE80" />
+          <Icon name="check-circle" size={14} color="#4ADE80" />
           <Text style={styles.stateDoneText}>{t('agenda.checkinDone')}</Text>
         </View>
       ) : occ.reserved ? (
         <View style={styles.stateLocked}>
-          <MaterialCommunityIcons name="clock-check-outline" size={13} color={palette.textPrimary} />
+          <Icon name="clock-check-outline" size={13} color={palette.textPrimary} />
           <Text style={styles.stateReservedText}>{t('agenda.reserved')}</Text>
         </View>
       ) : !occ.eligible ? (
         <View style={styles.stateLocked}>
-          <MaterialCommunityIcons name="lock" size={13} color={palette.textSecondary} />
+          <Icon name="lock" size={13} color={palette.textSecondary} />
           <Text style={styles.stateLockedText}>{t('agenda.restricted')}</Text>
         </View>
       ) : (
-        <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
+        <Icon name="chevron-right" size={20} color={palette.textSecondary} />
       )}
     </Pressable>
   );

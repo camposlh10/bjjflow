@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../../components/Icon';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FlatList, Pressable, StyleSheet, View } from 'react-native';
@@ -93,7 +93,7 @@ export default function AttendanceScreen({ route }: Props) {
           </View>
           {item.present ? (
             <View style={styles.checkOn}>
-              <MaterialCommunityIcons name="check" size={16} color="#fff" />
+              <Icon name="check" size={16} color="#fff" />
             </View>
           ) : (
             <View style={styles.checkOff} />

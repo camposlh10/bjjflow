@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import { ComponentProps } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
@@ -7,7 +7,7 @@ import { milestoneProgress, nextMilestone } from '../constants/milestones';
 import { t, tf } from '../i18n';
 import { makeStyles, palette } from '../theme/theme';
 
-type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+type IconName = ComponentProps<typeof Icon>['name'];
 
 export default function MilestoneBar({
   icon,
@@ -29,7 +29,7 @@ export default function MilestoneBar({
     <View style={styles.row}>
       <View style={styles.head}>
         <View style={styles.labelWrap}>
-          <MaterialCommunityIcons name={icon} size={15} color={color} />
+          <Icon name={icon} size={15} color={color} />
           <Text style={styles.label}>{label}</Text>
         </View>
         <Text style={styles.value}>{value}</Text>

@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { RouteProp, useRoute } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
@@ -48,7 +48,7 @@ export default function SubmissionsScreen() {
         {/* Month selector */}
         <View style={styles.monthRow}>
           <Pressable style={styles.monthBtn} onPress={() => setMonth((m) => addMonth(m, -1))} hitSlop={8}>
-            <MaterialCommunityIcons name="chevron-left" size={24} color={palette.textPrimary} />
+            <Icon name="chevron-left" size={24} color={palette.textPrimary} />
           </Pressable>
           <Text style={styles.monthLabel}>{formatMonthYear(`${month}-01`)}</Text>
           <Pressable
@@ -56,7 +56,7 @@ export default function SubmissionsScreen() {
             disabled={!canNext}
             onPress={() => setMonth((m) => addMonth(m, 1))}
             hitSlop={8}>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={canNext ? palette.textPrimary : palette.outline} />
+            <Icon name="chevron-right" size={24} color={canNext ? palette.textPrimary : palette.outline} />
           </Pressable>
         </View>
 
@@ -118,7 +118,7 @@ export default function SubmissionsScreen() {
 
             {isMe && (
               <Pressable style={styles.logBtn} onPress={() => setCheckInOpen(true)}>
-                <MaterialCommunityIcons name="plus" size={18} color={palette.primary} />
+                <Icon name="plus" size={18} color={palette.primary} />
                 <Text style={styles.logText}>{t('submissions.log')}</Text>
               </Pressable>
             )}

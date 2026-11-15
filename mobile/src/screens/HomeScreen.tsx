@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useInfiniteQuery, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -164,7 +164,7 @@ export default function HomeScreen() {
           hitSlop={6}
           accessibilityRole="button"
           accessibilityLabel={t('feed.search')}>
-          <MaterialCommunityIcons name={searchOpen ? 'close' : 'magnify'} size={22} color={palette.textPrimary} />
+          <Icon name={searchOpen ? 'close' : 'magnify'} size={22} color={palette.textPrimary} />
         </Pressable>
         <Pressable
           style={styles.iconBtn}
@@ -172,7 +172,7 @@ export default function HomeScreen() {
           hitSlop={6}
           accessibilityRole="button"
           accessibilityLabel={t('feed.messages')}>
-          <MaterialCommunityIcons name="message-outline" size={21} color={palette.textPrimary} />
+          <Icon name="message-outline" size={21} color={palette.textPrimary} />
         </Pressable>
         <Pressable
           style={styles.iconBtn}
@@ -180,14 +180,14 @@ export default function HomeScreen() {
           hitSlop={6}
           accessibilityRole="button"
           accessibilityLabel={t('feed.notifications')}>
-          <MaterialCommunityIcons name="bell-outline" size={22} color={palette.textPrimary} />
+          <Icon name="bell-outline" size={22} color={palette.textPrimary} />
           {unread > 0 && <View style={styles.bellDot} />}
         </Pressable>
       </View>
 
       {searchOpen ? (
         <View style={styles.searchWrap}>
-          <MaterialCommunityIcons name="magnify" size={18} color={palette.textSecondary} />
+          <Icon name="magnify" size={18} color={palette.textSecondary} />
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -208,14 +208,14 @@ export default function HomeScreen() {
               style={styles.nextClass}
               onPress={() => navigation.getParent()?.navigate('Gym')}
               accessibilityRole="button">
-              <MaterialCommunityIcons name="calendar-clock" size={20} color={palette.primary} />
+              <Icon name="calendar-clock" size={20} color={palette.primary} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.nextLabel}>{t('today.nextClass')}</Text>
                 <Text style={styles.nextText} numberOfLines={1}>
                   {nextClass.name} · {nextClass.startTime.slice(0, 5)}
                 </Text>
               </View>
-              <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
+              <Icon name="chevron-right" size={20} color={palette.textSecondary} />
             </Pressable>
           )}
 
@@ -253,7 +253,7 @@ export default function HomeScreen() {
                 {item.username ? `@${item.username}` : item.belt?.namePt ?? ''}
               </Text>
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
+            <Icon name="chevron-right" size={20} color={palette.textSecondary} />
           </Pressable>
         )}
         ListEmptyComponent={
@@ -299,7 +299,7 @@ export default function HomeScreen() {
           </View>
         ) : (
           <View style={styles.center}>
-            <MaterialCommunityIcons name="earth" size={40} color={palette.surfaceVariant} />
+            <Icon name="earth" size={40} color={palette.surfaceVariant} />
             <Text style={styles.emptyTitle}>{t('feed.empty.title')}</Text>
             <Text style={styles.emptySub}>{t('feed.empty.sub')}</Text>
           </View>

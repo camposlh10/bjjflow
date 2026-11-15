@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../../components/Icon';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
@@ -206,7 +206,7 @@ function Body({ s }: { s: StudentAdmin }) {
                   {a.trend ? ` · ${trendLabel(a.trend)}` : ''}
                 </Text>
               </View>
-              <MaterialCommunityIcons name="chevron-right" size={18} color={palette.textSecondary} />
+              <Icon name="chevron-right" size={18} color={palette.textSecondary} />
             </Pressable>
           ))
         )}
@@ -243,7 +243,7 @@ function Body({ s }: { s: StudentAdmin }) {
         ) : (
           recentAttendance.map((a, i) => (
             <View key={i} style={styles.logRow}>
-              <MaterialCommunityIcons name="check-circle" size={16} color="#16A34A" />
+              <Icon name="check-circle" size={16} color="#16A34A" />
               <Text style={styles.logClass}>{a.className}</Text>
               <Text style={styles.logDate}>{fmtDate(a.date)}</Text>
             </View>
@@ -283,7 +283,7 @@ function Body({ s }: { s: StudentAdmin }) {
               </Text>
             </View>
             <Pressable onPress={() => removeNote.mutate(n.id)} hitSlop={8}>
-              <MaterialCommunityIcons name="trash-can-outline" size={18} color={palette.textSecondary} />
+              <Icon name="trash-can-outline" size={18} color={palette.textSecondary} />
             </Pressable>
           </View>
         ))}
@@ -438,14 +438,14 @@ function GraduateSheet({
               style={styles.stripeBtn}
               onPress={() => setStripes((n) => Math.max(0, n - 1))}
               hitSlop={6}>
-              <MaterialCommunityIcons name="minus" size={18} color={palette.textPrimary} />
+              <Icon name="minus" size={18} color={palette.textPrimary} />
             </Pressable>
             <Text style={styles.stripeNum}>{cappedStripes}</Text>
             <Pressable
               style={styles.stripeBtn}
               onPress={() => setStripes((n) => Math.min(maxStripes, n + 1))}
               hitSlop={6}>
-              <MaterialCommunityIcons name="plus" size={18} color={palette.primary} />
+              <Icon name="plus" size={18} color={palette.primary} />
             </Pressable>
           </View>
           <Button

@@ -1,9 +1,9 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { ComponentProps } from 'react';
 
 import { t, type TranslationKey } from '../i18n';
 
-type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+type IconName = ComponentProps<typeof Icon>['name'];
 
 export type MartialArtKey =
   | 'BJJ'

@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Linking, ScrollView, StyleSheet, View } from 'react-native';
@@ -60,7 +60,7 @@ export default function TechniqueDetailScreen() {
             {categoryLabel(tech.category)}
           </Text>
         </View>
-        <MaterialCommunityIcons
+        <Icon
           name={tech.favorite ? 'star' : 'star-outline'}
           size={26}
           color={tech.favorite ? palette.pro : palette.textSecondary}
@@ -84,7 +84,7 @@ export default function TechniqueDetailScreen() {
         </Button>
       ) : (
         <View style={styles.noVideo}>
-          <MaterialCommunityIcons name="video-off-outline" size={18} color={palette.textSecondary} />
+          <Icon name="video-off-outline" size={18} color={palette.textSecondary} />
           <Text style={styles.noVideoText}>{t('techniques.noVideo')}</Text>
         </View>
       )}
@@ -95,7 +95,7 @@ export default function TechniqueDetailScreen() {
 function Meta({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
     <View style={styles.meta}>
-      <MaterialCommunityIcons name={icon as never} size={16} color={palette.primary} />
+      <Icon name={icon as never} size={16} color={palette.primary} />
       <View>
         <Text style={styles.metaLabel}>{label}</Text>
         <Text style={styles.metaValue}>{value}</Text>

@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useQuery } from '@tanstack/react-query';
 import { useCallback, useMemo, useState } from 'react';
@@ -95,7 +95,7 @@ export default function DirectInboxScreen() {
       keyboardShouldPersistTaps="handled"
       ListHeaderComponent={
         <View style={styles.searchWrap}>
-          <MaterialCommunityIcons name="magnify" size={18} color={palette.textSecondary} />
+          <Icon name="magnify" size={18} color={palette.textSecondary} />
           <TextInput
             value={query}
             onChangeText={setQuery}
@@ -113,7 +113,7 @@ export default function DirectInboxScreen() {
           </View>
         ) : (
           <View style={styles.empty}>
-            <MaterialCommunityIcons name="message-text-outline" size={44} color={palette.surfaceVariant} />
+            <Icon name="message-text-outline" size={44} color={palette.surfaceVariant} />
             <Text style={styles.emptyTitle}>{t('dm.empty.title')}</Text>
             <Text style={styles.emptySub}>{t('dm.empty.sub')}</Text>
           </View>

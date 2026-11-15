@@ -6,6 +6,7 @@ import { PaperProvider } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import ErrorBoundary from './src/components/ErrorBoundary';
+import { PaperIcon } from './src/components/Icon';
 import RootNavigator from './src/navigation/RootNavigator';
 import './src/offline/network';
 import { CACHE_BUSTER, CACHE_MAX_AGE, asyncStoragePersister, queryClient } from './src/queryClient';
@@ -39,7 +40,8 @@ export default function App() {
           buster: CACHE_BUSTER,
           dehydrateOptions: { shouldDehydrateQuery: (query) => query.state.status === 'success' },
         }}>
-        <PaperProvider theme={paperThemeFor(scheme)}>
+        {/* Paper's buttons, chips and inputs draw the same line icons as the rest of the app. */}
+        <PaperProvider theme={paperThemeFor(scheme)} settings={{ icon: PaperIcon }}>
           {/* Remount the tree on locale/scheme change so t() + themed styles re-read. */}
           <NavigationContainer key={`${locale}-${scheme}`} theme={navigationThemeFor(scheme)}>
             <ErrorBoundary>

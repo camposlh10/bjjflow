@@ -10,6 +10,7 @@ import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import { useAuthStore } from '../store/authStore';
 import { makeStyles, palette } from '../theme/theme';
 import AppTabs from './AppTabs';
+import Animated, { FadeIn } from 'react-native-reanimated';
 
 export type AuthStackParamList = {
   Welcome: undefined;
@@ -46,7 +47,12 @@ export default function RootNavigator() {
     );
   }
 
-  return <AppTabs />;
+  // Signing in fades the app in instead of cutting to it.
+  return (
+    <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(320)}>
+      <AppTabs />
+    </Animated.View>
+  );
 }
 
 const styles = makeStyles(() => ({

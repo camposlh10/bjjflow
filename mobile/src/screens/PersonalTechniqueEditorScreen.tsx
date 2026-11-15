@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { useHeaderHeight } from '@react-navigation/elements';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -97,7 +97,7 @@ export default function PersonalTechniqueEditorScreen() {
             key={c}
             onPress={() => setColor(color === c ? null : c)}
             style={[styles.swatch, { backgroundColor: c }, color === c && styles.swatchActive]}>
-            {color === c && <MaterialCommunityIcons name="check" size={16} color="#FFFFFF" />}
+            {color === c && <Icon name="check" size={16} color="#FFFFFF" />}
           </Pressable>
         ))}
       </View>
@@ -105,7 +105,7 @@ export default function PersonalTechniqueEditorScreen() {
       <Text style={styles.label}>{t('techniques.field.video')}</Text>
       {mediaKey ? (
         <View style={styles.videoRow}>
-          <MaterialCommunityIcons name="check-circle" size={20} color="#16A34A" />
+          <Icon name="check-circle" size={20} color="#16A34A" />
           <Text style={styles.videoText}>{t('techniques.videoAdded')}</Text>
           <Pressable onPress={() => setMediaKey(null)} hitSlop={8}>
             <Text style={styles.removeVideo}>{t('techniques.removeVideo')}</Text>

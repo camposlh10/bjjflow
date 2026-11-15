@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import { useMemo, useState } from 'react';
 import { FlatList, Modal, Pressable, View } from 'react-native';
 import { Text, TextInput } from 'react-native-paper';
@@ -56,7 +56,7 @@ export default function SearchablePicker({
         <Text style={[styles.fieldText, !selected && styles.placeholder]} numberOfLines={1}>
           {selected ? `${selected.left ? selected.left + '  ' : ''}${selected.label}` : placeholder}
         </Text>
-        <MaterialCommunityIcons name="chevron-down" size={20} color={palette.textSecondary} />
+        <Icon name="chevron-down" size={20} color={palette.textSecondary} />
       </Pressable>
 
       <Modal visible={open} animationType="slide" transparent onRequestClose={close}>
@@ -74,7 +74,7 @@ export default function SearchablePicker({
               style={styles.search}
             />
             <Pressable onPress={close} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('a11y.close')}>
-              <MaterialCommunityIcons name="close" size={24} color={palette.textSecondary} />
+              <Icon name="close" size={24} color={palette.textSecondary} />
             </Pressable>
           </View>
           <FlatList
@@ -97,7 +97,7 @@ export default function SearchablePicker({
                   <Text style={[styles.rowText, on && styles.rowTextOn]} numberOfLines={1}>
                     {item.label}
                   </Text>
-                  {on ? <MaterialCommunityIcons name="check" size={20} color={palette.primary} /> : null}
+                  {on ? <Icon name="check" size={20} color={palette.primary} /> : null}
                 </Pressable>
               );
             }}

@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../../components/Icon';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -21,7 +21,7 @@ import { makeStyles, palette } from '../../theme/theme';
 import { formatMonthYear, formatShortDateTime } from '../../utils/time';
 
 type Nav = NativeStackNavigationProp<GymStackParamList>;
-type IconName = ComponentProps<typeof MaterialCommunityIcons>['name'];
+type IconName = ComponentProps<typeof Icon>['name'];
 
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/);
@@ -31,7 +31,7 @@ function initialsOf(name: string): string {
 function ContactRow({ icon, value, onPress }: { icon: IconName; value: string; onPress?: () => void }) {
   return (
     <Pressable style={styles.contactRow} onPress={onPress} disabled={!onPress}>
-      <MaterialCommunityIcons name={icon} size={17} color={palette.textSecondary} />
+      <Icon name={icon} size={17} color={palette.textSecondary} />
       <Text style={[styles.contactText, onPress && styles.contactLink]} numberOfLines={1}>
         {value}
       </Text>
@@ -85,7 +85,7 @@ function StarRow({
     <View style={styles.starRow}>
       {[1, 2, 3, 4, 5].map((n) => (
         <Pressable key={n} onPress={onChange ? () => onChange(n) : undefined} disabled={!onChange} hitSlop={4}>
-          <MaterialCommunityIcons name={n <= value ? 'star' : 'star-outline'} size={size} color="#FACC15" />
+          <Icon name={n <= value ? 'star' : 'star-outline'} size={size} color="#FACC15" />
         </Pressable>
       ))}
     </View>
@@ -214,7 +214,7 @@ function ReviewsSection() {
 
             {thanks && (
               <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.thanksToast}>
-                <MaterialCommunityIcons name="check-circle" size={16} color="#22C55E" />
+                <Icon name="check-circle" size={16} color="#22C55E" />
                 <Text style={styles.thanksText}>{t('gymProfile.reviews.thanks')}</Text>
               </Animated.View>
             )}
@@ -328,7 +328,7 @@ export default function GymProfileScreen() {
 
       {g.verified && (
         <View style={styles.verifiedPill}>
-          <MaterialCommunityIcons name="check-decagram" size={13} color={palette.verified} />
+          <Icon name="check-decagram" size={13} color={palette.verified} />
           <Text style={styles.verifiedPillText}>{t('gymProfile.verifiedBadge')}</Text>
         </View>
       )}
@@ -347,11 +347,11 @@ export default function GymProfileScreen() {
             <Text variant="titleLarge" style={styles.name} numberOfLines={1}>
               {g.name}
             </Text>
-            {g.verified && <MaterialCommunityIcons name="check-decagram" size={18} color={palette.verified} />}
+            {g.verified && <Icon name="check-decagram" size={18} color={palette.verified} />}
           </View>
           {g.city && <Text style={styles.location}>{g.city}</Text>}
           <View style={styles.joinedRow}>
-            <MaterialCommunityIcons name="calendar-blank-outline" size={12} color={palette.textSecondary} />
+            <Icon name="calendar-blank-outline" size={12} color={palette.textSecondary} />
             <Text style={styles.joined}>{tf('gymProfile.joined', { date: formatMonthYear(g.createdAt) })}</Text>
           </View>
         </View>
@@ -394,11 +394,11 @@ export default function GymProfileScreen() {
               source={{ html: mapHtml(g.address) }}
             />
             <View style={styles.mapHint}>
-              <MaterialCommunityIcons name="map-marker" size={14} color="#fff" />
+              <Icon name="map-marker" size={14} color="#fff" />
               <Text style={styles.mapHintText} numberOfLines={1}>
                 {g.address}
               </Text>
-              <MaterialCommunityIcons name="open-in-new" size={13} color="#fff" />
+              <Icon name="open-in-new" size={13} color="#fff" />
             </View>
           </Pressable>
         </>
@@ -434,7 +434,7 @@ export default function GymProfileScreen() {
                 key={s.key}
                 style={[styles.socialIcon, { backgroundColor: s.color }]}
                 onPress={() => open(s.build(g[s.key] as string))}>
-                <MaterialCommunityIcons name={s.icon} size={22} color="#fff" />
+                <Icon name={s.icon} size={22} color="#fff" />
               </Pressable>
             ))}
           </View>
@@ -453,7 +453,7 @@ export default function GymProfileScreen() {
               />
             </Pressable>
             <View style={styles.certInfo}>
-              <MaterialCommunityIcons name="check-decagram" size={16} color={palette.verified} />
+              <Icon name="check-decagram" size={16} color={palette.verified} />
               <Text style={styles.certCnpj}>{tf('gymProfile.certificate.cnpj', { cnpj: g.verification.cnpj })}</Text>
             </View>
           </View>

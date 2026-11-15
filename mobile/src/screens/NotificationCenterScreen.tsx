@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -97,10 +97,10 @@ export default function NotificationCenterScreen() {
   if (!data || !Array.isArray(data.items)) {
     return (
       <View style={styles.errorWrap}>
-        <MaterialCommunityIcons name="cloud-off-outline" size={44} color={palette.surfaceVariant} />
+        <Icon name="cloud-off-outline" size={44} color={palette.surfaceVariant} />
         <Text style={styles.errorTitle}>{t('notifications.error')}</Text>
         <Pressable style={styles.retryBtn} onPress={() => refetch()}>
-          <MaterialCommunityIcons name="refresh" size={16} color={palette.primary} />
+          <Icon name="refresh" size={16} color={palette.primary} />
           <Text style={styles.retryText}>{t('common.retry')}</Text>
         </Pressable>
       </View>
@@ -123,7 +123,7 @@ export default function NotificationCenterScreen() {
       </View>
       {unread > 0 && (
         <Pressable style={styles.markAll} onPress={() => readAll.mutate()}>
-          <MaterialCommunityIcons name="check-all" size={16} color={palette.primary} />
+          <Icon name="check-all" size={16} color={palette.primary} />
           <Text style={styles.markAllText}>{t('notifications.markAll')}</Text>
         </Pressable>
       )}
@@ -138,7 +138,7 @@ export default function NotificationCenterScreen() {
           return (
             <Pressable style={[styles.row, !item.read && styles.rowUnread]} onPress={() => open(item)}>
               <View style={[styles.iconWrap, { backgroundColor: cat.color + '22' }]}>
-                <MaterialCommunityIcons name={cat.icon as never} size={20} color={cat.color} />
+                <Icon name={cat.icon as never} size={20} color={cat.color} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.rowTitle}>{item.title}</Text>

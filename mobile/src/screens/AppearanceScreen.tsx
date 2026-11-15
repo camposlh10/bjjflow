@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { Pressable, View } from 'react-native';
 import { Text } from 'react-native-paper';
 
@@ -25,9 +25,9 @@ export default function AppearanceScreen() {
             style={styles.row}
             onPress={() => setPreference(o.pref)}
             android_ripple={{ color: palette.surfaceVariant }}>
-            <MaterialCommunityIcons name={o.icon as never} size={20} color={palette.textSecondary} />
+            <Icon name={o.icon as never} size={20} color={palette.textSecondary} />
             <Text style={styles.label}>{t(o.key)}</Text>
-            {preference === o.pref && <MaterialCommunityIcons name="check" size={20} color={palette.primary} />}
+            {preference === o.pref && <Icon name="check" size={20} color={palette.primary} />}
           </Pressable>
         ))}
       </View>

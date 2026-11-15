@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
@@ -71,7 +71,7 @@ export default function MfaScreen() {
       {settings.mfaEnabled ? (
         <View style={styles.card}>
           <View style={styles.statusRow}>
-            <MaterialCommunityIcons name="shield-check" size={22} color="#16A34A" />
+            <Icon name="shield-check" size={22} color="#16A34A" />
             <Text style={styles.statusOn}>{t('mfa.enabled.title')}</Text>
           </View>
           <Text style={styles.hint}>{t('mfa.enabled.desc')}</Text>
@@ -107,7 +107,7 @@ export default function MfaScreen() {
               <Text selectable style={styles.secret}>
                 {enroll.secret}
               </Text>
-              <MaterialCommunityIcons name="content-copy" size={20} color={palette.primary} onPress={copySecret} />
+              <Icon name="content-copy" size={20} color={palette.primary} onPress={copySecret} />
             </View>
           </View>
 

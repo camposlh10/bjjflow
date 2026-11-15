@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Modal, Pressable, StyleSheet, View } from 'react-native';
 
@@ -15,7 +15,7 @@ export default function VideoModal({ url, onClose }: { url: string; onClose: () 
     <Modal visible transparent animationType="fade" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <Pressable style={styles.close} onPress={onClose} hitSlop={12}>
-          <MaterialCommunityIcons name="close" size={28} color="#FFFFFF" />
+          <Icon name="close" size={28} color="#FFFFFF" />
         </Pressable>
         <VideoView player={player} style={styles.video} contentFit="contain" allowsFullscreen nativeControls />
       </View>

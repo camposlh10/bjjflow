@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { useNavigation } from '@react-navigation/native';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as Haptics from 'expo-haptics';
@@ -67,7 +67,7 @@ function timelineText(item: TimelineItem): string {
   }
 }
 
-type Goal = { text: string; value: number; target: number; icon: keyof typeof MaterialCommunityIcons.glyphMap };
+type Goal = { text: string; value: number; target: number; icon: keyof typeof Icon.glyphMap };
 
 /** The single most reachable goal right now, with how far along it is. */
 function nextGoal(s: Stats): Goal {
@@ -123,7 +123,7 @@ function StatTile({
   progress,
   hint,
 }: {
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  icon: keyof typeof Icon.glyphMap;
   color: string;
   value: string | number;
   label: string;
@@ -133,7 +133,7 @@ function StatTile({
   return (
     <View style={styles.tile} accessible accessibilityLabel={`${label}: ${value}${hint ? `. ${hint}` : ''}`}>
       <View style={styles.tileTop}>
-        <MaterialCommunityIcons name={icon} size={18} color={color} />
+        <Icon name={icon} size={18} color={color} />
         <Text style={styles.tileLabel} numberOfLines={1}>
           {label}
         </Text>
@@ -159,7 +159,7 @@ function ToolTile({
   label,
   onPress,
 }: {
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  icon: keyof typeof Icon.glyphMap;
   color: string;
   label: string;
   onPress: () => void;
@@ -167,7 +167,7 @@ function ToolTile({
   return (
     <Pressable style={styles.tool} onPress={onPress} accessibilityRole="button" accessibilityLabel={label}>
       <View style={[styles.toolIcon, { backgroundColor: color + '26' }]}>
-        <MaterialCommunityIcons name={icon} size={22} color={color} />
+        <Icon name={icon} size={22} color={color} />
       </View>
       <Text style={styles.toolLabel} numberOfLines={2}>
         {label}
@@ -260,11 +260,11 @@ export default function ProgressScreen() {
               <Text style={styles.cardKicker}>{t('home.week.title')}</Text>
               <Text style={styles.weekMessage}>{weekMessage(s)}</Text>
               <View style={styles.weekLoadRow}>
-                <MaterialCommunityIcons name="timer-outline" size={15} color={palette.textSecondary} />
+                <Icon name="timer-outline" size={15} color={palette.textSecondary} />
                 <Text style={styles.weekLoad}>{formatMinutes(s.weeklyMinutes)}</Text>
                 {s.weeklyMinutes !== s.lastWeekMinutes && (
                   <View style={styles.trend}>
-                    <MaterialCommunityIcons
+                    <Icon
                       name={s.weeklyMinutes > s.lastWeekMinutes ? 'arrow-up' : 'arrow-down'}
                       size={13}
                       color={s.weeklyMinutes > s.lastWeekMinutes ? UP : DOWN}
@@ -279,7 +279,7 @@ export default function ProgressScreen() {
                 <Text style={styles.weekCal}>{tf('home.week.calories', { n: s.weeklyCalories })}</Text>
               )}
             </View>
-            <MaterialCommunityIcons name="chevron-right" size={20} color={palette.textSecondary} />
+            <Icon name="chevron-right" size={20} color={palette.textSecondary} />
           </Pressable>
 
           {/* 2. Totals, each with progress toward its next milestone. */}
@@ -324,7 +324,7 @@ export default function ProgressScreen() {
             return (
               <View style={styles.goalCard}>
                 <View style={styles.goalIcon}>
-                  <MaterialCommunityIcons name={goal.icon} size={22} color={palette.primary} />
+                  <Icon name={goal.icon} size={22} color={palette.primary} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardKicker}>{t('home.nextGoal.title')}</Text>

@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from './Icon';
 import { memo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { IconButton, Menu, Text } from 'react-native-paper';
@@ -73,7 +73,7 @@ function PostCard({
     <View style={[styles.card, post.pinned && styles.cardPinned]}>
       {post.pinned && (
         <View style={styles.pinnedRow}>
-          <MaterialCommunityIcons name="pin" size={13} color={palette.primary} />
+          <Icon name="pin" size={13} color={palette.primary} />
           <Text style={styles.pinnedText}>{t('mural.pinned')}</Text>
         </View>
       )}

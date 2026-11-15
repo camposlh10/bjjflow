@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../../components/Icon';
 import Slider from '@react-native-community/slider';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
@@ -285,7 +285,7 @@ export default function OnboardingScreen({ navigation }: Props) {
                 const on = favoriteArt === a.key;
                 return (
                   <Pressable key={a.key} style={[styles.artChip, on && styles.chipOn]} onPress={() => setFavoriteArt(a.key)}>
-                    <MaterialCommunityIcons name={a.icon} size={16} color={on ? '#fff' : palette.textSecondary} />
+                    <Icon name={a.icon} size={16} color={on ? '#fff' : palette.textSecondary} />
                     <Text style={[styles.chipText, on && styles.chipTextOn]}>{martialArtLabel(a.key)}</Text>
                   </Pressable>
                 );

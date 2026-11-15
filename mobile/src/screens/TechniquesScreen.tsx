@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../components/Icon';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -114,7 +114,7 @@ export default function TechniquesScreen() {
                   </Text>
                 </View>
                 <Pressable hitSlop={10} onPress={() => fav.mutate(tech.id)}>
-                  <MaterialCommunityIcons
+                  <Icon
                     name={tech.favorite ? 'star' : 'star-outline'}
                     size={22}
                     color={tech.favorite ? palette.pro : palette.textSecondary}
@@ -129,7 +129,7 @@ export default function TechniquesScreen() {
           <Pressable
             style={styles.addBtn}
             onPress={() => navigation.navigate('PersonalTechniqueEditor', {})}>
-            <MaterialCommunityIcons name="plus-circle" size={20} color={palette.primary} />
+            <Icon name="plus-circle" size={20} color={palette.primary} />
             <Text style={styles.addText}>{t('techniques.mine.add')}</Text>
           </Pressable>
           {mineCategories.length > 0 && (
@@ -171,7 +171,7 @@ export default function TechniquesScreen() {
                       if (p.mediaUrl) setPlaying(resolveMediaUrl(p.mediaUrl));
                       else if (p.videoUrl) Linking.openURL(p.videoUrl);
                     }}>
-                    <MaterialCommunityIcons
+                    <Icon
                       name={p.mediaUrl ? 'play-circle' : 'open-in-new'}
                       size={24}
                       color={palette.primary}
@@ -207,7 +207,7 @@ function Chip({
       onPress={onPress}
       style={[styles.chip, active && { backgroundColor: (color ?? palette.primary) + '26', borderColor: color ?? palette.primary }]}>
       {icon && (
-        <MaterialCommunityIcons name={icon as never} size={13} color={active ? color ?? palette.primary : palette.textSecondary} />
+        <Icon name={icon as never} size={13} color={active ? color ?? palette.primary : palette.textSecondary} />
       )}
       <Text style={[styles.chipText, active && { color: color ?? palette.primary }]}>{label}</Text>
     </Pressable>

@@ -1,4 +1,4 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Icon from '../../components/Icon';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Switch, View } from 'react-native';
@@ -99,7 +99,7 @@ export default function GymSettingsScreen() {
       <Text style={[styles.section, { marginTop: 28 }]}>{t('gym.settings.testing')}</Text>
       <View style={styles.card}>
         <View style={styles.botHead}>
-          <MaterialCommunityIcons name="robot-happy-outline" size={22} color={palette.primary} />
+          <Icon name="robot-happy-outline" size={22} color={palette.primary} />
           <Text style={styles.label}>{t('gym.settings.bot')}</Text>
         </View>
         <Text style={styles.hint}>{t('gym.settings.bot.hint')}</Text>
