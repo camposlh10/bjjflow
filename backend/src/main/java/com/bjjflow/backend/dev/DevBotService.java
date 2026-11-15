@@ -165,6 +165,7 @@ public class DevBotService {
             a.setUserId(botId);
             a.setStatus("PRESENT");
             a.setMarkedByUserId(instructorId);
+            a.setSource(ClassAttendance.SOURCE_STAFF);
             classAttendanceRepository.save(a);
         }
     }

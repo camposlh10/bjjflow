@@ -236,6 +236,7 @@ public class ClassService {
                 if (!"PRESENT".equals(a.getStatus())) {
                     a.setStatus("PRESENT");
                     a.setMarkedByUserId(userId);
+                    a.setSource(ClassAttendance.SOURCE_STAFF);
                     attendanceRepository.save(a);
                     checkInService.ensureDailyCheckIn(targetUserId, date);
                 }
@@ -278,6 +279,7 @@ public class ClassService {
         a.setUserId(userId);
         a.setStatus(status);
         a.setMarkedByUserId(markedBy);
+        a.setSource(userId.equals(markedBy) ? ClassAttendance.SOURCE_APP : ClassAttendance.SOURCE_STAFF);
         attendanceRepository.save(a);
     }
 

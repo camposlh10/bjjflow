@@ -126,6 +126,8 @@ export interface AttendanceResponse {
   displayName: string;
   status: 'PRESENT' | 'ABSENT' | 'LATE';
   markedByUserId: number | null;
+  /** Who recorded it: the student in the app, staff in the CRM, or a scan at the gym. */
+  source: 'APP' | 'STAFF' | 'DEVICE';
 }
 
 export interface AccessEventReviewResponse {
@@ -304,7 +306,7 @@ export interface PosEventResponse {
 }
 
 // ---------- credentials ----------
-export type CredentialType = 'CARD' | 'FINGERPRINT' | 'QR' | 'PIN' | 'OTHER';
+export type CredentialType = 'CARD' | 'FINGERPRINT' | 'QR' | 'FACE' | 'PIN' | 'OTHER';
 
 export interface CredentialResponse {
   id: number;

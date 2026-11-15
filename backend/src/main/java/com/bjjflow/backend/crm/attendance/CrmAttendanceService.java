@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.bjjflow.backend.automations.GymZones;
 import com.bjjflow.backend.access.AccessDevice;
 import com.bjjflow.backend.access.AccessDeviceRepository;
 import com.bjjflow.backend.access.AccessEventProcessor;
@@ -58,6 +59,7 @@ public class CrmAttendanceService {
     private final GymClassRepository gymClassRepository;
     private final GymMemberRepository gymMemberRepository;
     private final UserRepository userRepository;
+    private final GymZones gymZones;
 
     @Transactional
     public AttendanceChangeResponse mark(Long callerId, MarkAttendanceRequest request) {
@@ -79,6 +81,7 @@ public class CrmAttendanceService {
             attendance.setUserId(request.userId());
             attendance.setStatus(status);
             attendance.setMarkedByUserId(callerId);
+            attendance.setSource(ClassAttendance.SOURCE_STAFF);
             classAttendanceRepository.save(attendance);
             if ("LATE".equals(status)) {
                 checkInService.ensureDailyCheckIn(request.userId(), request.date());
@@ -91,7 +94,8 @@ public class CrmAttendanceService {
     @Transactional(readOnly = true)
     public List<AttendanceResponse> today(Long callerId) {
         CrmPrincipal crm = crmAccessService.requireStaff(callerId);
-        return responses(classAttendanceRepository.findAttendedInGymOnDate(crm.gymId(), LocalDate.now()));
+        LocalDate today = LocalDate.now(gymZones.zoneOf(crm.gymId()));
+        return responses(classAttendanceRepository.findAttendedInGymOnDate(crm.gymId(), today));
     }
 
     @Transactional(readOnly = true)
@@ -178,7 +182,8 @@ public class CrmAttendanceService {
                     row.getUserId(),
                     user == null ? null : user.getDisplayName(),
                     row.getStatus(),
-                    row.getMarkedByUserId());
+                    row.getMarkedByUserId(),
+                    row.getSource());
         }).toList();
     }
 

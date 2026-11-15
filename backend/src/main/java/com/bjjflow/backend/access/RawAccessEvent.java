@@ -58,4 +58,12 @@ public class RawAccessEvent {
     private Long matchedClassId;
 
     private String notes;
+
+    /** The device's own id for this event; unique per device. */
+    @Column(name = "device_event_id")
+    private String deviceEventId;
+
+    /** ENTRY or EXIT; null when the device doesn't say (treated as entry). */
+    @Enumerated(EnumType.STRING)
+    private AccessDirection direction;
 }

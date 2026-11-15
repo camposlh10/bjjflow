@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { api, ApiError } from '../lib/api';
 import {
   ACCESS_EVENT_STATUS,
+  ATTENDANCE_SOURCE,
   ATTENDANCE_STATUS,
   dateTime,
   isoDayOfWeek,
@@ -79,6 +80,7 @@ export default function AttendancePage() {
                 <tr className="text-left text-xs text-zinc-500 border-b border-edge">
                   <th className="py-2 font-semibold">Aluno</th>
                   <th className="py-2 font-semibold">Turma</th>
+                  <th className="py-2 font-semibold">Origem</th>
                   <th className="py-2 font-semibold text-right">Status</th>
                 </tr>
               </thead>
@@ -87,6 +89,9 @@ export default function AttendancePage() {
                   <tr key={entry.id} className="border-b border-edge/60 last:border-0">
                     <td className="py-2.5 text-white">{entry.displayName}</td>
                     <td className="py-2.5 text-zinc-400">{entry.className}</td>
+                    <td className="py-2.5 text-zinc-500">
+                      {ATTENDANCE_SOURCE[entry.source] ?? entry.source}
+                    </td>
                     <td className="py-2.5 text-right">
                       <Badge tone={statusTone(entry.status)}>
                         {ATTENDANCE_STATUS[entry.status]}

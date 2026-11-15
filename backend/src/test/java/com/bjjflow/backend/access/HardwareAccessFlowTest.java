@@ -21,6 +21,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.bjjflow.backend.gyms.Gym;
+import com.bjjflow.backend.gyms.GymRepository;
 import com.jayway.jsonpath.JsonPath;
 
 @SpringBootTest
@@ -29,10 +31,16 @@ import com.jayway.jsonpath.JsonPath;
 @org.springframework.transaction.annotation.Transactional
 class HardwareAccessFlowTest {
 
+    /** New gyms default to this zone; class times are read in it. */
+    private static final ZoneId GYM_ZONE = ZoneId.of("America/Sao_Paulo");
+
     private static final String CARD_UID = "04:A3:B2:C1:D0";
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private GymRepository gymRepository;
 
     @Test
     void hardwareScansFlowFromDeviceKeyToAttendance() throws Exception {
@@ -90,7 +98,7 @@ class HardwareAccessFlowTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("DUPLICATE_CREDENTIAL"));
 
-        ZonedDateTime scanTime = ZonedDateTime.of(LocalDate.now(), LocalTime.of(17, 45), ZoneId.systemDefault());
+        ZonedDateTime scanTime = ZonedDateTime.of(LocalDate.now(GYM_ZONE), LocalTime.of(17, 45), GYM_ZONE);
         mockMvc.perform(post("/api/v1/access/hardware/events")
                 .header("X-Device-Key", apiKey)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -133,7 +141,7 @@ class HardwareAccessFlowTest {
                 .andReturn().getResponse().getContentAsString();
         String rotatedKey = JsonPath.read(rotatedJson, "$.apiKey");
 
-        ZonedDateTime laterScan = ZonedDateTime.of(LocalDate.now(), LocalTime.of(18, 30), ZoneId.systemDefault());
+        ZonedDateTime laterScan = ZonedDateTime.of(LocalDate.now(GYM_ZONE), LocalTime.of(18, 30), GYM_ZONE);
         mockMvc.perform(post("/api/v1/access/hardware/events")
                 .header("X-Device-Key", apiKey)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -175,7 +183,7 @@ class HardwareAccessFlowTest {
                 .andExpect(jsonPath("$.active").value(false))
                 .andExpect(jsonPath("$.revokedAt").isNotEmpty());
 
-        ZonedDateTime revokedScan = ZonedDateTime.of(LocalDate.now(), LocalTime.of(18, 45), ZoneId.systemDefault());
+        ZonedDateTime revokedScan = ZonedDateTime.of(LocalDate.now(GYM_ZONE), LocalTime.of(18, 45), GYM_ZONE);
         mockMvc.perform(post("/api/v1/access/hardware/events")
                 .header("X-Device-Key", rotatedKey)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -200,14 +208,130 @@ class HardwareAccessFlowTest {
                 .andExpect(jsonPath("$.code").value("INVALID_DEVICE_KEY"));
     }
 
+    @Test
+    void faceScannerEventsUseGymTimeAreIdempotentAndIgnoreExits() throws Exception {
+        // A gym far from the server's zone: 17:45 Tokyo time must still match
+        // the 18:00 class, whatever zone the server runs in.
+        ZoneId tokyo = ZoneId.of("Asia/Tokyo");
+        Account owner = register("face-owner@bjjflow.com", "Face Owner", "adult-black");
+        GymInfo gym = createGym(owner.token(), "Face Scan Academy");
+        Gym stored = gymRepository.findById(gym.id()).orElseThrow();
+        stored.setTimezone(tokyo.getId());
+        gymRepository.save(stored);
+        Account member = register("face-member@bjjflow.com", "Face Member", "adult-blue");
+        joinGym(member.token(), gym.inviteCode());
+        Account late = register("face-late@bjjflow.com", "Late Member", "adult-white");
+        joinGym(late.token(), gym.inviteCode());
+        LocalDate today = LocalDate.now(tokyo);
+        long classId = createClass(owner, "Evening Gi", "18:00", "19:00", today);
+
+        String deviceJson = mockMvc.perform(post("/api/v1/crm/devices")
+                .header("Authorization", bearer(owner.token()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\": \"Entrance Face\", \"type\": \"FACE\", \"location\": \"Turnstile\"}"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        String apiKey = JsonPath.read(deviceJson, "$.apiKey");
+
+        for (Account account : new Account[] { member, late }) {
+            mockMvc.perform(post("/api/v1/crm/members/" + account.userId() + "/credentials")
+                    .header("Authorization", bearer(owner.token()))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"type\": \"FACE\", \"value\": \"face-%d\"}".formatted(account.userId())))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.type").value("FACE"));
+        }
+
+        String entry = """
+                {"externalMemberId": "face-%d", "eventTime": "%s", "deviceEventId": "%s", "direction": "%s"}
+                """;
+        String scanAt = ZonedDateTime.of(today, LocalTime.of(17, 45), tokyo).toInstant().toString();
+        String firstJson = mockMvc.perform(post("/api/v1/access/hardware/events")
+                .header("X-Device-Key", apiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(entry.formatted(member.userId(), scanAt, "log-1", "ENTRY")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PROCESSED_ATTENDANCE"))
+                .andExpect(jsonPath("$.source").value("FACE"))
+                .andExpect(jsonPath("$.matchedClassId").value(classId))
+                .andExpect(jsonPath("$.deviceEventId").value("log-1"))
+                .andExpect(jsonPath("$.direction").value("ENTRY"))
+                .andReturn().getResponse().getContentAsString();
+        long firstId = ((Number) JsonPath.read(firstJson, "$.id")).longValue();
+
+        // The device resends the same log after a network drop: same result,
+        // no second event and no second attendance.
+        mockMvc.perform(post("/api/v1/access/hardware/events")
+                .header("X-Device-Key", apiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(entry.formatted(member.userId(), scanAt, "log-1", "ENTRY")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(firstId))
+                .andExpect(jsonPath("$.status").value("PROCESSED_ATTENDANCE"));
+
+        // Staff already marked this one LATE; the scan must not overwrite it.
+        mockMvc.perform(post("/api/v1/crm/attendance")
+                .header("Authorization", bearer(owner.token()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"classId\": %d, \"userId\": %d, \"date\": \"%s\", \"status\": \"LATE\"}"
+                        .formatted(classId, late.userId(), today)))
+                .andExpect(status().isOk());
+        String lateScan = ZonedDateTime.of(today, LocalTime.of(18, 20), tokyo).toInstant().toString();
+        mockMvc.perform(post("/api/v1/access/hardware/events")
+                .header("X-Device-Key", apiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(entry.formatted(late.userId(), lateScan, "log-2", "ENTRY")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PROCESSED_ATTENDANCE"));
+
+        mockMvc.perform(get("/api/v1/crm/attendance/today")
+                .header("Authorization", bearer(owner.token())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].userId").value(member.userId()))
+                .andExpect(jsonPath("$[0].status").value("PRESENT"))
+                .andExpect(jsonPath("$[0].source").value("DEVICE"))
+                .andExpect(jsonPath("$[1].userId").value(late.userId()))
+                .andExpect(jsonPath("$[1].status").value("LATE"))
+                .andExpect(jsonPath("$[1].source").value("STAFF"));
+
+        // Leaving never marks attendance, and an unknown face leaving needs
+        // no review from staff.
+        String exitAt = ZonedDateTime.of(today, LocalTime.of(19, 5), tokyo).toInstant().toString();
+        mockMvc.perform(post("/api/v1/access/hardware/events")
+                .header("X-Device-Key", apiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(entry.formatted(member.userId(), exitAt, "log-3", "EXIT")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PROCESSED_EXIT"))
+                .andExpect(jsonPath("$.studentUserId").value(member.userId()))
+                .andExpect(jsonPath("$.matchedClassId").doesNotExist());
+        mockMvc.perform(post("/api/v1/access/hardware/events")
+                .header("X-Device-Key", apiKey)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(entry.formatted(999999, exitAt, "log-4", "EXIT")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PROCESSED_EXIT"));
+
+        mockMvc.perform(get("/api/v1/crm/attendance/unresolved-access-events")
+                .header("Authorization", bearer(owner.token())))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+    }
+
     private long createClass(Account owner, String name, String startTime, String endTime) throws Exception {
+        return createClass(owner, name, startTime, endTime, LocalDate.now(GYM_ZONE));
+    }
+
+    private long createClass(Account owner, String name, String startTime, String endTime, LocalDate day)
+            throws Exception {
         String response = mockMvc.perform(post("/api/v1/crm/classes")
                 .header("Authorization", bearer(owner.token()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {"name": "%s", "sessionType": "GI", "dayOfWeek": %d,
                          "startTime": "%s", "endTime": "%s", "instructorUserId": %d}
-                        """.formatted(name, LocalDate.now().getDayOfWeek().getValue(), startTime, endTime,
+                        """.formatted(name, day.getDayOfWeek().getValue(), startTime, endTime,
                         owner.userId())))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();

@@ -34,7 +34,9 @@ public final class CrmAttendanceDtos {
             Long userId,
             String displayName,
             String status,
-            Long markedByUserId) {
+            Long markedByUserId,
+            /* APP, STAFF or DEVICE */
+            String source) {
     }
 
     public record AccessEventReviewResponse(

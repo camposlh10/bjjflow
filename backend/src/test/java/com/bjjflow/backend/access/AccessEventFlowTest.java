@@ -28,6 +28,9 @@ import com.jayway.jsonpath.JsonPath;
 @org.springframework.transaction.annotation.Transactional
 class AccessEventFlowTest {
 
+    /** New gyms default to this zone; class times are read in it. */
+    private static final ZoneId GYM_ZONE = ZoneId.of("America/Sao_Paulo");
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -53,7 +56,7 @@ class AccessEventFlowTest {
         device.setLocation("Front desk");
         device = accessDeviceRepository.save(device);
 
-        ZonedDateTime scanTime = ZonedDateTime.of(LocalDate.now(), LocalTime.of(17, 45), ZoneId.systemDefault());
+        ZonedDateTime scanTime = ZonedDateTime.of(LocalDate.now(GYM_ZONE), LocalTime.of(17, 45), GYM_ZONE);
         String scanBody = """
                 {"deviceId": %d, "studentUserId": %d, "eventTime": "%s", "source": "TURNSTILE"}
                 """.formatted(device.getId(), member.userId(), scanTime.toInstant());
@@ -82,7 +85,7 @@ class AccessEventFlowTest {
                 .andExpect(jsonPath("$.status").value("DUPLICATE"))
                 .andExpect(jsonPath("$.processed").value(true));
 
-        ZonedDateTime visitTime = ZonedDateTime.of(LocalDate.now(), LocalTime.of(14, 0), ZoneId.systemDefault());
+        ZonedDateTime visitTime = ZonedDateTime.of(LocalDate.now(GYM_ZONE), LocalTime.of(14, 0), GYM_ZONE);
         mockMvc.perform(post("/api/v1/access/events")
                 .header("Authorization", bearer(owner.token()))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -130,7 +133,7 @@ class AccessEventFlowTest {
         device = accessDeviceRepository.save(device);
 
         ZonedDateTime classWindow = ZonedDateTime.of(
-                LocalDate.now(), LocalTime.of(17, 45), ZoneId.systemDefault());
+                LocalDate.now(GYM_ZONE), LocalTime.of(17, 45), GYM_ZONE);
         String unresolvedMemberJson = mockMvc.perform(post("/api/v1/access/events")
                 .header("Authorization", bearer(owner.token()))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -159,7 +162,7 @@ class AccessEventFlowTest {
                 .andExpect(jsonPath("$.matchedClassId").value(classId));
 
         ZonedDateTime outsideWindow = ZonedDateTime.of(
-                LocalDate.now(), LocalTime.of(14, 0), ZoneId.systemDefault());
+                LocalDate.now(GYM_ZONE), LocalTime.of(14, 0), GYM_ZONE);
         String unresolvedClassBody = """
                 {"deviceId": %d, "studentUserId": %d, "eventTime": "%s", "source": "CARD"}
                 """.formatted(device.getId(), member.userId(), outsideWindow.toInstant());
@@ -213,7 +216,7 @@ class AccessEventFlowTest {
                 .content("""
                         {"name": "%s", "sessionType": "GI", "dayOfWeek": %d,
                          "startTime": "%s", "endTime": "%s", "instructorUserId": %d}
-                        """.formatted(name, LocalDate.now().getDayOfWeek().getValue(), startTime, endTime,
+                        """.formatted(name, LocalDate.now(GYM_ZONE).getDayOfWeek().getValue(), startTime, endTime,
                         owner.userId())))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();

@@ -26,6 +26,8 @@ public interface RawAccessEventRepository extends JpaRepository<RawAccessEvent, 
             @Param("eventTime") Instant eventTime,
             @Param("source") AccessEventSource source);
 
+    Optional<RawAccessEvent> findByDeviceIdAndDeviceEventId(Long deviceId, String deviceEventId);
+
     List<RawAccessEvent> findAllByGymIdAndStatusInOrderByEventTimeDescIdDesc(
             Long gymId, List<AccessEventStatus> statuses);
 }

@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,9 @@ import com.jayway.jsonpath.JsonPath;
 @org.springframework.transaction.annotation.Transactional
 class CrmAttendanceFlowTest {
 
+    /** New gyms default to this zone; class times are read in it. */
+    private static final ZoneId GYM_ZONE = ZoneId.of("America/Sao_Paulo");
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -35,7 +39,7 @@ class CrmAttendanceFlowTest {
         joinGym(member.token(), inviteCode);
 
         long classId = createClass(owner, "Fundamentals");
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(GYM_ZONE);
 
         mockMvc.perform(get("/api/v1/crm/attendance/today")
                 .header("Authorization", bearer(member.token())))
@@ -131,7 +135,7 @@ class CrmAttendanceFlowTest {
                 .content("""
                         {"name": "%s", "sessionType": "GI", "dayOfWeek": %d,
                          "startTime": "18:00", "endTime": "19:00", "instructorUserId": %d}
-                        """.formatted(name, LocalDate.now().getDayOfWeek().getValue(), owner.userId())))
+                        """.formatted(name, LocalDate.now(GYM_ZONE).getDayOfWeek().getValue(), owner.userId())))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return ((Number) JsonPath.read(response, "$.id")).longValue();
