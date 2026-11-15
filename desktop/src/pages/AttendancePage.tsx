@@ -12,6 +12,7 @@ import {
   todayIso,
 } from '../lib/format';
 import { useClasses, useMembers } from '../lib/hooks';
+import InsideNowCard from './InsideNowCard';
 import type { AccessEventReviewResponse, AttendanceResponse } from '../lib/types';
 import {
   Badge,
@@ -65,6 +66,8 @@ export default function AttendancePage() {
           </Button>
         }
       />
+
+      <InsideNowCard />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
         <Card>

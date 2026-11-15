@@ -1,6 +1,7 @@
 package com.bjjflow.backend.access;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,6 +28,12 @@ public interface RawAccessEventRepository extends JpaRepository<RawAccessEvent, 
             @Param("source") AccessEventSource source);
 
     Optional<RawAccessEvent> findByDeviceIdAndDeviceEventId(Long deviceId, String deviceEventId);
+
+    boolean existsByGymIdAndStudentUserIdAndOverdueTrueAndEventTimeGreaterThanEqualAndIdNot(Long gymId,
+            Long studentUserId, Instant since, Long id);
+
+    List<RawAccessEvent> findAllByGymIdAndStudentUserIdIsNotNullAndEventTimeGreaterThanEqualAndStatusInOrderByEventTimeAscIdAsc(
+            Long gymId, Instant since, Collection<AccessEventStatus> statuses);
 
     List<RawAccessEvent> findAllByGymIdAndStatusInOrderByEventTimeDescIdDesc(
             Long gymId, List<AccessEventStatus> statuses);

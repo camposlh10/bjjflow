@@ -36,6 +36,10 @@ public interface InvoiceRepository extends JpaRepository<Invoice, Long> {
 
     boolean existsByGymIdAndMemberUserIdAndStatus(Long gymId, Long memberUserId, PaymentStatus status);
 
+    /** The member's oldest unpaid invoice that is already past due, if any. */
+    Optional<Invoice> findFirstByGymIdAndMemberUserIdAndStatusInAndDueDateBeforeOrderByDueDateAsc(Long gymId,
+            Long memberUserId, Collection<PaymentStatus> statuses, LocalDate before);
+
     long countByGymIdAndStatus(Long gymId, PaymentStatus status);
 
     @Query("select coalesce(sum(i.amount), 0) from Invoice i where i.gymId = :gymId and i.status = :status")

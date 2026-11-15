@@ -19,4 +19,6 @@ public interface AccessBridgeRepository extends JpaRepository<AccessBridge, Long
     List<AccessBridge> findAllByGymIdOrderByIdAsc(Long gymId);
 
     Optional<AccessBridge> findByIdAndGymId(Long id, Long gymId);
+
+    List<AccessBridge> findAllByActiveTrueAndLastSeenAtIsNotNull();
 }
