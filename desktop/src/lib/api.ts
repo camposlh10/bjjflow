@@ -5,7 +5,7 @@ const USER_KEY = 'bjjflow.user';
 // In dev, Vite proxies /api to the local backend (see vite.config.ts).
 // In production (Vercel), set VITE_API_URL to the Railway backend, e.g.
 // https://seu-app.up.railway.app/api/v1
-const API_BASE =
+export const API_BASE =
   (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/+$/, '') ?? '/api/v1';
 
 export class ApiError extends Error {

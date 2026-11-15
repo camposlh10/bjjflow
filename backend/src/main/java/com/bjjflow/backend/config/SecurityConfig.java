@@ -63,6 +63,9 @@ public class SecurityConfig {
                         // Access-control hardware authenticates with a device
                         // API key (X-Device-Key header), not a user JWT.
                         .requestMatchers("/api/v1/access/hardware/**").permitAll()
+                        // Brand-format notifications (Control iD Monitor...) carry
+                        // the device key in the path; devices can't send headers.
+                        .requestMatchers("/api/v1/access/vendors/**").permitAll()
                         // POS/gateway webhooks authenticate with an integration
                         // key (X-Webhook-Key header), not a user JWT.
                         .requestMatchers("/api/v1/payments/webhooks/**").permitAll()
