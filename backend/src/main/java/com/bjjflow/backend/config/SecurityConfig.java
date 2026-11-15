@@ -66,6 +66,9 @@ public class SecurityConfig {
                         // Brand-format notifications (Control iD Monitor...) carry
                         // the device key in the path; devices can't send headers.
                         .requestMatchers("/api/v1/access/vendors/**").permitAll()
+                        // The gym's bridge app authenticates with its key
+                        // (X-Bridge-Key header), not a user JWT.
+                        .requestMatchers("/api/v1/access/bridge/**").permitAll()
                         // POS/gateway webhooks authenticate with an integration
                         // key (X-Webhook-Key header), not a user JWT.
                         .requestMatchers("/api/v1/payments/webhooks/**").permitAll()

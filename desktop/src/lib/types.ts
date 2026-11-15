@@ -228,6 +228,34 @@ export interface DeviceWithKeyResponse {
   apiKey: string;
 }
 
+export interface BridgeResponse {
+  id: number;
+  name: string;
+  active: boolean;
+  /** Checked in within the last minute. */
+  online: boolean;
+  createdAt: string;
+  lastSeenAt: string | null;
+  version: string | null;
+  /** Notifications waiting on the bridge to reach the cloud. */
+  queueDepth: number | null;
+}
+
+export interface BridgeWithKeyResponse {
+  bridge: BridgeResponse;
+  apiKey: string;
+}
+
+export interface BridgeCommandResponse {
+  id: number;
+  type: 'PING' | 'DEVICE_HTTP';
+  status: 'PENDING' | 'SENT' | 'DONE' | 'FAILED';
+  attempts: number;
+  result: string | null;
+  createdAt: string;
+  completedAt: string | null;
+}
+
 // ---------- notifications / automations ----------
 export type AutomationEventType =
   | 'PAYMENT_REMINDER'
