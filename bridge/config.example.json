@@ -2,6 +2,8 @@
   "server": "https://backend-production-01001846.up.railway.app/api/v1",
   "bridgeKey": "bjjb_paste-the-key-shown-in-the-crm",
   "listenPort": 8085,
-  "allowedDeviceHosts": ["192.168.0.50"],
+  "devices": [
+    { "host": "192.168.0.50", "vendor": "controlid", "login": "admin", "password": "the-device-admin-password" }
+  ],
   "dataDir": "data"
 }

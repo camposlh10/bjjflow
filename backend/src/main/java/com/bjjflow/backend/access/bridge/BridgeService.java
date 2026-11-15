@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -44,6 +45,7 @@ public class BridgeService {
     private final AccessBridgeRepository bridgeRepository;
     private final BridgeCommandRepository commandRepository;
     private final CrmAccessService crmAccessService;
+    private final ApplicationEventPublisher events;
 
     // --- bridge app ---
 
@@ -76,6 +78,8 @@ public class BridgeService {
                 command.setStatus(BridgeCommand.Status.FAILED);
                 command.setResult("No result from the bridge after " + MAX_ATTEMPTS + " attempts");
                 command.setCompletedAt(now);
+                events.publishEvent(new BridgeCommandFinished(command.getId(), command.getType(), false,
+                        command.getResult()));
                 continue;
             }
             command.setStatus(BridgeCommand.Status.SENT);
@@ -99,6 +103,8 @@ public class BridgeService {
             command.setResult(clip(request.result(), 4000));
             command.setCompletedAt(Instant.now());
             commandRepository.save(command);
+            events.publishEvent(new BridgeCommandFinished(command.getId(), command.getType(),
+                    command.getStatus() == BridgeCommand.Status.DONE, command.getResult()));
         }
         return response(command);
     }

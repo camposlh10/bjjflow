@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, KeyRound } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import MemberAccessCard from './MemberAccessCard';
 import { api, ApiError } from '../lib/api';
 import {
   ATTENDANCE_STATUS,
@@ -211,6 +212,8 @@ export default function StudentDetailPage() {
             </ul>
           )}
         </Card>
+
+        <MemberAccessCard userId={userId!} />
 
         {isOwner && (
           <Card className="xl:col-span-3">

@@ -202,7 +202,13 @@ function RegisterBridgeModal({
 function BridgeSetup({ issued, onDone }: { issued: BridgeWithKeyResponse; onDone: () => void }) {
   const server = new URL(API_BASE, window.location.href).toString().replace(/\/+$/, '');
   const config = JSON.stringify(
-    { server, bridgeKey: issued.apiKey, listenPort: 8085, allowedDeviceHosts: [], dataDir: 'data' },
+    {
+      server,
+      bridgeKey: issued.apiKey,
+      listenPort: 8085,
+      devices: [{ host: '192.168.0.50', vendor: 'controlid', login: 'admin', password: 'senha-do-aparelho' }],
+      dataDir: 'data',
+    },
     null,
     2,
   );
@@ -211,8 +217,9 @@ function BridgeSetup({ issued, onDone }: { issued: BridgeWithKeyResponse; onDone
       <p className="text-zinc-400">
         A chave da bridge <b className="text-white">{issued.bridge.name}</b> é exibida{' '}
         <b className="text-accent-soft">apenas uma vez</b>. No computador da recepção, salve isto como{' '}
-        <code className="text-accent-soft">config.json</code> na pasta da bridge e coloque o IP de cada
-        aparelho em <code className="text-accent-soft">allowedDeviceHosts</code>:
+        <code className="text-accent-soft">config.json</code> na pasta da bridge. Em{' '}
+        <code className="text-accent-soft">devices</code>, coloque o IP e o login de administrador de cada
+        aparelho (eles ficam só neste computador):
       </p>
       <div className="relative">
         <pre className="bg-panel2 border border-edge rounded-xl p-3 text-xs text-ok font-mono overflow-x-auto">

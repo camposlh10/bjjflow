@@ -221,6 +221,10 @@ export interface DeviceResponse {
   active: boolean;
   createdAt: string | null;
   lastSeenAt: string | null;
+  /** The bridge that reaches this device on the gym's network. */
+  bridgeId: number | null;
+  /** The device's address on the gym's network. */
+  lanHost: string | null;
 }
 
 export interface DeviceWithKeyResponse {
@@ -244,6 +248,24 @@ export interface BridgeResponse {
 export interface BridgeWithKeyResponse {
   bridge: BridgeResponse;
   apiKey: string;
+}
+
+export interface EnrollmentResponse {
+  id: number;
+  deviceId: number;
+  deviceName: string | null;
+  method: 'FACE' | 'CARD';
+  cardValue: string | null;
+  status: 'PENDING' | 'ENROLLED' | 'FAILED' | 'REMOVING' | 'REMOVED';
+  lastError: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MemberAccessResponse {
+  faceConsent: { id: number; termsVersion: string; grantedAt: string; recordedByUserId: number } | null;
+  currentTermsVersion: string;
+  enrollments: EnrollmentResponse[];
 }
 
 export interface BridgeCommandResponse {

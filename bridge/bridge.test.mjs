@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 
 import { startBridge, VERSION } from './bridge.mjs';
+import { startFakeControlId } from '../tools/device-simulator/controlid-device.mjs';
 
 /** A stand-in for the cloud API that records what reaches it. */
 async function fakeCloud() {
@@ -145,6 +146,51 @@ test('runs commands from the cloud and only calls allowed device hosts', async (
     await bridge.close();
     await cloud.close();
     await new Promise((ok) => device.close(ok));
+    await rm(dataDir, { recursive: true, force: true });
+  }
+});
+
+test('enrolls and removes members on a Control iD device with credentials kept locally', async () => {
+  const cloud = await fakeCloud();
+  const device = await startFakeControlId({ password: 'secret-pass' });
+  const host = `127.0.0.1:${device.port}`;
+  const dataDir = await mkdtemp(join(tmpdir(), 'bridge-'));
+  cloud.commands.push(
+    { id: 10, type: 'DEVICE_ENROLL', payload: { vendor: 'controlid', host, userId: 42, name: 'Ana Souza', method: 'FACE' } },
+    { id: 11, type: 'DEVICE_ENROLL', payload: { vendor: 'controlid', host, userId: 42, name: 'Ana S.', method: 'CARD', cardValue: '528281023086' } },
+    { id: 12, type: 'DEVICE_ENROLL', payload: { vendor: 'controlid', host, userId: 43, name: 'Duplicate Face', method: 'FACE' } },
+    { id: 13, type: 'DEVICE_ENROLL', payload: { vendor: 'controlid', host: '10.0.0.99', userId: 44, name: 'X', method: 'FACE' } },
+  );
+  const bridge = await startBridge({
+    server: cloud.base, bridgeKey: 'bjjb_test', listenHost: '127.0.0.1', listenPort: 0,
+    dataDir, pollSeconds: 1, quiet: true, logToFile: false,
+    devices: [{ host, vendor: 'controlid', login: 'admin', password: 'secret-pass' }],
+  });
+  try {
+    await waitFor(() => cloud.results.length === 4, 15000);
+    const byId = Object.fromEntries(cloud.results.map((r) => [r.id, r]));
+    assert.equal(byId[10].success, true);
+    assert.doesNotMatch(byId[10].result, /BASE64/, 'the face photo never goes to the cloud');
+    assert.ok(device.state.faces.has(42));
+    assert.equal(device.state.users.get(42).name, 'Ana S.', 'second enrollment updates the user');
+    assert.equal(byId[11].success, true);
+    assert.deepEqual(device.state.cards, [{ value: '528281023086', user_id: 42 }]);
+    assert.equal(byId[12].success, false);
+    assert.match(JSON.parse(byId[12].result).error, /already registered for user 7/);
+    assert.equal(byId[13].success, false);
+    assert.match(JSON.parse(byId[13].result).error, /not in this bridge's config/);
+
+    cloud.commands.push({ id: 14, type: 'DEVICE_REMOVE', payload: { vendor: 'controlid', host, userId: 42 } });
+    await waitFor(() => cloud.results.length === 5);
+    assert.equal(cloud.results[4].success, true);
+    assert.equal(device.state.users.has(42), false);
+    assert.equal(device.state.faces.has(42), false);
+    assert.deepEqual(device.state.cards, []);
+    assert.equal(device.state.sessions.size, 0, 'every session is logged out');
+  } finally {
+    await bridge.close();
+    await cloud.close();
+    await device.close();
     await rm(dataDir, { recursive: true, force: true });
   }
 });
