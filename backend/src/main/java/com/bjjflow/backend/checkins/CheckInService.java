@@ -162,6 +162,14 @@ public class CheckInService {
         return checkIns.stream().mapToInt(c -> c.durationMinutes() == null ? 0 : c.durationMinutes()).sum();
     }
 
+    @Transactional
+    public void setWeeklyGoal(Long userId, int weeklyGoal) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "USER_NOT_FOUND", "User not found"));
+        user.setWeeklyGoal(weeklyGoal);
+        userRepository.save(user);
+    }
+
     @Transactional(readOnly = true)
     public List<CheckInDto> list(Long userId, LocalDate from, LocalDate to) {
         return checkInRepository.findAllByUserIdAndCheckDateBetweenOrderByCheckDateAsc(userId, from, to).stream()

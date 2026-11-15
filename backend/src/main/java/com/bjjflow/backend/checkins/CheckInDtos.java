@@ -16,6 +16,12 @@ public class CheckInDtos {
             @Min(1) @Max(50) int count) {
     }
 
+    /** Training days per week the member aims for (Progresso's weekly goal). */
+    public record WeeklyGoalRequest(
+            @jakarta.validation.constraints.NotNull @jakarta.validation.constraints.Min(1)
+            @jakarta.validation.constraints.Max(7) Integer weeklyGoal) {
+    }
+
     public record CreateCheckInRequest(
             @NotNull LocalDate date,
             @Size(max = 20) String sessionType,

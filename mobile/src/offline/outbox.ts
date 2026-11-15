@@ -210,7 +210,7 @@ export async function submitCheckIn(
 }
 
 export function invalidateTrainingData() {
-  for (const key of ['stats', 'journey', 'communityFeed', 'userSubmissions', 'painDaily', 'painMonthly', 'home']) {
+  for (const key of ['stats', 'checkins', 'journey', 'communityFeed', 'userSubmissions', 'painDaily', 'painMonthly', 'home']) {
     queryClient.invalidateQueries({ queryKey: [key] });
   }
   queryClient.invalidateQueries({ queryKey: ['userProfile'] });

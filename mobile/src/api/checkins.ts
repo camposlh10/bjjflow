@@ -1,4 +1,5 @@
 import { api } from './client';
+import { offlineWrite, type Queued } from '../offline/write';
 
 export type Stats = {
   currentStreak: number;
@@ -53,4 +54,30 @@ export type CreateCheckInPayload = {
 /** Detailed check-in (session type, duration, submissions landed/conceded, notes). */
 export async function createCheckIn(payload: CreateCheckInPayload): Promise<void> {
   await api.post('/checkins', payload);
+}
+
+/** One logged session, as the training history lists it. */
+export type CheckInEntry = {
+  id: number;
+  date: string;
+  sessionType: string | null;
+  durationMinutes: number | null;
+  notes: string | null;
+};
+
+/** Sessions between two local dates (inclusive), oldest first. */
+export async function listCheckIns(from: string, to: string): Promise<CheckInEntry[]> {
+  const { data } = await api.get<CheckInEntry[]>('/checkins', { params: { from, to } });
+  return data;
+}
+
+/** Training days per week to aim for (1-7). Queued when offline. */
+export async function setWeeklyGoal(weeklyGoal: number): Promise<{ weeklyGoal: number } | Queued> {
+  return offlineWrite<{ weeklyGoal: number }>({
+    method: 'put',
+    url: '/users/me/weekly-goal',
+    data: { weeklyGoal },
+    label: 'offline.label.weeklyGoal',
+    invalidate: [['stats']],
+  });
 }
