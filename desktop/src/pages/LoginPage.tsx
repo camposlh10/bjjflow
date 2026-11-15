@@ -1,4 +1,3 @@
-import { Flame } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -37,9 +36,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-6">
       <div className="w-full max-w-sm">
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="p-2.5 rounded-xl bg-accent text-white">
-            <Flame size={22} />
-          </div>
+          <img src="/logo.png" alt="" className="w-12 h-12 rounded-2xl" />
           <div>
             <p className="text-xl font-extrabold text-white leading-tight">
               BJJ <span className="text-accent-soft">FLOW</span>
