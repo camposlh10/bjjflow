@@ -5,7 +5,6 @@ import {
   ChartColumn,
   CreditCard,
   Fingerprint,
-  Flame,
   LayoutDashboard,
   LogOut,
   Plug,
@@ -124,9 +123,7 @@ export default function Layout() {
     <div className="min-h-screen flex">
       <aside className="w-60 shrink-0 border-r border-edge bg-panel/60 flex flex-col p-4 sticky top-0 h-screen overflow-y-auto">
         <div className="flex items-center gap-2.5 px-2 pb-5">
-          <div className="p-2 rounded-xl bg-accent text-white">
-            <Flame size={18} />
-          </div>
+          <img src="/logo.png" alt="" className="w-9 h-9 rounded-xl" />
           <div>
             <p className="font-extrabold text-white leading-tight">
               BJJ <span className="text-accent-soft">FLOW</span>
