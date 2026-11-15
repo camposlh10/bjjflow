@@ -66,4 +66,8 @@ public class RawAccessEvent {
     /** ENTRY or EXIT; null when the device doesn't say (treated as entry). */
     @Enumerated(EnumType.STRING)
     private AccessDirection direction;
+
+    /** The member had an overdue invoice when they came in (staff were alerted). */
+    @Column(nullable = false)
+    private Boolean overdue = false;
 }

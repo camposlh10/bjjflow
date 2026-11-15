@@ -49,6 +49,7 @@ public class AccessEventProcessor {
     private final CheckInService checkInService;
     private final TransactionTemplate transactionTemplate;
     private final GymZones gymZones;
+    private final OverdueEntryAlert overdueEntryAlert;
 
     public AccessEventResponse ingest(Long callerId, CreateAccessEventRequest request) {
         CrmPrincipal crm = crmAccessService.requireStaff(callerId);
@@ -208,6 +209,7 @@ public class AccessEventProcessor {
 
         // Class times are wall-clock times in the gym's own time zone.
         ZoneId zone = gymZones.zoneOf(event.getGymId());
+        overdueEntryAlert.check(event, studentUserId, zone);
         ZonedDateTime eventAt = event.getEventTime().atZone(zone);
         List<GymClass> dayClasses = gymClassRepository
                 .findAllByGymIdAndDayOfWeekAndActiveTrueOrderByStartTimeAsc(

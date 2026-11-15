@@ -268,6 +268,20 @@ export interface MemberAccessResponse {
   enrollments: EnrollmentResponse[];
 }
 
+export interface PresenceResponse {
+  count: number;
+  members: {
+    userId: number;
+    displayName: string | null;
+    enteredAt: string;
+    deviceName: string | null;
+    /** Had an overdue invoice when they came in. */
+    overdue: boolean;
+  }[];
+  /** Some device reported exits today; otherwise each entry counts for 3 hours. */
+  exitsTracked: boolean;
+}
+
 export interface BridgeCommandResponse {
   id: number;
   type: 'PING' | 'DEVICE_HTTP';

@@ -50,6 +50,10 @@ public class AccessBridge {
     @Column(name = "queue_depth")
     private Integer queueDepth;
 
+    /** When the "bridge offline" alert went out; null while it is online. */
+    @Column(name = "offline_alerted_at")
+    private Instant offlineAlertedAt;
+
     @PrePersist
     void onCreate() {
         if (createdAt == null) {
