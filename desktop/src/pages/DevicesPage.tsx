@@ -20,6 +20,7 @@ import {
 const DEVICE_TYPES: Record<string, string> = {
   CARD: 'Leitor de cartão',
   FINGERPRINT: 'Leitor biométrico',
+  FACE: 'Leitor facial',
   TURNSTILE: 'Catraca',
   QR: 'Leitor de QR Code',
   GENERIC: 'Outro',

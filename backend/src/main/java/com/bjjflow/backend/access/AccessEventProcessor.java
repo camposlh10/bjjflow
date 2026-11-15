@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -16,6 +17,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import com.bjjflow.backend.access.AccessDtos.AccessEventResponse;
 import com.bjjflow.backend.access.AccessDtos.CreateAccessEventRequest;
 import com.bjjflow.backend.access.AccessDtos.HardwareAccessEventRequest;
+import com.bjjflow.backend.automations.GymZones;
 import com.bjjflow.backend.checkins.CheckInService;
 import com.bjjflow.backend.classes.ClassAttendance;
 import com.bjjflow.backend.classes.ClassAttendanceRepository;
@@ -46,6 +48,7 @@ public class AccessEventProcessor {
     private final ClassAttendanceRepository classAttendanceRepository;
     private final CheckInService checkInService;
     private final TransactionTemplate transactionTemplate;
+    private final GymZones gymZones;
 
     public AccessEventResponse ingest(Long callerId, CreateAccessEventRequest request) {
         CrmPrincipal crm = crmAccessService.requireStaff(callerId);
@@ -55,8 +58,9 @@ public class AccessEventProcessor {
         if (!crm.gymId().equals(device.getGymId())) {
             throw new ApiException(HttpStatus.NOT_FOUND, "ACCESS_DEVICE_NOT_FOUND", "Active access device not found");
         }
-        return ingestForDevice(device, request.studentUserId(), request.externalMemberId(),
-                request.eventTime(), request.source(), request.notes());
+        return ingestForDevice(device, new Scan(request.studentUserId(), request.externalMemberId(),
+                request.eventTime(), request.source(), request.notes(), request.deviceEventId(),
+                request.direction()));
     }
 
     /**
@@ -69,29 +73,47 @@ public class AccessEventProcessor {
         accessDeviceRepository.save(device);
         Instant eventTime = request.eventTime() == null ? Instant.now() : request.eventTime();
         AccessEventSource source = request.source() == null ? defaultSource(device) : request.source();
-        return ingestForDevice(device, request.studentUserId(), request.externalMemberId(),
-                eventTime, source, request.notes());
+        return ingestForDevice(device, new Scan(request.studentUserId(), request.externalMemberId(),
+                eventTime, source, request.notes(), request.deviceEventId(), request.direction()));
     }
 
-    private AccessEventResponse ingestForDevice(AccessDevice device, Long studentUserId, String externalMemberId,
-            Instant eventTime, AccessEventSource source, String notes) {
-        if (studentUserId == null && (externalMemberId == null || externalMemberId.isBlank())) {
+    /** One scan as reported by a device, before it is stored. */
+    private record Scan(Long studentUserId, String externalMemberId, Instant eventTime,
+            AccessEventSource source, String notes, String deviceEventId, AccessDirection direction) {
+    }
+
+    private AccessEventResponse ingestForDevice(AccessDevice device, Scan scan) {
+        String externalMemberId = blankToNull(scan.externalMemberId());
+        if (scan.studentUserId() == null && externalMemberId == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "MEMBER_IDENTIFIER_REQUIRED",
                     "studentUserId or externalMemberId is required");
         }
 
+        // A resend of an event the device already delivered (devices retry
+        // after a network drop) gets the original result back and counts nothing.
+        String deviceEventId = blankToNull(scan.deviceEventId());
+        if (deviceEventId != null) {
+            RawAccessEvent original = rawAccessEventRepository
+                    .findByDeviceIdAndDeviceEventId(device.getId(), deviceEventId).orElse(null);
+            if (original != null) {
+                return response(original);
+            }
+        }
+
         RawAccessEvent duplicateOf = rawAccessEventRepository.findDuplicate(
-                device.getId(), studentUserId, blankToNull(externalMemberId),
-                eventTime, source).orElse(null);
+                device.getId(), scan.studentUserId(), externalMemberId,
+                scan.eventTime(), scan.source()).orElse(null);
 
         RawAccessEvent event = new RawAccessEvent();
         event.setGymId(device.getGymId());
         event.setDeviceId(device.getId());
-        event.setStudentUserId(studentUserId);
-        event.setExternalMemberId(blankToNull(externalMemberId));
-        event.setEventTime(eventTime);
-        event.setSource(source);
-        event.setNotes(blankToNull(notes));
+        event.setStudentUserId(scan.studentUserId());
+        event.setExternalMemberId(externalMemberId);
+        event.setEventTime(scan.eventTime());
+        event.setSource(scan.source());
+        event.setNotes(blankToNull(scan.notes()));
+        event.setDeviceEventId(deviceEventId);
+        event.setDirection(scan.direction());
 
         if (duplicateOf != null) {
             event.setStatus(AccessEventStatus.DUPLICATE);
@@ -103,7 +125,17 @@ public class AccessEventProcessor {
 
         event.setStatus(AccessEventStatus.RECEIVED);
         event.setProcessed(false);
-        event = rawAccessEventRepository.saveAndFlush(event);
+        try {
+            event = rawAccessEventRepository.saveAndFlush(event);
+        } catch (DataIntegrityViolationException race) {
+            // The same resend arrived twice at once; the other request stored it.
+            if (deviceEventId == null) {
+                throw race;
+            }
+            return rawAccessEventRepository.findByDeviceIdAndDeviceEventId(device.getId(), deviceEventId)
+                    .map(AccessEventProcessor::response)
+                    .orElseThrow(() -> race);
+        }
         Long eventId = event.getId();
 
         try {
@@ -156,6 +188,16 @@ public class AccessEventProcessor {
     private void processStoredEvent(Long eventId) {
         RawAccessEvent event = rawAccessEventRepository.findById(eventId).orElseThrow();
         Long studentUserId = resolveStudent(event);
+        if (event.getDirection() == AccessDirection.EXIT) {
+            // Leaving never marks attendance and needs no follow-up from staff;
+            // the event is kept for a future "who is inside" view.
+            if (studentUserId != null) {
+                event.setStudentUserId(studentUserId);
+            }
+            complete(event, AccessEventStatus.PROCESSED_EXIT);
+            rawAccessEventRepository.save(event);
+            return;
+        }
         if (studentUserId == null) {
             complete(event, AccessEventStatus.UNRESOLVED_MEMBER);
             event.setNotes(appendNote(event.getNotes(), "Member could not be resolved in this gym"));
@@ -164,7 +206,8 @@ public class AccessEventProcessor {
         }
         event.setStudentUserId(studentUserId);
 
-        ZoneId zone = ZoneId.systemDefault();
+        // Class times are wall-clock times in the gym's own time zone.
+        ZoneId zone = gymZones.zoneOf(event.getGymId());
         ZonedDateTime eventAt = event.getEventTime().atZone(zone);
         List<GymClass> dayClasses = gymClassRepository
                 .findAllByGymIdAndDayOfWeekAndActiveTrueOrderByStartTimeAsc(
@@ -186,16 +229,29 @@ public class AccessEventProcessor {
 
     private void recordAttendance(RawAccessEvent event, GymClass matchedClass, Long studentUserId,
             Long markedByUserId) {
-        LocalDate classDate = event.getEventTime().atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate classDate = event.getEventTime().atZone(gymZones.zoneOf(event.getGymId())).toLocalDate();
         ClassAttendance attendance = classAttendanceRepository
                 .findByGymClassIdAndClassDateAndUserId(matchedClass.getId(), classDate, studentUserId)
-                .orElseGet(ClassAttendance::new);
-        attendance.setGymClassId(matchedClass.getId());
-        attendance.setClassDate(classDate);
-        attendance.setUserId(studentUserId);
-        attendance.setStatus("PRESENT");
-        attendance.setMarkedByUserId(markedByUserId);
-        classAttendanceRepository.save(attendance);
+                .orElse(null);
+        boolean alreadyAttended = attendance != null
+                && ("PRESENT".equals(attendance.getStatus()) || "LATE".equals(attendance.getStatus()));
+        if (!alreadyAttended) {
+            // New, or a reservation turning into attendance. Attendance the
+            // student or staff already recorded (LATE included) stays as it is.
+            if (attendance == null) {
+                attendance = new ClassAttendance();
+            }
+            attendance.setGymClassId(matchedClass.getId());
+            attendance.setClassDate(classDate);
+            attendance.setUserId(studentUserId);
+            attendance.setStatus("PRESENT");
+            attendance.setMarkedByUserId(markedByUserId);
+            attendance.setSource(markedByUserId == null
+                    ? ClassAttendance.SOURCE_DEVICE
+                    : ClassAttendance.SOURCE_STAFF);
+            attendance.setAccessEventId(event.getId());
+            classAttendanceRepository.save(attendance);
+        }
         checkInService.ensureDailyCheckIn(studentUserId, classDate);
     }
 
@@ -267,7 +323,8 @@ public class AccessEventProcessor {
                 event.getId(), event.getGymId(), event.getDeviceId(), event.getStudentUserId(),
                 event.getExternalMemberId(), event.getEventTime(), event.getSource().name(), event.getStatus().name(),
                 Boolean.TRUE.equals(event.getProcessed()), event.getProcessedAt(), event.getMatchedClassId(),
-                event.getNotes());
+                event.getNotes(), event.getDeviceEventId(),
+                event.getDirection() == null ? null : event.getDirection().name());
     }
 
     private static AccessEventSource defaultSource(AccessDevice device) {

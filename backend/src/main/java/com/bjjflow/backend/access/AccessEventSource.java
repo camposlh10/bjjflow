@@ -5,5 +5,6 @@ public enum AccessEventSource {
     CARD,
     TURNSTILE,
     QR,
+    FACE,
     GENERIC
 }

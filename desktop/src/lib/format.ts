@@ -88,6 +88,7 @@ export const CREDENTIAL_TYPES: Record<string, string> = {
   CARD: 'Cartão / Tag',
   FINGERPRINT: 'Digital',
   QR: 'QR Code',
+  FACE: 'Facial',
   PIN: 'PIN',
   OTHER: 'Outro',
 };
@@ -98,10 +99,17 @@ export const ATTENDANCE_STATUS: Record<string, string> = {
   ABSENT: 'Ausente',
 };
 
+export const ATTENDANCE_SOURCE: Record<string, string> = {
+  APP: 'App',
+  STAFF: 'Equipe',
+  DEVICE: 'Leitor / catraca',
+};
+
 export const ACCESS_EVENT_STATUS: Record<string, string> = {
   RECEIVED: 'Recebido',
   PROCESSED_ATTENDANCE: 'Presença registrada',
   PROCESSED_GYM_VISIT: 'Visita à academia',
+  PROCESSED_EXIT: 'Saída',
   UNRESOLVED_MEMBER: 'Aluno não identificado',
   UNRESOLVED_CLASS: 'Turma não identificada',
   DUPLICATE: 'Duplicado',

@@ -21,6 +21,10 @@ import lombok.Setter;
 @NoArgsConstructor
 public class ClassAttendance {
 
+    public static final String SOURCE_APP = "APP";
+    public static final String SOURCE_STAFF = "STAFF";
+    public static final String SOURCE_DEVICE = "DEVICE";
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -38,6 +42,13 @@ public class ClassAttendance {
 
     @Column(name = "marked_by_user_id")
     private Long markedByUserId;
+
+    /** APP (student), STAFF (CRM) or DEVICE (scan at the gym). */
+    private String source = SOURCE_APP;
+
+    /** The scan that produced this attendance, when source is DEVICE. */
+    @Column(name = "access_event_id")
+    private Long accessEventId;
 
     @Column(name = "created_at")
     private Instant createdAt;
