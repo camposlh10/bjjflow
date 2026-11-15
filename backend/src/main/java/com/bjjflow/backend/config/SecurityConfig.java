@@ -74,6 +74,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/payments/webhooks/**").permitAll()
                         // Media files: local disk (dev) or redirects to signed private-bucket URLs.
                         .requestMatchers("/media/**").permitAll()
+                        // Public pages (privacy policy) and the logo they use.
+                        .requestMatchers("/privacidade", "/privacy", "/privacidade.html", "/brand/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
