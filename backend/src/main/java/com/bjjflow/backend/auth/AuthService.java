@@ -272,7 +272,7 @@ public class AuthService {
             belt = new BeltDto(rank.getSlug(), rank.getName(), rank.getNamePt(), rank.getColorHex(),
                     progress.getStripes());
         }
-        return new UserDto(user.getId(), user.getEmail(), user.getUsername(), user.getDisplayName(), user.getAge(),
+        return new UserDto(user.getId(), user.getEmail(), user.getUsername(), user.getDisplayName(), user.currentAge(),
                 user.getWeightKg(), user.getHeightCm(), belt, adminAccess.isAdminEmail(user.getEmail()),
                 Boolean.TRUE.equals(user.getPro()));
     }

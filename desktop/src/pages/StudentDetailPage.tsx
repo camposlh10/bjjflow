@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, KeyRound } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import FamilyCard from './FamilyCard';
 import MemberAccessCard from './MemberAccessCard';
 import { api, ApiError } from '../lib/api';
 import {
@@ -9,6 +10,7 @@ import {
   BELTS,
   CREDENTIAL_TYPES,
   GYM_ROLES,
+  KIDS_BELTS,
   money,
   PAYMENT_STATUS,
   shortDate,
@@ -213,6 +215,8 @@ export default function StudentDetailPage() {
           )}
         </Card>
 
+        {(detail.kid || detail.managed) && <FamilyCard userId={userId!} />}
+
         <MemberAccessCard userId={userId!} />
 
         {isOwner && (
@@ -319,7 +323,7 @@ function EditMemberModal({
       await api(`/crm/members/${detail.userId}`, {
         method: 'PUT',
         body: {
-          role: detail.role === 'OWNER' ? undefined : role,
+          role: detail.role === 'OWNER' || detail.managed ? undefined : role,
           beltSlug: beltSlug || undefined,
           stripes: beltSlug ? Number(stripes) : undefined,
         },
@@ -335,7 +339,7 @@ function EditMemberModal({
   return (
     <Modal title={`Editar — ${detail.displayName}`} open={open} onClose={onClose}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        {detail.role !== 'OWNER' && (
+        {detail.role !== 'OWNER' && !detail.managed && (
           <Field label="Função na academia">
             <select value={role} onChange={(event) => setRole(event.target.value)}>
               <option value="MEMBER">Aluno</option>
@@ -347,7 +351,7 @@ function EditMemberModal({
           <Field label="Faixa">
             <select value={beltSlug} onChange={(event) => setBeltSlug(event.target.value)}>
               <option value="">Manter atual</option>
-              {BELTS.map((belt) => (
+              {(detail.kid ? KIDS_BELTS : BELTS).map((belt) => (
                 <option key={belt.slug} value={belt.slug}>
                   {belt.label}
                 </option>

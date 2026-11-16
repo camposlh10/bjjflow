@@ -8,6 +8,7 @@ import DashboardPage from './pages/DashboardPage';
 import PaymentsPage from './pages/PaymentsPage';
 import StudentsPage from './pages/StudentsPage';
 import StudentDetailPage from './pages/StudentDetailPage';
+import KidsProgramPage from './pages/KidsProgramPage';
 import ClassesPage from './pages/ClassesPage';
 import AttendancePage from './pages/AttendancePage';
 import DevicesPage from './pages/DevicesPage';
@@ -52,6 +53,7 @@ export default function App() {
         />
         <Route path="/alunos" element={<StudentsPage />} />
         <Route path="/alunos/:userId" element={<StudentDetailPage />} />
+        <Route path="/programa-kids" element={<KidsProgramPage />} />
         <Route path="/turmas" element={<ClassesPage />} />
         <Route path="/frequencia" element={<AttendancePage />} />
         <Route path="/dispositivos" element={<DevicesPage />} />

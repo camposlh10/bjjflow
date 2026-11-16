@@ -1,4 +1,5 @@
 import {
+  Baby,
   Bell,
   Calendar,
   CalendarCheck,
@@ -21,6 +22,7 @@ const mainNav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/pagamentos', label: 'Pagamentos', icon: CreditCard, ownerOnly: true },
   { to: '/alunos', label: 'Alunos', icon: Users },
+  { to: '/programa-kids', label: 'Programa Kids', icon: Baby },
   { to: '/turmas', label: 'Turmas', icon: Calendar },
   { to: '/frequencia', label: 'Frequência', icon: CalendarCheck },
   { to: '/dispositivos', label: 'Dispositivos', icon: Fingerprint },

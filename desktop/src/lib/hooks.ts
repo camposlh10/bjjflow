@@ -6,6 +6,7 @@ import type {
   DeviceResponse,
   GymDto,
   InvoiceResponse,
+  KidsSettingsResponse,
   MemberResponse,
   PaymentPlanResponse,
   PaymentSummaryResponse,
@@ -74,6 +75,14 @@ export function useRevenueSeries(days: number, enabled = true) {
     queryKey: ['revenue-series', days],
     queryFn: () => api<RevenueSeriesResponse>(`/crm/payments/revenue-series?days=${days}`),
     enabled,
+  });
+}
+
+export function useKidsSettings() {
+  return useQuery<KidsSettingsResponse, ApiError>({
+    queryKey: ['kids-settings'],
+    queryFn: () => api<KidsSettingsResponse>('/crm/kids/settings'),
+    staleTime: 30_000,
   });
 }
 

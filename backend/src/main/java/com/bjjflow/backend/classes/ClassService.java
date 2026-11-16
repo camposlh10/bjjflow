@@ -131,7 +131,7 @@ public class ClassService {
                     continue;
                 }
                 String key = gc.getId() + "|" + d;
-                out.add(buildOccurrence(gc, d, user.getAge(), beltSlug,
+                out.add(buildOccurrence(gc, d, user.currentAge(), beltSlug,
                         myStatus.get(key), counts.getOrDefault(key, 0L)));
             }
         }
@@ -146,7 +146,7 @@ public class ClassService {
         GymClass gc = classInGym(classId, membership.getGymId());
         User user = userRepository.findById(userId).orElseThrow();
 
-        if (!eligible(gc, user.getAge(), beltSlugOf(userId))) {
+        if (!eligible(gc, user.currentAge(), beltSlugOf(userId))) {
             throw new ApiException(HttpStatus.FORBIDDEN, "NOT_ELIGIBLE", "You can't attend this class");
         }
         if (date.isBefore(LocalDate.now())) {
@@ -161,7 +161,7 @@ public class ClassService {
         } else {
             createAttendance(gc.getId(), date, userId, userId, "RESERVED");
         }
-        return occurrence(gc, date, userId, user.getAge(), beltSlugOf(userId));
+        return occurrence(gc, date, userId, user.currentAge(), beltSlugOf(userId));
     }
 
     @Transactional
@@ -170,7 +170,7 @@ public class ClassService {
         GymClass gc = classInGym(classId, membership.getGymId());
         User user = userRepository.findById(userId).orElseThrow();
 
-        if (!eligible(gc, user.getAge(), beltSlugOf(userId))) {
+        if (!eligible(gc, user.currentAge(), beltSlugOf(userId))) {
             throw new ApiException(HttpStatus.FORBIDDEN, "NOT_ELIGIBLE", "You can't attend this class");
         }
         if (!withinWindow(gc, date)) {
@@ -191,7 +191,7 @@ public class ClassService {
             createAttendance(gc.getId(), date, userId, userId, "PRESENT");
             checkInService.ensureDailyCheckIn(userId, date);
         }
-        return occurrence(gc, date, userId, user.getAge(), beltSlugOf(userId));
+        return occurrence(gc, date, userId, user.currentAge(), beltSlugOf(userId));
     }
 
     @Transactional(readOnly = true)
