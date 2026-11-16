@@ -85,6 +85,13 @@ export interface MemberResponse {
   belt: BeltResponse | null;
   classesAttended: number;
   delinquent: boolean;
+  age: number | null;
+  /** Under the gym's adult age (kids program). */
+  kid: boolean;
+  /** A child profile the gym manages (no login of their own). */
+  managed: boolean;
+  noGuardian: boolean;
+  missingDocuments: number;
 }
 
 export interface MemberDetailResponse {
@@ -100,6 +107,108 @@ export interface MemberDetailResponse {
   lastAttended: string | null;
   memberSince: string | null;
   delinquent: boolean;
+  birthDate: string | null;
+  age: number | null;
+  kid: boolean;
+  managed: boolean;
+}
+
+// ---------- kids program ----------
+export type Relationship = 'MOTHER' | 'FATHER' | 'GRANDPARENT' | 'OTHER';
+export type DocumentKind = 'WAIVER' | 'MEDICAL' | 'IMAGE_CONSENT' | 'OTHER';
+export type DocumentStatus = 'MISSING' | 'VALID' | 'EXPIRING' | 'EXPIRED';
+
+export interface AgeGroupDto {
+  id: number;
+  name: string;
+  minAge: number;
+  maxAge: number;
+}
+
+export interface DocumentTypeDto {
+  id: number;
+  name: string;
+  kind: DocumentKind;
+  required: boolean;
+  renewalMonths: number | null;
+}
+
+export interface KidsSettingsResponse {
+  configured: boolean;
+  checkoutRequired: boolean | null;
+  pickupListOnly: boolean | null;
+  latePickupMinutes: number | null;
+  missingDocumentsPolicy: 'WARN' | 'BLOCK' | null;
+  adultAge: number;
+  ageGroups: AgeGroupDto[];
+  documentTypes: DocumentTypeDto[];
+  checklist: {
+    kids: number;
+    withoutGuardian: number;
+    withMissingDocuments: number;
+    withoutHealthInfo: number;
+    withoutBirthDate: number;
+  };
+}
+
+export interface GuardianDto {
+  id: number;
+  name: string;
+  relationship: Relationship;
+  phone: string | null;
+  email: string | null;
+  primaryContact: boolean;
+  financialResponsible: boolean;
+  status: 'PENDING' | 'ACTIVE';
+  inviteCode: string | null;
+  inviteExpiresAt: string | null;
+  linkedAt: string | null;
+  linkedAccountName: string | null;
+}
+
+export interface PickupDto {
+  id: number;
+  name: string;
+  relationship: string | null;
+  phone: string | null;
+  notes: string | null;
+  blocked: boolean;
+}
+
+export interface HealthDto {
+  bloodType: string | null;
+  allergies: string | null;
+  conditions: string | null;
+  medications: string | null;
+  healthPlan: string | null;
+  emergencyNotes: string | null;
+  updatedAt: string;
+  updatedByName: string | null;
+}
+
+export interface StudentDocumentDto {
+  type: DocumentTypeDto;
+  status: DocumentStatus;
+  recordId: number | null;
+  signedByName: string | null;
+  signedOn: string | null;
+  expiresOn: string | null;
+}
+
+export interface FamilyResponse {
+  userId: number;
+  displayName: string;
+  managed: boolean;
+  birthDate: string | null;
+  age: number | null;
+  kid: boolean;
+  ageGroup: string | null;
+  programConfigured: boolean;
+  guardians: GuardianDto[];
+  pickups: PickupDto[];
+  health: HealthDto | null;
+  documents: StudentDocumentDto[];
+  missingRequiredDocuments: number;
 }
 
 // ---------- classes ----------

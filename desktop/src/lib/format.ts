@@ -123,6 +123,35 @@ export const GYM_ROLES: Record<string, string> = {
   MEMBER: 'Aluno',
 };
 
+export const RELATIONSHIPS: Record<string, string> = {
+  MOTHER: 'Mãe',
+  FATHER: 'Pai',
+  GRANDPARENT: 'Avó / Avô',
+  OTHER: 'Outro responsável',
+};
+
+export const DOCUMENT_KINDS: Record<string, string> = {
+  WAIVER: 'Termo de responsabilidade',
+  MEDICAL: 'Ficha médica',
+  IMAGE_CONSENT: 'Uso de imagem',
+  OTHER: 'Outro',
+};
+
+export const DOCUMENT_STATUS: Record<string, { label: string; tone: 'green' | 'amber' | 'red' | 'gray' }> = {
+  VALID: { label: 'Em dia', tone: 'green' },
+  EXPIRING: { label: 'Vence em breve', tone: 'amber' },
+  EXPIRED: { label: 'Vencido', tone: 'red' },
+  MISSING: { label: 'Pendente', tone: 'gray' },
+};
+
+export const KIDS_BELTS: { slug: string; label: string }[] = [
+  { slug: 'kids-white', label: 'Branca (kids)' },
+  { slug: 'kids-grey', label: 'Cinza' },
+  { slug: 'kids-yellow', label: 'Amarela' },
+  { slug: 'kids-orange', label: 'Laranja' },
+  { slug: 'kids-green', label: 'Verde' },
+];
+
 export const BELTS: { slug: string; label: string }[] = [
   { slug: 'adult-white', label: 'Branca' },
   { slug: 'adult-blue', label: 'Azul' },

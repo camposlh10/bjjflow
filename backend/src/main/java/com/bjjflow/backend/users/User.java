@@ -49,6 +49,12 @@ public class User {
 
     private Integer age;
 
+    @Column(name = "birth_date")
+    private LocalDate birthDate;
+
+    /** A child registered by the gym: no login (no email or password). */
+    private Boolean managed = false;
+
     private String gender;
 
     @Column(name = "favorite_art")
@@ -126,6 +132,14 @@ public class User {
 
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    /** Age from the birth date when known, otherwise the age typed at signup. */
+    public Integer currentAge() {
+        if (birthDate != null) {
+            return java.time.Period.between(birthDate, LocalDate.now()).getYears();
+        }
+        return age;
+    }
 
     @PrePersist
     void onCreate() {

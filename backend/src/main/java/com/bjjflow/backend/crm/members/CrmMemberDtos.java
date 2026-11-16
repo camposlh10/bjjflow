@@ -27,7 +27,16 @@ public final class CrmMemberDtos {
             String role,
             BeltResponse belt,
             long classesAttended,
-            boolean delinquent) {
+            boolean delinquent,
+            Integer age,
+            /** Under the gym's adult age (kids program). */
+            boolean kid,
+            /** A child profile the gym manages (no login). */
+            boolean managed,
+            /** A kid with no guardian registered. */
+            boolean noGuardian,
+            /** Required documents missing or expired. */
+            int missingDocuments) {
     }
 
     public record MemberDetailResponse(
@@ -42,7 +51,11 @@ public final class CrmMemberDtos {
             long last30Days,
             LocalDate lastAttended,
             Instant memberSince,
-            boolean delinquent) {
+            boolean delinquent,
+            LocalDate birthDate,
+            Integer age,
+            boolean kid,
+            boolean managed) {
     }
 
     public record UpdateMemberRequest(

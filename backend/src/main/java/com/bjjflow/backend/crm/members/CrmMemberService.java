@@ -2,6 +2,7 @@ package com.bjjflow.backend.crm.members;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,8 @@ import com.bjjflow.backend.gyms.GymRole;
 import com.bjjflow.backend.gyms.GymService;
 import com.bjjflow.backend.gyms.StudentAdminDtos.StudentAdminDto;
 import com.bjjflow.backend.gyms.StudentAdminService;
+import com.bjjflow.backend.kids.KidsDtos.KidFlags;
+import com.bjjflow.backend.kids.KidsProgramService;
 import com.bjjflow.backend.users.User;
 import com.bjjflow.backend.users.UserRepository;
 
@@ -38,18 +41,28 @@ public class CrmMemberService {
     private final UserRepository userRepository;
     private final GymService gymService;
     private final StudentAdminService studentAdminService;
+    private final KidsProgramService kidsProgramService;
+
+    private static final KidFlags NO_FLAGS = new KidFlags(null, false, false, false, 0);
 
     @Transactional(readOnly = true)
     public List<MemberResponse> members(Long callerId) {
         CrmPrincipal crm = crmAccessService.requireStaff(callerId);
-        Set<Long> delinquents = gymMemberRepository.findAllByGymId(crm.gymId()).stream()
+        List<GymMember> memberships = gymMemberRepository.findAllByGymId(crm.gymId());
+        Set<Long> delinquents = memberships.stream()
                 .filter(member -> member.getDelinquentSince() != null)
                 .map(GymMember::getUserId)
                 .collect(Collectors.toSet());
+        Map<Long, KidFlags> kids = kidsProgramService.flagsFor(crm.gymId(), memberships);
         return gymService.listMembers(callerId).stream()
-                .map(member -> new MemberResponse(member.userId(), member.displayName(), member.role(),
-                        belt(member.belt()), member.classesAttended(),
-                        delinquents.contains(member.userId())))
+                .map(member -> {
+                    KidFlags flags = kids.getOrDefault(member.userId(), NO_FLAGS);
+                    return new MemberResponse(member.userId(), member.displayName(), member.role(),
+                            belt(member.belt()), member.classesAttended(),
+                            delinquents.contains(member.userId()),
+                            flags.age(), flags.kid(), flags.managed(), flags.noGuardian(),
+                            flags.missingDocuments());
+                })
                 .toList();
     }
 
@@ -106,7 +119,12 @@ public class CrmMemberService {
                 student.attendance().last30Days(),
                 student.attendance().lastAttended(),
                 student.attendance().memberSince(),
-                delinquent);
+                delinquent,
+                user.getBirthDate(),
+                user.currentAge(),
+                "MEMBER".equals(student.role())
+                        && KidsProgramService.isKid(user, kidsProgramService.adultAge(gymId)),
+                Boolean.TRUE.equals(user.getManaged()));
     }
 
     private static BeltResponse belt(BeltSummary belt) {
