@@ -32,13 +32,15 @@ public class CommunityFeedController {
     }
 
     /** Global Comunidade feed: newest public sessions, cursor-paginated (pass the
-     *  previous page's nextCursor to load older items). */
+     *  previous page's nextCursor to load older items). {@code scope=following} narrows it
+     *  to the people the caller follows, plus the caller ("Seguindo" on the app's home). */
     @GetMapping
     public FeedPage feed(Authentication auth,
             @RequestParam(required = false) Long cursor,
-            @RequestParam(defaultValue = "20") int limit) {
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(defaultValue = "all") String scope) {
         int capped = Math.min(Math.max(limit, 1), 50);
-        return feedService.feed(userId(auth), cursor, capped);
+        return feedService.feed(userId(auth), cursor, capped, "following".equalsIgnoreCase(scope));
     }
 
     @PostMapping("/{id}/like")

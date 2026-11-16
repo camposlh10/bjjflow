@@ -49,8 +49,11 @@ export type FeedComment = {
 /** A page of the feed plus the cursor for the next (older) page (null = end). */
 export type FeedPage = { items: FeedItem[]; nextCursor: number | null };
 
-export async function getCommunityFeed(cursor?: number): Promise<FeedPage> {
-  const { data } = await api.get<FeedPage | FeedItem[]>('/feed', { params: { cursor, limit: 20 } });
+/** 'all' = every public session; 'following' = people you follow, plus you ("Seguindo"). */
+export type FeedScope = 'all' | 'following';
+
+export async function getCommunityFeed(cursor?: number, scope: FeedScope = 'all'): Promise<FeedPage> {
+  const { data } = await api.get<FeedPage | FeedItem[]>('/feed', { params: { cursor, limit: 20, scope } });
   // Tolerate the older array response shape (pre-pagination backend) during rollout.
   if (Array.isArray(data)) return { items: data, nextCursor: null };
   return data;

@@ -20,7 +20,7 @@ function initialsOf(name: string): string {
   return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
 }
 
-function sessionLabel(type: string | null): string {
+export function sessionLabel(type: string | null): string {
   switch (type) {
     case 'GI':
       return t('checkin.type.GI');
@@ -33,7 +33,7 @@ function sessionLabel(type: string | null): string {
   }
 }
 
-function durationLabel(minutes: number | null): string {
+export function durationLabel(minutes: number | null): string {
   if (!minutes || minutes <= 0) return '—';
   const h = Math.floor(minutes / 60);
   const m = minutes % 60;
@@ -44,7 +44,7 @@ function durationLabel(minutes: number | null): string {
 /** Sizes the training photo to its natural aspect ratio so the full image shows
  *  (no cropping) — the card grows taller for portrait shots and fills the width
  *  for landscape ones. */
-function FeedPhoto({ url }: { url: string }) {
+export function FeedPhoto({ url }: { url: string }) {
   const [ratio, setRatio] = useState(4 / 3);
   useEffect(() => {
     let active = true;
@@ -60,6 +60,55 @@ function FeedPhoto({ url }: { url: string }) {
     };
   }, [url]);
   return <Image source={{ uri: url }} style={[styles.photo, { aspectRatio: ratio }]} resizeMode="cover" />;
+}
+
+/**
+ * Like and share for one feed session. Patches the item in every cached feed
+ * (the global one and "Seguindo") instead of refetching — refetching on every
+ * tap caused the press lag.
+ */
+export function useFeedItemActions(item: FeedItem) {
+  const queryClient = useQueryClient();
+  const patch = (fn: (it: FeedItem) => FeedItem) =>
+    queryClient.setQueriesData<InfiniteData<FeedPage>>({ queryKey: ['communityFeed'] }, (old) =>
+      old?.pages
+        ? {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              items: page.items.map((it) => (it.checkInId === item.checkInId ? fn(it) : it)),
+            })),
+          }
+        : old,
+    );
+
+  const like = useMutation({
+    mutationFn: () => toggleFeedLike(item.checkInId),
+    onMutate: () => {
+      const prev = queryClient.getQueriesData<InfiniteData<FeedPage>>({ queryKey: ['communityFeed'] });
+      patch((it) => ({ ...it, likedByMe: !it.likedByMe, likeCount: it.likeCount + (it.likedByMe ? -1 : 1) }));
+      return { prev };
+    },
+    onError: (_e, _v, ctx) => {
+      ctx?.prev.forEach(([key, data]) => queryClient.setQueryData(key, data));
+    },
+  });
+
+  const onShare = async () => {
+    try {
+      const result = await Share.share({
+        message: tf('feed.share.message', { name: item.author.displayName.split(' ')[0] }),
+      });
+      if (result.action !== Share.dismissedAction) {
+        await shareFeedItem(item.checkInId);
+        patch((it) => ({ ...it, shareCount: it.shareCount + 1 }));
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  return { like, onShare };
 }
 
 export default function TrainingCard({
@@ -78,48 +127,7 @@ export default function TrainingCard({
   // malformed row can't crash the whole feed (the app-wide ErrorBoundary).
   const finishes = (item.submissions ?? []).filter((s) => s.direction === 'HIT');
   const openProfile = onPressAuthor && author ? () => onPressAuthor(author.id) : undefined;
-
-  const queryClient = useQueryClient();
-  // Patch just this item in the cached (paginated) feed instead of refetching the
-  // whole list — refetching on every tap caused the press lag.
-  const patch = (fn: (it: FeedItem) => FeedItem) =>
-    queryClient.setQueryData<InfiniteData<FeedPage>>(['communityFeed'], (old) =>
-      old
-        ? {
-            ...old,
-            pages: old.pages.map((page) => ({
-              ...page,
-              items: page.items.map((it) => (it.checkInId === item.checkInId ? fn(it) : it)),
-            })),
-          }
-        : old,
-    );
-
-  const like = useMutation({
-    mutationFn: () => toggleFeedLike(item.checkInId),
-    onMutate: () => {
-      const prev = queryClient.getQueryData<InfiniteData<FeedPage>>(['communityFeed']);
-      patch((it) => ({ ...it, likedByMe: !it.likedByMe, likeCount: it.likeCount + (it.likedByMe ? -1 : 1) }));
-      return { prev };
-    },
-    onError: (_e, _v, ctx) => {
-      if (ctx?.prev) queryClient.setQueryData(['communityFeed'], ctx.prev);
-    },
-  });
-
-  const onShare = async () => {
-    try {
-      const result = await Share.share({
-        message: tf('feed.share.message', { name: author.displayName.split(' ')[0] }),
-      });
-      if (result.action !== Share.dismissedAction) {
-        await shareFeedItem(item.checkInId);
-        patch((it) => ({ ...it, shareCount: it.shareCount + 1 }));
-      }
-    } catch {
-      // ignore
-    }
-  };
+  const { like, onShare } = useFeedItemActions(item);
 
   return (
     <View style={styles.card}>

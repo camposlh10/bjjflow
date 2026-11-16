@@ -48,13 +48,30 @@ public class CommunityFeedService {
     private final CheckInLikeRepository likeRepository;
     private final CheckInCommentRepository commentRepository;
     private final MediaStorage mediaStorage;
+    private final com.bjjflow.backend.social.FollowRepository followRepository;
     private final com.bjjflow.backend.notifications.NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public FeedPage feed(Long requesterId, Long cursor, int limit) {
-        List<CheckIn> checkIns = cursor == null
-                ? checkInRepository.findByVisibilityOrderByIdDesc("PUBLIC", PageRequest.of(0, limit))
-                : checkInRepository.findByVisibilityAndIdLessThanOrderByIdDesc("PUBLIC", cursor, PageRequest.of(0, limit));
+        return feed(requesterId, cursor, limit, false);
+    }
+
+    /** @param following only sessions by people the requester follows, plus their own ("Seguindo"). */
+    @Transactional(readOnly = true)
+    public FeedPage feed(Long requesterId, Long cursor, int limit, boolean following) {
+        List<CheckIn> checkIns;
+        if (following) {
+            Set<Long> authorIds = new HashSet<>(followRepository.findFollowingIds(requesterId));
+            authorIds.add(requesterId);
+            checkIns = cursor == null
+                    ? checkInRepository.findByVisibilityAndUserIdInOrderByIdDesc("PUBLIC", authorIds, PageRequest.of(0, limit))
+                    : checkInRepository.findByVisibilityAndUserIdInAndIdLessThanOrderByIdDesc("PUBLIC", authorIds, cursor,
+                            PageRequest.of(0, limit));
+        } else {
+            checkIns = cursor == null
+                    ? checkInRepository.findByVisibilityOrderByIdDesc("PUBLIC", PageRequest.of(0, limit))
+                    : checkInRepository.findByVisibilityAndIdLessThanOrderByIdDesc("PUBLIC", cursor, PageRequest.of(0, limit));
+        }
         if (checkIns.isEmpty()) {
             return new FeedPage(List.of(), null);
         }
