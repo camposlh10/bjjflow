@@ -1,6 +1,7 @@
 package com.bjjflow.backend.checkins;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.domain.Pageable;
@@ -20,6 +21,12 @@ public interface CheckInRepository extends JpaRepository<CheckIn, Long> {
 
     /** Next page: public sessions older than the given check-in id (cursor pagination). */
     List<CheckIn> findByVisibilityAndIdLessThanOrderByIdDesc(String visibility, Long id, Pageable pageable);
+
+    /** "Seguindo" feed: public sessions by the given users (the people you follow, and you). */
+    List<CheckIn> findByVisibilityAndUserIdInOrderByIdDesc(String visibility, Collection<Long> userIds, Pageable pageable);
+
+    List<CheckIn> findByVisibilityAndUserIdInAndIdLessThanOrderByIdDesc(String visibility, Collection<Long> userIds,
+            Long id, Pageable pageable);
 
     long countByUserId(Long userId);
 

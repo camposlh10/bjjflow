@@ -1,3 +1,5 @@
+import { getActiveLocale, t, tf } from '../i18n';
+
 const MONTHS_PT = [
   'jan', 'fev', 'mar', 'abr', 'mai', 'jun',
   'jul', 'ago', 'set', 'out', 'nov', 'dez',
@@ -73,4 +75,39 @@ export function timeAgo(iso: string): string {
   const d = Math.floor(h / 24);
   if (d < 7) return `${d}d`;
   return `${Math.floor(d / 7)}sem`;
+}
+
+/** Locale-aware relative time for feed posts: "há 2h" / "2h ago". */
+export function postedAgo(iso: string): string {
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return t('time.ago.now');
+  if (min < 60) return tf('time.ago.min', { n: min });
+  const h = Math.floor(min / 60);
+  if (h < 24) return tf('time.ago.h', { n: h });
+  const d = Math.floor(h / 24);
+  if (d < 7) return tf('time.ago.d', { n: d });
+  return tf('time.ago.w', { n: Math.floor(d / 7) });
+}
+
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** Short date + start time for an upcoming class: "21 nov. · 10h" / "Nov 21 · 10:00"; today/tomorrow by name. */
+export function eventWhen(date: string, startTime: string): string {
+  const [y, m, d] = date.split('-').map(Number);
+  const day = new Date(y, m - 1, d);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.round((day.getTime() - today.getTime()) / 86400000);
+  const pt = getActiveLocale() === 'pt';
+  const dayLabel =
+    diff === 0
+      ? t('time.today')
+      : diff === 1
+        ? t('time.tomorrow')
+        : pt
+          ? `${d} ${MONTHS_PT[m - 1]}.`
+          : `${MONTHS_EN[m - 1]} ${d}`;
+  const [hh, mm] = startTime.split(':');
+  const time = pt ? `${Number(hh)}h${mm === '00' ? '' : mm}` : `${hh}:${mm}`;
+  return `${dayLabel} · ${time}`;
 }

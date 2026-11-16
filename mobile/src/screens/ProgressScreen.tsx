@@ -14,6 +14,7 @@ import { getUserSubmissions } from '../api/submissions';
 import DateField from '../components/DateField';
 import MetricRing from '../components/MetricRing';
 import Skeleton from '../components/Skeleton';
+import TodayCard from '../components/TodayCard';
 import SubmissionBars from '../components/SubmissionBars';
 import { SESSION_TAG } from '../constants/classes';
 import {
@@ -133,6 +134,11 @@ export default function ProgressScreen() {
       <Text variant="headlineSmall" style={styles.screenTitle}>
         {t('tabs.progress')}
       </Text>
+
+      {/* Streak + one-tap check-in (moved here from Início when it became Comunidade). */}
+      <View style={{ marginBottom: 14 }}>
+        <TodayCard stats={stats.data} />
+      </View>
 
       <Segmented value={period} onChange={setPeriod} />
 

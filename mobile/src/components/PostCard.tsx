@@ -29,7 +29,7 @@ type Props = {
   onOpen: () => void;
 };
 
-function roleLabel(role: GymRole): { label: string; staff: boolean } {
+export function roleLabel(role: GymRole): { label: string; staff: boolean } {
   if (role === 'OWNER') return { label: t('gym.role.OWNER'), staff: true };
   if (role === 'INSTRUCTOR') return { label: t('gym.role.INSTRUCTOR'), staff: true };
   return { label: t('gym.role.MEMBER'), staff: false };
@@ -38,6 +38,65 @@ function roleLabel(role: GymRole): { label: string; staff: boolean } {
 function initialsOf(name: string): string {
   const parts = name.trim().split(/\s+/);
   return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
+}
+
+/** The post's "…" menu: pin/unpin for staff, delete for the author or gym owner. */
+export function PostMenu({
+  pinned,
+  canPin,
+  canDelete,
+  onPinToggle,
+  onDelete,
+}: {
+  pinned: boolean;
+  canPin: boolean;
+  canDelete: boolean;
+  onPinToggle: () => void;
+  onDelete: () => void;
+}) {
+  const [menuVisible, setMenuVisible] = useState(false);
+  // Paper's Menu runs its close animation when it mounts and then focuses its
+  // anchor; on web that scrolls the list to this post, so a wall of posts drags
+  // itself to the bottom while loading. Mount the Menu only once it is first opened.
+  const [menuMounted, setMenuMounted] = useState(false);
+  const openMenu = () => {
+    setMenuMounted(true);
+    setMenuVisible(true);
+  };
+  const anchor = (
+    <IconButton
+      icon="dots-horizontal"
+      size={18}
+      iconColor={palette.textSecondary}
+      onPress={openMenu}
+      accessibilityLabel={t('a11y.more')}
+    />
+  );
+  if (!menuMounted) return anchor;
+  return (
+    <Menu visible={menuVisible} onDismiss={() => setMenuVisible(false)} anchor={anchor}>
+      {canPin && (
+        <Menu.Item
+          onPress={() => {
+            setMenuVisible(false);
+            onPinToggle();
+          }}
+          title={pinned ? t('mural.unpin') : t('mural.pin')}
+          leadingIcon={pinned ? 'pin-off' : 'pin'}
+        />
+      )}
+      {canDelete && (
+        <Menu.Item
+          onPress={() => {
+            setMenuVisible(false);
+            onDelete();
+          }}
+          title={t('mural.delete')}
+          leadingIcon="trash-can-outline"
+        />
+      )}
+    </Menu>
+  );
 }
 
 function PostCard({
@@ -54,15 +113,6 @@ function PostCard({
   onDelete,
   onOpen,
 }: Props) {
-  const [menuVisible, setMenuVisible] = useState(false);
-  // Paper's Menu runs its close animation when it mounts and then focuses its
-  // anchor; on web that scrolls the list to this post, so a wall of posts drags
-  // itself to the bottom while loading. Mount the Menu only once it is first opened.
-  const [menuMounted, setMenuMounted] = useState(false);
-  const openMenu = () => {
-    setMenuMounted(true);
-    setMenuVisible(true);
-  };
   const role = roleLabel(post.author.role);
   const isAuthor = post.author.userId === myUserId;
   const canPin = isStaff;
@@ -101,49 +151,14 @@ function PostCard({
             <Text style={styles.timeText}>{formatShortDateTime(post.createdAt)}</Text>
           </View>
         </View>
-        {showMenu && !menuMounted && (
-          <IconButton
-            icon="dots-horizontal"
-            size={18}
-            iconColor={palette.textSecondary}
-            onPress={openMenu}
-            accessibilityLabel={t('a11y.more')}
+        {showMenu && (
+          <PostMenu
+            pinned={post.pinned}
+            canPin={canPin}
+            canDelete={canDelete}
+            onPinToggle={onPinToggle}
+            onDelete={onDelete}
           />
-        )}
-        {showMenu && menuMounted && (
-          <Menu
-            visible={menuVisible}
-            onDismiss={() => setMenuVisible(false)}
-            anchor={
-              <IconButton
-                icon="dots-horizontal"
-                size={18}
-                iconColor={palette.textSecondary}
-                onPress={openMenu}
-                accessibilityLabel={t('a11y.more')}
-              />
-            }>
-            {canPin && (
-              <Menu.Item
-                onPress={() => {
-                  setMenuVisible(false);
-                  onPinToggle();
-                }}
-                title={post.pinned ? t('mural.unpin') : t('mural.pin')}
-                leadingIcon={post.pinned ? 'pin-off' : 'pin'}
-              />
-            )}
-            {canDelete && (
-              <Menu.Item
-                onPress={() => {
-                  setMenuVisible(false);
-                  onDelete();
-                }}
-                title={t('mural.delete')}
-                leadingIcon="trash-can-outline"
-              />
-            )}
-          </Menu>
         )}
       </View>
 

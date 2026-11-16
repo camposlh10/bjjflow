@@ -81,6 +81,41 @@ class CommunityFeedFlowTest {
     }
 
     @Test
+    void followingScopeShowsOnlyFollowedPeopleAndMe() throws Exception {
+        String today = LocalDate.now().toString();
+        String me = register("feedfollow-me@bjjflow.com");
+        String friendJson = mockMvc.perform(post("/api/v1/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {"email": "feedfollow-friend@bjjflow.com", "password": "senha-forte-123",
+                         "displayName": "friend", "age": 26, "beltSlug": "adult-blue", "stripes": 0}
+                        """))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String friend = JsonPath.read(friendJson, "$.accessToken");
+        long friendId = ((Number) JsonPath.read(friendJson, "$.user.id")).longValue();
+        String stranger = register("feedfollow-stranger@bjjflow.com");
+
+        for (String tok : new String[] { me, friend, stranger }) {
+            mockMvc.perform(post("/api/v1/checkins")
+                    .header("Authorization", auth(tok))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"date\": \"%s\", \"durationMinutes\": 60, \"visibility\": \"PUBLIC\"}".formatted(today)))
+                    .andExpect(status().isOk());
+        }
+        mockMvc.perform(post("/api/v1/users/" + friendId + "/follow").header("Authorization", auth(me)))
+                .andExpect(status().isOk());
+
+        // Default scope stays global; "following" is the friend and me, newest first.
+        mockMvc.perform(get("/api/v1/feed").header("Authorization", auth(me)))
+                .andExpect(jsonPath("$.items.length()").value(3));
+        mockMvc.perform(get("/api/v1/feed").param("scope", "following").header("Authorization", auth(me)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items.length()").value(2))
+                .andExpect(jsonPath("$.items[0].author.displayName").value("friend"))
+                .andExpect(jsonPath("$.items[1].author.displayName").value("feedfollow-me"));
+    }
+
+    @Test
     void likeCommentShareOnPublicSession() throws Exception {
         String today = LocalDate.now().toString();
         String sharer = register("feedsocial-a@bjjflow.com");
