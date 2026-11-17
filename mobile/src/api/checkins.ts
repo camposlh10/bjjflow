@@ -51,9 +51,13 @@ export type CreateCheckInPayload = {
   clientId?: string;
 };
 
-/** Detailed check-in (session type, duration, submissions landed/conceded, notes). */
-export async function createCheckIn(payload: CreateCheckInPayload): Promise<void> {
-  await api.post('/checkins', payload);
+/**
+ * Detailed check-in (session type, duration, submissions landed/conceded, notes).
+ * Resolves to the rating it earned (0 on a repeat day, a late log, or an older server).
+ */
+export async function createCheckIn(payload: CreateCheckInPayload): Promise<number> {
+  const { data } = await api.post<{ pointsEarned?: number }>('/checkins', payload);
+  return typeof data?.pointsEarned === 'number' ? data.pointsEarned : 0;
 }
 
 /** One logged session, as the training history lists it. */

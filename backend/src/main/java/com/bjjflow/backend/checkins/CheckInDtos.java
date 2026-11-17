@@ -34,7 +34,9 @@ public class CheckInDtos {
             @Size(max = 64) String clientId) {
     }
 
-    public record CheckInDto(Long id, LocalDate date, String sessionType, Integer durationMinutes, String notes) {
+    /** {@code pointsEarned}: rating this check-in just earned (0 on a repeat day or a late log). */
+    public record CheckInDto(Long id, LocalDate date, String sessionType, Integer durationMinutes, String notes,
+            int pointsEarned) {
     }
 
     public record StatsResponse(

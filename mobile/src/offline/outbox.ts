@@ -12,6 +12,7 @@ import { DirectMessage, sendMessage } from '../api/messages';
 import { logPain } from '../api/pain';
 import { t, TranslationKey } from '../i18n';
 import { queryClient } from '../queryClient';
+import { useRatingBurst } from '../store/ratingBurstStore';
 
 /**
  * The app's queue of changes waiting for the server: chat messages, check-ins
@@ -191,6 +192,8 @@ export async function submitCheckIn(
   payload: CreateCheckInPayload,
   pain: PainEntry[] = [],
 ): Promise<'sent' | 'queued'> {
+  // Rating earned shows as a burst only when the check-in goes through now;
+  // one sent later from the queue updates the numbers quietly.
   const id = payload.clientId ?? newClientId();
   const item: OutboxCheckIn = {
     kind: 'checkin',
@@ -200,7 +203,8 @@ export async function submitCheckIn(
     createdAt: new Date().toISOString(),
   };
   try {
-    await sendCheckIn(item);
+    const points = await sendCheckIn(item);
+    if (points > 0) useRatingBurst.getState().show(points);
     return 'sent';
   } catch (error) {
     if (!isRetryable(error)) throw error;
@@ -210,14 +214,14 @@ export async function submitCheckIn(
 }
 
 export function invalidateTrainingData() {
-  for (const key of ['stats', 'checkins', 'journey', 'communityFeed', 'userSubmissions', 'painDaily', 'painMonthly', 'home']) {
+  for (const key of ['stats', 'checkins', 'journey', 'communityFeed', 'userSubmissions', 'painDaily', 'painMonthly', 'home', 'myRating', 'ranking', 'matches', 'match']) {
     queryClient.invalidateQueries({ queryKey: [key] });
   }
   queryClient.invalidateQueries({ queryKey: ['userProfile'] });
 }
 
-async function sendCheckIn(item: OutboxCheckIn) {
-  await createCheckIn(item.payload);
+async function sendCheckIn(item: OutboxCheckIn): Promise<number> {
+  const points = await createCheckIn(item.payload);
   // Pain entries ride along once the check-in itself is in. They are not
   // idempotent, so a failure here is not retried (the check-in is what matters).
   for (const entry of item.pain) {
@@ -228,6 +232,7 @@ async function sendCheckIn(item: OutboxCheckIn) {
     }
   }
   invalidateTrainingData();
+  return points;
 }
 
 function addToThread(conversationId: number, saved: DirectMessage) {
