@@ -89,6 +89,9 @@ export function useCompeteActions(onMatch?: (m: Match) => void) {
         { text: t('compete.match.forfeit'), style: 'destructive', onPress: () => act.mutate({ id, action: 'forfeit' }) },
       ]),
     acting: act.isPending,
+    /** For the invite popup: resolve when done, so it can move on to the match. */
+    acceptAsync: (id: number) => act.mutateAsync({ id, action: 'accept' }),
+    respondAsync: (id: number, action: 'decline' | 'silence' | 'block') => act.mutateAsync({ id, action }),
     post: (id: number) =>
       Alert.alert(t('compete.post.confirm.title'), t('compete.post.confirm.body'), [
         { text: t('common.cancel'), style: 'cancel' },

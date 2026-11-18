@@ -236,6 +236,53 @@ class CompeteFlowTest {
     }
 
     @Test
+    void silencingOrBlockingStopsChallengesFromThatPersonOnly() throws Exception {
+        Member gil = register("match-gil@bjjflow.com", "Gil Match");
+        Member hugo = register("match-hugo@bjjflow.com", "Hugo Match");
+        Member iris = register("match-iris@bjjflow.com", "Iris Match");
+        mutualFollow(gil, hugo);
+        mutualFollow(gil, iris);
+
+        // Silence: the challenge is declined and Hugo can't challenge Gil for a week.
+        long first = challenge(hugo, gil);
+        mockMvc.perform(post("/api/v1/matches/" + first + "/silence").header("Authorization", gil.bearer()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("DECLINED"));
+        mockMvc.perform(post("/api/v1/matches").header("Authorization", hugo.bearer())
+                .contentType(MediaType.APPLICATION_JSON).content("{\"opponentId\": " + gil.id() + "}"))
+                .andExpect(status().isConflict())
+                // The challenger isn't told they were silenced.
+                .andExpect(jsonPath("$.code").value("CHALLENGE_DISABLED"));
+        // Others still can.
+        long fromIris = challenge(iris, gil);
+
+        // Block: lasts until lifted.
+        mockMvc.perform(post("/api/v1/matches/" + fromIris + "/block").header("Authorization", gil.bearer()))
+                .andExpect(jsonPath("$.status").value("DECLINED"));
+        mockMvc.perform(get("/api/v1/compete/blocks").header("Authorization", gil.bearer()))
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[0].user.id").value(iris.id()))
+                .andExpect(jsonPath("$[0].until").doesNotExist())
+                .andExpect(jsonPath("$[1].user.id").value(hugo.id()))
+                .andExpect(jsonPath("$[1].until").exists());
+        mockMvc.perform(get("/api/v1/compete/vs/" + gil.id()).header("Authorization", iris.bearer()))
+                .andExpect(jsonPath("$.canChallenge").value(false))
+                .andExpect(jsonPath("$.blockedReason").value("DISABLED"));
+
+        // Only the person challenged can silence or block.
+        long fromGil = challenge(gil, iris);
+        mockMvc.perform(post("/api/v1/matches/" + fromGil + "/block").header("Authorization", gil.bearer()))
+                .andExpect(status().isConflict());
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                .delete("/api/v1/compete/blocks/" + iris.id()).header("Authorization", gil.bearer()))
+                .andExpect(status().isNoContent());
+        mockMvc.perform(post("/api/v1/matches/" + fromGil + "/cancel").header("Authorization", gil.bearer()))
+                .andExpect(status().isOk());
+        challenge(iris, gil);
+    }
+
+    @Test
     void forfeitingLosesTheMatchAndChallengesCanBeTurnedOff() throws Exception {
         Member dani = register("match-dani@bjjflow.com", "Dani Match");
         Member edu = register("match-edu@bjjflow.com", "Edu Match");

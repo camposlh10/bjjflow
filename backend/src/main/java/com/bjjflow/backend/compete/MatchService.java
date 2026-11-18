@@ -57,6 +57,7 @@ public class MatchService {
     private final NotificationService notificationService;
     private final MediaStorage mediaStorage;
     private final JdbcTemplate jdbc;
+    private final ChallengeBlocks challengeBlocks;
 
     // ---------------------------------------------------------------- challenge flow
 
@@ -106,6 +107,34 @@ public class MatchService {
         m.setStatus(Match.DECLINED);
         m.setRespondedAt(Instant.now());
         return toDto(m, me, false);
+    }
+
+    /** Declines and stops challenges from this challenger for a week. */
+    @Transactional
+    public MatchDto silence(Long me, Long matchId) {
+        MatchDto dto = decline(me, matchId);
+        challengeBlocks.set(me, dto.challenger().id(), Instant.now().plus(ChallengeBlocks.SILENCE));
+        return dto;
+    }
+
+    /** Declines and stops challenges from this challenger until lifted in Privacidade. */
+    @Transactional
+    public MatchDto block(Long me, Long matchId) {
+        MatchDto dto = decline(me, matchId);
+        challengeBlocks.set(me, dto.challenger().id(), null);
+        return dto;
+    }
+
+    @Transactional(readOnly = true)
+    public List<CompeteDtos.BlockDto> blocks(Long me) {
+        List<ChallengeBlocks.Block> list = challengeBlocks.list(me);
+        Map<Long, PlayerDto> p = players.of(list.stream().map(ChallengeBlocks.Block::userId).toList());
+        return list.stream().map(b -> new CompeteDtos.BlockDto(p.get(b.userId()), b.until())).toList();
+    }
+
+    @Transactional
+    public void unblock(Long me, Long userId) {
+        challengeBlocks.remove(me, userId);
     }
 
     @Transactional
@@ -295,7 +324,8 @@ public class MatchService {
         if (!connected(me, them)) {
             return "NOT_CONNECTED";
         }
-        if (!ratingService.acceptsChallenges(them)) {
+        // Silenced or blocked reads the same to the challenger as challenges turned off.
+        if (!ratingService.acceptsChallenges(them) || challengeBlocks.blocks(them, me)) {
             return "DISABLED";
         }
         if (!matchRepository.findBetween(me, them, OPEN).isEmpty()) {

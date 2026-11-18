@@ -9,6 +9,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } fr
 import CheckInSheet from '../components/CheckInSheet';
 import Icon, { type IconName } from '../components/Icon';
 import RatingBurst from '../components/RatingBurst';
+import ChallengeInvite from '../components/compete/ChallengeInvite';
 import SyncBridge from '../components/SyncBridge';
 import SyncStatus from '../components/SyncStatus';
 import { t } from '../i18n';
@@ -144,6 +145,7 @@ export default function AppTabs() {
     </Tab.Navigator>
     <CheckInSheet visible={checkInOpen} onClose={closeCheckIn} />
     <RatingBurst />
+    <ChallengeInvite />
     <SyncBridge />
     </>
   );

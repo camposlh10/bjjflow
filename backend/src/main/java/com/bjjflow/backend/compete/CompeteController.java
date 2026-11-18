@@ -93,6 +93,27 @@ public class CompeteController {
         return matchService.decline(userId(auth), id);
     }
 
+    @PostMapping("/matches/{id}/silence")
+    public MatchDto silence(Authentication auth, @PathVariable Long id) {
+        return matchService.silence(userId(auth), id);
+    }
+
+    @PostMapping("/matches/{id}/block")
+    public MatchDto block(Authentication auth, @PathVariable Long id) {
+        return matchService.block(userId(auth), id);
+    }
+
+    @GetMapping("/compete/blocks")
+    public List<CompeteDtos.BlockDto> blocks(Authentication auth) {
+        return matchService.blocks(userId(auth));
+    }
+
+    @DeleteMapping("/compete/blocks/{userId}")
+    public ResponseEntity<Void> unblock(Authentication auth, @PathVariable Long userId) {
+        matchService.unblock(userId(auth), userId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/matches/{id}/cancel")
     public MatchDto cancel(Authentication auth, @PathVariable Long id) {
         return matchService.cancel(userId(auth), id);

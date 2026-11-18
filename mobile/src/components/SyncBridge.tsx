@@ -42,6 +42,7 @@ export default function SyncBridge() {
           queryClient.invalidateQueries({ queryKey: ['conversations'] });
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
           queryClient.invalidateQueries({ queryKey: ['messages'] });
+          queryClient.invalidateQueries({ queryKey: ['matches'] });
           void flushOutbox();
         } else if (event.type === 'message') {
           // An open thread asks only for messages after its last one.
@@ -51,6 +52,12 @@ export default function SyncBridge() {
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
           if (event.link?.startsWith('gym:')) {
             queryClient.invalidateQueries({ queryKey: ['gymFeed'] });
+          }
+          // A challenge, a round or a result: the invite popup and match screens refresh.
+          if (event.link?.startsWith('match:')) {
+            for (const key of ['matches', 'match', 'versus', 'myRating', 'ranking']) {
+              queryClient.invalidateQueries({ queryKey: [key] });
+            }
           }
         }
       }),

@@ -169,10 +169,21 @@ export default function MatchScreen({ route, navigation }: Props) {
               </Text>
             )}
             {m.myRole === 'OPPONENT' ? (
-              <View style={styles.row}>
-                <Button label={t('compete.match.decline')} onPress={() => actions.decline(m.id)} disabled={actions.acting} />
-                <Button label={t('compete.match.accept')} primary onPress={() => actions.accept(m.id)} disabled={actions.acting} />
-              </View>
+              <>
+                <View style={styles.row}>
+                  <Button label={t('compete.match.decline')} onPress={() => actions.decline(m.id)} disabled={actions.acting} />
+                  <Button label={t('compete.match.accept')} primary onPress={() => actions.accept(m.id)} disabled={actions.acting} />
+                </View>
+                <View style={styles.quietRow}>
+                  <Pressable onPress={() => actions.respondAsync(m.id, 'silence').catch(() => undefined)} hitSlop={8} accessibilityRole="button">
+                    <Text style={styles.quiet}>{t('compete.invite.silence')}</Text>
+                  </Pressable>
+                  <Text style={styles.quietDot}>·</Text>
+                  <Pressable onPress={() => actions.respondAsync(m.id, 'block').catch(() => undefined)} hitSlop={8} accessibilityRole="button">
+                    <Text style={styles.quiet}>{tf('compete.invite.block', { name: firstName(side.them) })}</Text>
+                  </Pressable>
+                </View>
+              </>
             ) : m.myRole === 'CHALLENGER' ? (
               <View style={styles.row}>
                 <Button label={t('compete.match.cancel')} onPress={() => actions.cancel(m.id)} disabled={actions.acting} />
@@ -343,6 +354,9 @@ const styles = makeStyles(() => ({
   buttonText: { color: palette.textPrimary, fontSize: 14, fontWeight: '600' },
   buttonTextPrimary: { color: '#FFFFFF' },
   note: { color: palette.textSecondary, fontSize: 12, textAlign: 'center', marginTop: 10 },
+  quietRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' },
+  quiet: { color: palette.textSecondary, fontSize: 13, fontWeight: '600' },
+  quietDot: { color: palette.textSecondary, fontSize: 13 },
   record: { color: palette.textSecondary, fontSize: 13, textAlign: 'center', marginTop: 16 },
   section: { color: palette.textPrimary, fontSize: 16, fontWeight: 'bold', marginBottom: 8 },
   proof: {
