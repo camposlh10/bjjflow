@@ -7,6 +7,7 @@ import { Text } from 'react-native-paper';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { todayLocalDate } from '../api/checkins';
+import { MatchPost, getMatches, getMatchPosts } from '../api/compete';
 import { AgendaOccurrence, getAgenda } from '../api/classes';
 import { FeedItem, FeedScope, getCommunityFeed } from '../api/feed';
 import { getMyGym } from '../api/gyms';
@@ -17,8 +18,11 @@ import { SearchUser, getUserProfile, searchUsers } from '../api/users';
 import { ArrowLink, Avatar, CheckInPost, GymPost, HighlightCard } from '../components/CommunityFeed';
 import Icon, { type IconName } from '../components/Icon';
 import { TrainingCardSkeleton } from '../components/Skeleton';
+import { MatchCard } from '../components/compete/MatchParts';
+import MatchPostCard from '../components/compete/MatchPostCard';
+import { useCompeteActions } from '../components/compete/useCompete';
 import { usePostActions } from '../components/usePostActions';
-import { t } from '../i18n';
+import { t, tf } from '../i18n';
 import type { HomeStackParamList } from '../navigation/HomeNavigator';
 import { useAuthStore } from '../store/authStore';
 import { useCheckInSheet } from '../store/checkInSheetStore';
@@ -27,7 +31,10 @@ import { eventWhen, postedAgo } from '../utils/time';
 
 type Nav = NativeStackNavigationProp<HomeStackParamList, 'HomeMain'>;
 type FeedTab = 'following' | 'gym';
-type Row = { kind: 'checkin'; at: number; item: FeedItem } | { kind: 'post'; at: number; post: Post };
+type Row =
+  | { kind: 'checkin'; at: number; item: FeedItem }
+  | { kind: 'post'; at: number; post: Post }
+  | { kind: 'match'; at: number; matchPost: MatchPost };
 type Highlight = { key: string; icon: IconName; title: string; detail?: string; link: string; onPress: () => void };
 
 /** How many days ahead "Em destaque" looks for open mats. */
@@ -122,6 +129,15 @@ export default function HomeScreen() {
     enabled: !!gym.data,
   });
   const results = useQuery({ queryKey: ['userSearch', q], queryFn: () => searchUsers(q), enabled: searching });
+  // Active matches and challenges waiting for an answer sit above the feeds;
+  // posted match results are mixed into "Seguindo".
+  const matches = useQuery({ queryKey: ['matches'], queryFn: getMatches, enabled: !!user?.id });
+  const matchPosts = useQuery({
+    queryKey: ['matchPosts', scope],
+    queryFn: () => getMatchPosts(scope === 'all' ? 'all' : 'following'),
+    enabled: !!user?.id,
+  });
+  const competeActions = useCompeteActions();
   const postActions = usePostActions(gym.data);
 
   const unread = notifications.data?.unread ?? 0;
@@ -207,12 +223,18 @@ export default function HomeScreen() {
     const postRows: Row[] = gymPosts
       .filter((p) => !p.pinned)
       .map((post) => ({ kind: 'post', at: Date.parse(post.createdAt), post }));
+    // Match posts are one short list (the last 30 days), merged within the same window.
+    const matchRows: Row[] = (matchPosts.data ?? []).map((matchPost) => ({
+      kind: 'match',
+      at: Date.parse(matchPost.createdAt),
+      matchPost,
+    }));
     const cutoff = Math.max(
       feed.hasNextPage && sessionRows.length ? sessionRows[sessionRows.length - 1].at : -Infinity,
       gymFeed.hasNextPage && postRows.length ? Math.min(...postRows.map((r) => r.at)) : -Infinity,
     );
-    return [...sessionRows, ...postRows].filter((r) => r.at >= cutoff).sort((a, b) => b.at - a.at);
-  }, [checkIns, gymPosts, feed.hasNextPage, gymFeed.hasNextPage]);
+    return [...sessionRows, ...postRows, ...matchRows].filter((r) => r.at >= cutoff).sort((a, b) => b.at - a.at);
+  }, [checkIns, gymPosts, matchPosts.data, feed.hasNextPage, gymFeed.hasNextPage]);
   const gymRows = useMemo<Row[]>(
     () => gymPosts.map((post) => ({ kind: 'post', at: Date.parse(post.createdAt), post })),
     [gymPosts],
@@ -240,6 +262,8 @@ export default function HomeScreen() {
   const refresh = () => {
     feed.refetch();
     home.refetch();
+    matches.refetch();
+    matchPosts.refetch();
     if (hasGym) {
       gymFeed.refetch();
       agenda.refetch();
@@ -263,6 +287,15 @@ export default function HomeScreen() {
       <Text style={styles.title} numberOfLines={1}>
         {t('community.title')}
       </Text>
+      <Pressable
+        style={styles.iconBtn}
+        onPress={() => navigation.navigate('Compete')}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel={t('compete.title')}>
+        <Icon name="trophy" size={24} color={palette.textPrimary} />
+        {(matches.data?.incoming.length ?? 0) > 0 && <View style={styles.bellDot} />}
+      </Pressable>
       <Pressable
         style={styles.iconBtn}
         onPress={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
@@ -371,6 +404,28 @@ export default function HomeScreen() {
         </>
       )}
 
+      {(matches.data?.active.length ?? 0) > 0 && (
+        <View style={styles.matchStrip}>
+          {matches.data!.active.map((m) => (
+            <MatchCard key={m.id} match={m} highlight onPress={() => navigation.navigate('Match', { matchId: m.id })} />
+          ))}
+        </View>
+      )}
+      {(matches.data?.incoming.length ?? 0) > 0 && (
+        <Pressable
+          style={styles.challengeBanner}
+          onPress={() => navigation.navigate('Compete', { tab: 'matches' })}
+          accessibilityRole="button">
+          <Icon name="karate" size={18} color={palette.primary} />
+          <Text style={styles.challengeText}>
+            {matches.data!.incoming.length === 1
+              ? t('compete.home.incoming.one')
+              : tf('compete.home.incoming.many', { n: matches.data!.incoming.length })}
+          </Text>
+          <Icon name="chevron-right" size={18} color={palette.textSecondary} />
+        </Pressable>
+      )}
+
       <View style={styles.tabs} accessibilityRole="tablist">
         {(['following', 'gym'] as const).map((key) => {
           const active = tab === key;
@@ -455,9 +510,18 @@ export default function HomeScreen() {
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
       data={rows}
-      keyExtractor={(r) => (r.kind === 'checkin' ? `c-${r.item.checkInId}` : `p-${r.post.id}`)}
+      keyExtractor={(r) =>
+        r.kind === 'checkin' ? `c-${r.item.checkInId}` : r.kind === 'post' ? `p-${r.post.id}` : `m-${r.matchPost.id}`
+      }
       renderItem={({ item: row }) =>
-        row.kind === 'checkin' ? (
+        row.kind === 'match' ? (
+          <MatchPostCard
+            post={row.matchPost}
+            onOpen={() => navigation.navigate('Match', { matchId: row.matchPost.match.id })}
+            onPressAuthor={(userId) => navigation.navigate('UserProfile', { userId })}
+            onRepost={() => competeActions.repost(row.matchPost.id)}
+          />
+        ) : row.kind === 'checkin' ? (
           <CheckInPost
             item={row.item}
             onPressAuthor={(userId) => navigation.navigate('UserProfile', { userId })}
@@ -496,8 +560,8 @@ const styles = makeStyles(() => ({
   container: { flex: 1, backgroundColor: palette.background },
   content: { paddingHorizontal: 18, paddingBottom: 32, flexGrow: 1 },
   head: { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: 18 },
-  title: { flex: 1, color: palette.textPrimary, fontSize: 24, fontWeight: 'bold', marginLeft: 10 },
-  iconBtn: { width: 38, height: 42, alignItems: 'center', justifyContent: 'center' },
+  title: { flex: 1, color: palette.textPrimary, fontSize: 22, fontWeight: 'bold', marginLeft: 10 },
+  iconBtn: { width: 34, height: 42, alignItems: 'center', justifyContent: 'center' },
   bellDot: {
     position: 'absolute',
     top: 7,
@@ -559,4 +623,17 @@ const styles = makeStyles(() => ({
   emptyTitle: { color: palette.textPrimary, fontWeight: 'bold', fontSize: 15, textAlign: 'center' },
   emptySub: { color: palette.textSecondary, fontSize: 13, textAlign: 'center' },
   footer: { alignItems: 'center', paddingVertical: 20 },
+  matchStrip: { gap: 8, marginTop: 18 },
+  challengeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginTop: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: palette.primary,
+  },
+  challengeText: { flex: 1, color: palette.textPrimary, fontSize: 14, fontWeight: '600' },
 }));

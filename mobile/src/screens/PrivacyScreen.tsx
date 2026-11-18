@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { ActivityIndicator, Text } from 'react-native-paper';
 
+import { MyRating, getMyRating, setAcceptsChallenges } from '../api/compete';
 import { Settings, getSettings, updateSettings } from '../api/users';
 import { t } from '../i18n';
 import { makeStyles, palette } from '../theme/theme';
@@ -13,6 +14,14 @@ export default function PrivacyScreen() {
   const mut = useMutation({
     mutationFn: (patch: Partial<Settings>) => updateSettings(patch),
     onSuccess: (data) => queryClient.setQueryData(['settings'], data),
+  });
+  const rating = useQuery({ queryKey: ['myRating'], queryFn: getMyRating });
+  const challenges = useMutation({
+    mutationFn: (accepts: boolean) => setAcceptsChallenges(accepts),
+    onMutate: (accepts) =>
+      queryClient.setQueryData<MyRating>(['myRating'], (old) => (old ? { ...old, acceptsChallenges: accepts } : old)),
+    onSuccess: (data) => queryClient.setQueryData(['myRating'], data),
+    onError: () => queryClient.invalidateQueries({ queryKey: ['myRating'] }),
   });
 
   if (settings.isLoading || !settings.data) {
@@ -51,6 +60,20 @@ export default function PrivacyScreen() {
             thumbColor="#fff"
           />
         </View>
+        {rating.data && (
+          <View style={[styles.row, styles.rowDivider]}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.label}>{t('compete.setting.title')}</Text>
+              <Text style={styles.hint}>{t('compete.setting.sub')}</Text>
+            </View>
+            <Switch
+              value={rating.data.acceptsChallenges}
+              onValueChange={(v) => challenges.mutate(v)}
+              trackColor={{ true: palette.primary, false: palette.surfaceVariant }}
+              thumbColor="#fff"
+            />
+          </View>
+        )}
       </View>
       <Text style={styles.note}>{t('privacy.note')}</Text>
     </ScrollView>

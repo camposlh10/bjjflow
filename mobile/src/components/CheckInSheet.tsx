@@ -27,6 +27,7 @@ import { ALL_REGIONS, bodyRegionLabel, intensityColor } from '../constants/body'
 import { SUBMISSIONS } from '../constants/submissions';
 import { newClientId, submitCheckIn } from '../offline/outbox';
 import { t, tf } from '../i18n';
+import { useRatingBurst } from '../store/ratingBurstStore';
 import { makeStyles, palette } from '../theme/theme';
 import DateField from './DateField';
 
@@ -193,7 +194,9 @@ export default function CheckInSheet({ visible, onClose }: { visible: boolean; o
       clientId.current = newClientId();
       reset();
       onClose();
-      Alert.alert(outcome === 'queued' ? t('checkin.queued') : t('checkin.sheet.saved'));
+      // Rating earned shows as a burst instead of the plain confirmation.
+      if (outcome === 'queued') Alert.alert(t('checkin.queued'));
+      else if (!useRatingBurst.getState().visible) Alert.alert(t('checkin.sheet.saved'));
     },
     onError: (e) => Alert.alert(apiErrorMessage(e)),
   });

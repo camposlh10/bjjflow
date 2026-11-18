@@ -35,6 +35,7 @@ import { t, tf } from '../i18n';
 import { useAuthStore } from '../store/authStore';
 import { makeStyles, palette } from '../theme/theme';
 import { formatMonthYear } from '../utils/time';
+import VersusCard from '../components/compete/VersusCard';
 
 type IconName = ComponentProps<typeof Icon>['name'];
 const ALL_BELTS = [...ADULT_BELTS, ...KIDS_BELTS];
@@ -309,6 +310,8 @@ export default function UserProfileScreen() {
           </Button>
         </View>
       )}
+
+      {!p.isMe && <VersusCard userId={p.id} onOpenMatch={(match) => navigation.navigate('Match', { matchId: match.id })} />}
 
       {canGraduate && (
         <Button

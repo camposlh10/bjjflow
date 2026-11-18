@@ -85,6 +85,7 @@ export default function NotificationCenterScreen() {
     if (p.startsWith('conversation:')) navigation.navigate('Conversation', { conversationId: Number(p.split(':')[1]) });
     else if (p.startsWith('user:')) navigation.navigate('UserProfile', { userId: Number(p.split(':')[1]) });
     else if (p.startsWith('insight:')) navigation.navigate('Submissions', {});
+    else if (p.startsWith('match:')) navigation.navigate('Match', { matchId: Number(p.split(':')[1]) });
   };
 
   if (isLoading && !data) {

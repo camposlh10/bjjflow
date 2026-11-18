@@ -12,6 +12,7 @@ import NotificationsScreen from '../screens/NotificationsScreen';
 import PrivacyScreen from '../screens/PrivacyScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import SubmissionsScreen from '../screens/SubmissionsScreen';
+import MatchScreen from '../screens/compete/MatchScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import { palette } from '../theme/theme';
 
@@ -28,6 +29,7 @@ export type ProfileStackParamList = {
   Language: undefined;
   Appearance: undefined;
   Donations: undefined;
+  Match: { matchId: number };
 };
 
 const Stack = createNativeStackNavigator<ProfileStackParamList>();
@@ -60,6 +62,7 @@ export default function ProfileNavigator() {
       {/* Settings + its sub-screens are registered here so the profile gear opens
           them within the Profile tab (back returns to the profile). */}
       <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: t('settings.title') }} />
+      <Stack.Screen name="Match" component={MatchScreen} options={{ title: t('compete.match.title') }} />
       <Stack.Screen name="Account" component={AccountScreen} options={{ title: t('settings.account') }} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} options={{ title: t('settings.notifications') }} />
       <Stack.Screen name="Privacy" component={PrivacyScreen} options={{ title: t('settings.privacy') }} />

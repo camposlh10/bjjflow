@@ -23,6 +23,7 @@ import EditUserProfileScreen from '../screens/EditUserProfileScreen';
 import SubmissionsScreen from '../screens/SubmissionsScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
 import SavedPostsScreen from '../screens/gym/SavedPostsScreen';
+import MatchScreen from '../screens/compete/MatchScreen';
 import { palette } from '../theme/theme';
 
 export type GymStackParamList = {
@@ -46,6 +47,7 @@ export type GymStackParamList = {
   Conversation: ConversationParams;
   StudentManagement: { userId: number };
   GymSettings: undefined;
+  Match: { matchId: number };
 };
 
 const Stack = createNativeStackNavigator<GymStackParamList>();
@@ -61,6 +63,7 @@ export default function GymNavigator() {
         animation: 'slide_from_right',
       }}>
       <Stack.Screen name="GymHome" component={GymHomeScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Match" component={MatchScreen} options={{ title: t('compete.match.title') }} />
       <Stack.Screen name="CreateGym" component={CreateGymScreen} options={{ title: t('gym.create.title') }} />
       <Stack.Screen name="JoinGym" component={JoinGymScreen} options={{ title: t('gym.join.title') }} />
       <Stack.Screen name="CreatePost" component={CreatePostScreen} options={{ title: t('mural.publish') }} />

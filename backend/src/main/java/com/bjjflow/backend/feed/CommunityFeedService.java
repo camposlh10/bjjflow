@@ -199,7 +199,8 @@ public class CommunityFeedService {
         return c;
     }
 
-    private Map<Long, FeedAuthorDto> authorMap(Collection<Long> userIds) {
+    /** Public summaries (name, avatar, belt) of many users at once; unknown ids are left out. */
+    public Map<Long, FeedAuthorDto> authorMap(Collection<Long> userIds) {
         if (userIds.isEmpty()) {
             return Map.of();
         }

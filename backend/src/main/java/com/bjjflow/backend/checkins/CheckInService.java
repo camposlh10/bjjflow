@@ -13,6 +13,7 @@ import com.bjjflow.backend.checkins.CheckInDtos.CheckInDto;
 import com.bjjflow.backend.checkins.CheckInDtos.CreateCheckInRequest;
 import com.bjjflow.backend.checkins.CheckInDtos.StatsResponse;
 import com.bjjflow.backend.common.ApiException;
+import com.bjjflow.backend.compete.RatingService;
 import com.bjjflow.backend.events.UserEventService;
 import com.bjjflow.backend.gyms.GymMember;
 import com.bjjflow.backend.gyms.GymMemberRepository;
@@ -32,6 +33,7 @@ public class CheckInService {
     private final GymMemberRepository gymMemberRepository;
     private final UserEventService userEventService;
     private final SubmissionLogRepository submissionLogRepository;
+    private final RatingService ratingService;
 
     @Transactional
     public CheckInDto create(Long userId, CreateCheckInRequest request) {
@@ -66,8 +68,9 @@ public class CheckInService {
 
         int streak = updateStreak(userId, request.date());
         emitProgress(userId, request.date(), streak);
+        int points = ratingService.awardTraining(userId, request.date());
 
-        return toDto(checkIn);
+        return toDto(checkIn, points);
     }
 
     /** The check-in a concurrent duplicate request already created (see CheckInController). */
@@ -79,8 +82,12 @@ public class CheckInService {
     }
 
     private static CheckInDto toDto(CheckIn checkIn) {
+        return toDto(checkIn, 0);
+    }
+
+    private static CheckInDto toDto(CheckIn checkIn, int pointsEarned) {
         return new CheckInDto(checkIn.getId(), checkIn.getCheckDate(), checkIn.getSessionType(),
-                checkIn.getDurationMinutes(), checkIn.getNotes());
+                checkIn.getDurationMinutes(), checkIn.getNotes(), pointsEarned);
     }
 
     /** Defaults to PRIVATE; only an explicit "PUBLIC" shares the session to the feed. */
@@ -138,6 +145,7 @@ public class CheckInService {
         checkInRepository.save(checkIn);
         int streak = updateStreak(userId, date);
         emitProgress(userId, date, streak);
+        ratingService.awardTraining(userId, date);
     }
 
     private int updateStreak(Long userId, LocalDate date) {
@@ -173,8 +181,7 @@ public class CheckInService {
     @Transactional(readOnly = true)
     public List<CheckInDto> list(Long userId, LocalDate from, LocalDate to) {
         return checkInRepository.findAllByUserIdAndCheckDateBetweenOrderByCheckDateAsc(userId, from, to).stream()
-                .map(c -> new CheckInDto(c.getId(), c.getCheckDate(), c.getSessionType(), c.getDurationMinutes(),
-                        c.getNotes()))
+                .map(CheckInService::toDto)
                 .toList();
     }
 

@@ -11,6 +11,8 @@ import NotificationCenterScreen from '../screens/NotificationCenterScreen';
 import StudentManagementScreen from '../screens/gym/StudentManagementScreen';
 import SubmissionsScreen from '../screens/SubmissionsScreen';
 import UserProfileScreen from '../screens/UserProfileScreen';
+import CompeteScreen from '../screens/compete/CompeteScreen';
+import MatchScreen from '../screens/compete/MatchScreen';
 import { palette } from '../theme/theme';
 
 export type ConversationParams = {
@@ -32,6 +34,8 @@ export type HomeStackParamList = {
   Conversation: ConversationParams;
   StudentManagement: { userId: number };
   NotificationCenter: undefined;
+  Compete: { tab?: 'ranking' | 'matches' } | undefined;
+  Match: { matchId: number };
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -48,6 +52,8 @@ export default function HomeNavigator() {
       }}>
       <Stack.Screen name="HomeMain" component={HomeScreen} options={{ headerShown: false }} />
       <Stack.Screen name="FeedComments" component={FeedCommentsScreen} options={{ title: t('feed.comments.title') }} />
+      <Stack.Screen name="Compete" component={CompeteScreen} options={{ title: t('compete.title') }} />
+      <Stack.Screen name="Match" component={MatchScreen} options={{ title: t('compete.match.title') }} />
       <Stack.Screen name="UserProfile" component={UserProfileScreen} options={{ title: t('tabs.profile') }} />
       <Stack.Screen
         name="EditUserProfile"
