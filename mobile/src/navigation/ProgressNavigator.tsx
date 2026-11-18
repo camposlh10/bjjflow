@@ -35,7 +35,7 @@ export default function ProgressNavigator() {
         animation: 'slide_from_right',
       }}>
       <Stack.Screen name="ProgressMain" component={ProgressScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Metrics" component={MetricsScreen} options={{ title: t('metrics.title') }} />
+      <Stack.Screen name="Metrics" component={MetricsScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Techniques" component={TechniquesScreen} options={{ title: t('techniques.title') }} />
       <Stack.Screen name="TechniqueDetail" component={TechniqueDetailScreen} options={{ title: t('techniques.title') }} />
       <Stack.Screen

@@ -33,6 +33,12 @@ export function longDate(d: Date): string {
   return `${d.getDate()} ${monthShort(d.getMonth())} ${d.getFullYear()}`;
 }
 
+/** "16–22 nov.", or "28 out.–3 nov." across months (no year). */
+export function shortRange(from: Date, to: Date): string {
+  if (from.getMonth() === to.getMonth()) return `${from.getDate()}–${to.getDate()} ${monthShort(to.getMonth())}`;
+  return `${from.getDate()} ${monthShort(from.getMonth())}–${to.getDate()} ${monthShort(to.getMonth())}`;
+}
+
 /** "09–15 nov. 2026", or "28 out.–03 nov. 2026" across months. */
 export function rangeLabel(from: Date, to: Date): string {
   const dd = (d: Date) => String(d.getDate()).padStart(2, '0');
