@@ -1253,6 +1253,10 @@ export const pt = {
   'compete.blocks.until': 'Silenciado até {date}',
   'compete.blocks.forever': 'Bloqueado',
   'compete.blocks.unblock': 'Desfazer',
+  // Smart reminders
+  'notif.smart.section': 'Lembretes no celular',
+  'notif.smart': 'Lembretes inteligentes',
+  'notif.smart.hint': 'Aprende seu ritmo de treino nas últimas 3 semanas e manda no máximo um lembrete por dia, só quando faz diferença: um dia de treino que você está pulando, uma sequência ou a meta da semana em risco, uma rodada de partida decidida no dia. Nunca entre 21h30 e 8h, e para sozinho se você não estiver usando.',
 } as const;
 
 export type TranslationKey = keyof typeof pt;

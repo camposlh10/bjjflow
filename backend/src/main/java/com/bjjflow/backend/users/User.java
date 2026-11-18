@@ -118,6 +118,10 @@ public class User {
     @Column(name = "notify_promotions")
     private Boolean notifyPromotions = true;
 
+    /** Phone reminders timed from the member's own training rhythm (see nudges). */
+    @Column(name = "smart_reminders")
+    private Boolean smartReminders = true;
+
     @Column(name = "gym_belt_sync")
     private Boolean gymBeltSync = true;
 

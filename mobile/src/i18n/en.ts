@@ -1255,4 +1255,8 @@ export const en: Record<TranslationKey, string> = {
   'compete.blocks.until': 'Silenced until {date}',
   'compete.blocks.forever': 'Blocked',
   'compete.blocks.unblock': 'Undo',
+  // Smart reminders
+  'notif.smart.section': 'Phone reminders',
+  'notif.smart': 'Smart reminders',
+  'notif.smart.hint': "Learns your training rhythm over the last 3 weeks and sends at most one reminder a day, only when it matters: a usual training day you're skipping, a streak or weekly goal at risk, a match round decided that day. Never between 9:30 PM and 8 AM, and it backs off on its own if you're not using them.",
 };

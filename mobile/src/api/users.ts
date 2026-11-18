@@ -163,6 +163,8 @@ export type Settings = {
   notifyPromotions: boolean;
   mfaEnabled: boolean;
   gymBeltSync: boolean;
+  /** Phone reminders timed from the member's own training rhythm (absent on older servers). */
+  smartReminders?: boolean;
 };
 
 export async function getSettings(): Promise<Settings> {

@@ -45,6 +45,25 @@ export default function NotificationsScreen() {
           </View>
         ))}
       </View>
+      {s.smartReminders !== undefined && (
+        <>
+          <Text style={styles.section}>{t('notif.smart.section')}</Text>
+          <View style={styles.card}>
+            <View style={styles.row}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={styles.label}>{t('notif.smart')}</Text>
+                <Text style={styles.hint}>{t('notif.smart.hint')}</Text>
+              </View>
+              <Switch
+                value={s.smartReminders}
+                onValueChange={(v) => mut.mutate({ smartReminders: v })}
+                trackColor={{ true: palette.primary, false: palette.surfaceVariant }}
+                thumbColor="#fff"
+              />
+            </View>
+          </View>
+        </>
+      )}
       <Text style={styles.note}>{t('notif.note')}</Text>
     </ScrollView>
   );
@@ -59,4 +78,6 @@ const styles = makeStyles(() => ({
   divider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.surfaceVariant },
   label: { color: palette.textPrimary, fontSize: 15, flex: 1 },
   note: { color: palette.textSecondary, fontSize: 12, marginTop: 14, marginHorizontal: 4 },
+  section: { color: palette.textSecondary, fontSize: 13, fontWeight: '600', marginTop: 22, marginBottom: 8, marginHorizontal: 4 },
+  hint: { color: palette.textSecondary, fontSize: 12, marginTop: 3, lineHeight: 17 },
 }));
