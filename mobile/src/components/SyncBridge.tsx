@@ -4,6 +4,7 @@ import { AppState } from 'react-native';
 
 import { onConnectivityChange } from '../offline/network';
 import { flushOutbox, useOutbox } from '../offline/outbox';
+import { applyPersonUpdate } from '../realtime/people';
 import { onRealtimeEvent, startRealtime, stopRealtime } from '../realtime/realtime';
 
 const FLUSH_INTERVAL_MS = 20_000;
@@ -43,7 +44,16 @@ export default function SyncBridge() {
           queryClient.invalidateQueries({ queryKey: ['notifications'] });
           queryClient.invalidateQueries({ queryKey: ['messages'] });
           queryClient.invalidateQueries({ queryKey: ['matches'] });
+          // Pictures that changed while disconnected: refresh the lists that show people.
+          for (const key of ['communityFeed', 'gymFeed', 'gymMembers', 'ranking', 'matchPosts', 'userProfile']) {
+            queryClient.invalidateQueries({ queryKey: [key] });
+          }
           void flushOutbox();
+        } else if (event.type === 'person') {
+          // A new picture or name: swap it into everything on screen, no refetch needed.
+          applyPersonUpdate(queryClient, event);
+        } else if (event.type === 'gym') {
+          queryClient.invalidateQueries({ queryKey: ['myGym'] });
         } else if (event.type === 'message') {
           // An open thread asks only for messages after its last one.
           queryClient.invalidateQueries({ queryKey: ['messages', event.conversationId] });

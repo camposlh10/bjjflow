@@ -83,8 +83,9 @@ export default function AppTabs() {
         tabBarActiveTintColor: palette.primary,
         tabBarInactiveTintColor: palette.textSecondary,
         tabBarLabelStyle: styles.tabLabel,
-        // Switching tabs: the new screen fades in with a short slide.
-        animation: 'shift',
+        // No tab-switch animation: an interrupted one could leave the new tab
+        // blank (black) until the app was restarted.
+        animation: 'none',
       }}>
       <Tab.Screen
         name="Home"

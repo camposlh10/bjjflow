@@ -39,6 +39,7 @@ import { t } from '../i18n';
 import { useAuthStore } from '../store/authStore';
 import { makeStyles, palette } from '../theme/theme';
 import { isQueued } from '../offline/write';
+import { applyPersonUpdate } from '../realtime/people';
 
 const TIERS: { key: MedalTier; color: string }[] = [
   { key: 'GOLD', color: '#F5C518' },
@@ -161,6 +162,16 @@ function Form({ profile }: { profile: UserProfile }) {
     onSuccess: (updated) => {
       // Keep the auth user's name/belt/age in sync so the rest of the app reflects the change.
       if (updated && me) setUser({ ...me, displayName: updated.displayName, belt: updated.belt, age: updated.age });
+      // The new picture shows everywhere in the app at once (feed, rankings, matches…).
+      if (updated) {
+        applyPersonUpdate(queryClient, {
+          userId: updated.id,
+          avatarUrl: updated.avatarUrl,
+          bannerUrl: updated.bannerUrl,
+          displayName: updated.displayName,
+          username: updated.username,
+        });
+      }
       invalidate();
       Alert.alert(t('profile.edit.saved'));
       navigation.goBack();

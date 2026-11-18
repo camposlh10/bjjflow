@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+
 
 import { Match, Player, getMatches } from '../../api/compete';
 import { ArrowLink } from '../../components/CommunityFeed';
@@ -11,6 +11,7 @@ import { MatchCard, SectionTitle } from '../../components/compete/MatchParts';
 import { RankingWithMine } from '../../components/compete/RankingList';
 import { t } from '../../i18n';
 import { makeStyles, palette } from '../../theme/theme';
+import SafeFade from '../../components/SafeFade';
 
 type Tab = 'ranking' | 'matches';
 
@@ -105,9 +106,9 @@ export default function CompeteScreen({ route, navigation }: Props) {
             <SectionTitle>{title}</SectionTitle>
             <View style={{ gap: 8 }}>
               {list.map((m, i) => (
-                <Animated.View key={m.id} entering={FadeInDown.delay(i * 40).duration(240)}>
+                <SafeFade delay={i * 40} offsetY={8} key={m.id}>
                   <MatchCard match={m} highlight={highlight} onPress={() => openMatch(m)} />
-                </Animated.View>
+                </SafeFade>
               ))}
             </View>
           </View>

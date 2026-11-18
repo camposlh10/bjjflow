@@ -10,7 +10,8 @@ import WelcomeScreen from '../screens/auth/WelcomeScreen';
 import { useAuthStore } from '../store/authStore';
 import { makeStyles, palette } from '../theme/theme';
 import AppTabs from './AppTabs';
-import Animated, { FadeIn } from 'react-native-reanimated';
+
+import SafeFade from '../components/SafeFade';
 
 export type AuthStackParamList = {
   Welcome: undefined;
@@ -49,9 +50,9 @@ export default function RootNavigator() {
 
   // Signing in fades the app in instead of cutting to it.
   return (
-    <Animated.View style={{ flex: 1 }} entering={FadeIn.duration(320)}>
+    <SafeFade duration={320} style={{ flex: 1 }}>
       <AppTabs />
-    </Animated.View>
+    </SafeFade>
   );
 }
 
