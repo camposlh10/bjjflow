@@ -23,7 +23,18 @@ export type RealtimeEvent =
       title: string;
       body?: string;
       link?: string;
-    };
+    }
+  /** A member's picture, banner or name changed. */
+  | {
+      type: 'person';
+      userId: number;
+      avatarUrl: string | null;
+      bannerUrl: string | null;
+      displayName: string | null;
+      username: string | null;
+    }
+  /** The member's gym changed its logo or photos. */
+  | { type: 'gym'; gymId: number };
 
 export const useRealtimeStatus = create<{ connected: boolean }>(() => ({ connected: false }));
 

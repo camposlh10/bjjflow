@@ -61,6 +61,7 @@ public class ProfileService {
     private final com.bjjflow.backend.auth.RefreshTokenService refreshTokenService;
     private final com.bjjflow.backend.storage.MediaStorage mediaStorage;
     private final com.bjjflow.backend.notifications.NotificationService notificationService;
+    private final PersonEvents personEvents;
 
     @Transactional(readOnly = true)
     public ProfileDtos.SettingsDto settings(Long userId) {
@@ -280,6 +281,8 @@ public class ProfileService {
             u.setUsername(uname);
         }
         userRepository.save(u);
+        // Picture, banner or handle may have changed: open apps showing this member update at once.
+        personEvents.pictureChanged(userId);
         return profile(userId, userId);
     }
 
@@ -355,12 +358,14 @@ public class ProfileService {
         photo.setStorageKey(key);
         photo.setPosition((int) userPhotoRepository.countByUserId(userId));
         userPhotoRepository.save(photo);
+        personEvents.pictureChanged(userId);
         return profile(userId, userId);
     }
 
     @Transactional
     public UserProfileDto deletePhoto(Long userId, Long photoId) {
         userPhotoRepository.findByIdAndUserId(photoId, userId).ifPresent(userPhotoRepository::delete);
+        personEvents.pictureChanged(userId);
         return profile(userId, userId);
     }
 

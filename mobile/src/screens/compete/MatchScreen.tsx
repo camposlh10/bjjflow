@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
+
 
 import { Match, getMatch, perspective } from '../../api/compete';
 import { resolveMediaUrl } from '../../api/posts';
@@ -21,6 +21,7 @@ import StorySheet from '../../components/compete/StorySheet';
 import { useCompeteActions } from '../../components/compete/useCompete';
 import { t, tf } from '../../i18n';
 import { makeStyles, palette } from '../../theme/theme';
+import SafeFade from '../../components/SafeFade';
 
 type Props = {
   route: { params: { matchId: number } };
@@ -110,7 +111,8 @@ export default function MatchScreen({ route, navigation }: Props) {
         </View>
 
         {m.status === 'FINISHED' && (
-          <Animated.Text entering={ZoomIn.delay(350).springify()} style={styles.result}>
+          <SafeFade delay={350} fromScale={0.8}>
+            <Text style={styles.result}>
             {side.result === 'DRAW'
               ? t('compete.result.draw')
               : side.result === 'WON'
@@ -118,13 +120,14 @@ export default function MatchScreen({ route, navigation }: Props) {
                   ? t('compete.result.won')
                   : tf('compete.result.someoneWon', { name: firstName(side.me) })
                 : tf('compete.result.lost', { name: firstName(side.them) })}
-          </Animated.Text>
+          </Text>
+          </SafeFade>
         )}
 
         <Scoreboard side={side} />
 
         {m.status === 'FINISHED' && viewer && side.myDelta != null && (
-          <Animated.View entering={FadeInDown.delay(550)} style={styles.deltas}>
+          <SafeFade delay={550} offsetY={10} style={styles.deltas}>
             <View style={styles.deltaBox}>
               <Text style={styles.deltaName}>{t('compete.you')}</Text>
               <Text style={styles.deltaValue}>
@@ -139,7 +142,7 @@ export default function MatchScreen({ route, navigation }: Props) {
                 <Text style={(side.theirDelta ?? 0) >= 0 ? styles.up : styles.down}>{signed(side.theirDelta ?? 0)}</Text>
               </Text>
             </View>
-          </Animated.View>
+          </SafeFade>
         )}
         {m.status === 'FINISHED' && m.endReason === 'FORFEIT' && (
           <Text style={styles.note}>
@@ -155,7 +158,7 @@ export default function MatchScreen({ route, navigation }: Props) {
 
         {/* Pending */}
         {m.status === 'PENDING' && (
-          <Animated.View entering={FadeIn} style={styles.panel}>
+          <SafeFade style={styles.panel}>
             <Text style={styles.panelTitle}>
               {m.myRole === 'OPPONENT'
                 ? tf('compete.match.challengedYou', { name: firstName(side.them) })
@@ -189,7 +192,7 @@ export default function MatchScreen({ route, navigation }: Props) {
                 <Button label={t('compete.match.cancel')} onPress={() => actions.cancel(m.id)} disabled={actions.acting} />
               </View>
             ) : null}
-          </Animated.View>
+          </SafeFade>
         )}
 
         {/* Active: not started yet */}
@@ -248,7 +251,7 @@ export default function MatchScreen({ route, navigation }: Props) {
 
         {/* Finished actions */}
         {m.status === 'FINISHED' && viewer && (
-          <Animated.View entering={FadeInDown.delay(700)} style={[styles.row, { marginTop: 22 }]}>
+          <SafeFade delay={700} offsetY={10} style={[styles.row, { marginTop: 22 }]}>
             <Button label={t('compete.rematch')} primary icon="karate" onPress={() => actions.challenge(side.them)} disabled={actions.challenging} />
             <Button
               label={m.postedByMe ? t('compete.posted') : t('compete.post')}
@@ -257,7 +260,7 @@ export default function MatchScreen({ route, navigation }: Props) {
               disabled={m.postedByMe || actions.posting}
             />
             <Button label={t('compete.story')} icon="instagram" onPress={() => setStory(m)} />
-          </Animated.View>
+          </SafeFade>
         )}
         {m.status === 'FINISHED' && viewer && <Text style={styles.note}>{t('compete.result.reset')}</Text>}
 
@@ -277,7 +280,7 @@ export default function MatchScreen({ route, navigation }: Props) {
               m.timeline.map((p, i) => {
                 const who = p.userId === side.me.id ? side.me : side.them;
                 return (
-                  <Animated.View key={`${p.userId}-${p.date}`} entering={FadeInDown.delay(Math.min(i, 8) * 40)} style={styles.proof}>
+                  <SafeFade delay={Math.min(i, 8) * 40} offsetY={8} key={`${p.userId}-${p.date}`} style={styles.proof}>
                     <Avatar name={who.displayName} url={who.avatarUrl} size={32} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.proofName}>
@@ -291,7 +294,7 @@ export default function MatchScreen({ route, navigation }: Props) {
                       </View>
                     </View>
                     {p.photoUrl && <Image source={{ uri: resolveMediaUrl(p.photoUrl) }} style={styles.proofPhoto} />}
-                  </Animated.View>
+                  </SafeFade>
                 );
               })
             )}

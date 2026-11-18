@@ -5,10 +5,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, AppState, Pressable, View } from 'react-native';
 import { Text } from 'react-native-paper';
 import Animated, {
-  Easing,
-  FadeIn,
-  FadeOutUp,
-  SlideInUp,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
@@ -26,6 +22,7 @@ import { Avatar } from '../CommunityFeed';
 import Icon from '../Icon';
 import { firstName } from './MatchParts';
 import { useCompeteActions } from './useCompete';
+import SafeFade from '../SafeFade';
 
 const DISMISSED_KEY = 'bjjflow.challengeInvites.dismissed';
 
@@ -143,10 +140,10 @@ export default function ChallengeInvite() {
   };
 
   return (
-    <Animated.View
+    <SafeFade
       key={invite.id}
-      entering={SlideInUp.springify().damping(16)}
-      exiting={FadeOutUp.duration(200)}
+      offsetY={-40}
+      duration={320}
       style={[styles.wrap, { top: insets.top + 8 }]}
       pointerEvents="box-none">
       <View style={styles.card} accessibilityRole="alert">
@@ -203,14 +200,14 @@ export default function ChallengeInvite() {
         )}
 
         {more && !busy && (
-          <Animated.View entering={FadeIn.duration(180).easing(Easing.out(Easing.quad))} style={styles.options}>
+          <SafeFade duration={180} style={styles.options}>
             <OptionRow icon="bell-off-outline" title={t('compete.invite.silence')} sub={tf('compete.invite.silenceSub', { name })} onPress={() => respond('silence')} />
             <OptionRow icon="cancel" title={tf('compete.invite.block', { name })} sub={tf('compete.invite.blockSub', { name })} onPress={() => respond('block')} danger />
             <OptionRow icon="clock-outline" title={t('compete.invite.ignore')} sub={t('compete.invite.ignoreSub')} onPress={ignore} />
-          </Animated.View>
+          </SafeFade>
         )}
       </View>
-    </Animated.View>
+    </SafeFade>
   );
 }
 

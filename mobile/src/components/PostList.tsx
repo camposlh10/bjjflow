@@ -2,7 +2,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { ReactElement } from 'react';
 import { ActivityIndicator, RefreshControl, Text } from 'react-native';
-import Animated, { FadeInDown, FadeOutUp, LinearTransition } from 'react-native-reanimated';
+import Animated, { LinearTransition } from 'react-native-reanimated';
 
 import { Gym } from '../api/gyms';
 import { Post } from '../api/posts';
@@ -11,6 +11,7 @@ import { makeStyles, palette } from '../theme/theme';
 import { downloadPostMedia } from '../utils/download';
 import PostCard from './PostCard';
 import { usePostActions } from './usePostActions';
+import SafeFade from './SafeFade';
 
 type Nav = NativeStackNavigationProp<GymStackParamList>;
 
@@ -68,7 +69,7 @@ export default function PostList({
       ListFooterComponent={loadingMore ? <ActivityIndicator style={styles.footer} color={palette.primary} /> : null}
       ListEmptyComponent={<Text style={styles.empty}>{emptyText}</Text>}
       renderItem={({ item }: { item: Post }) => (
-        <Animated.View entering={FadeInDown.duration(300)} exiting={FadeOutUp.duration(220)}>
+        <SafeFade duration={300} offsetY={10}>
         <PostCard
           post={item}
           myUserId={myUserId}
@@ -83,7 +84,7 @@ export default function PostList({
           onPinToggle={() => actions.togglePin(item)}
           onDelete={() => actions.confirmDelete(item)}
         />
-        </Animated.View>
+        </SafeFade>
       )}
     />
   );

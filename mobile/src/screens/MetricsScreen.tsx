@@ -6,8 +6,6 @@ import { Modal, Pressable, RefreshControl, ScrollView, View } from 'react-native
 import { Text } from 'react-native-paper';
 import Animated, {
   Easing,
-  FadeIn,
-  FadeInDown,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -21,6 +19,7 @@ import Skeleton from '../components/Skeleton';
 import { t, tf } from '../i18n';
 import { makeStyles, palette } from '../theme/theme';
 import { addDays, hours, iso, mondayOf, monthShort, relativeDay, sessionLabel, shortRange } from './progress/progressData';
+import SafeFade from '../components/SafeFade';
 
 type Range = 7 | 30 | 90 | 365;
 const RANGES: Range[] = [7, 30, 90, 365];
@@ -101,9 +100,9 @@ function Bar({ height, current, frame, label, delay }: { height: number; current
     <View style={styles.barSlot}>
       {current && frame > height && <View style={[styles.barFrame, { height: frame }]} />}
       {label ? (
-        <Animated.Text entering={FadeIn.delay(delay + 380)} style={[styles.barValue, { bottom: height + 4 }]}>
-          {label}
-        </Animated.Text>
+        <SafeFade delay={delay + 380} style={[styles.barValueWrap, { bottom: height + 4 }]}>
+          <Text style={styles.barValue}>{label}</Text>
+        </SafeFade>
       ) : null}
       <Animated.View style={[styles.bar, current && styles.barCurrent, grow]} />
     </View>
@@ -191,7 +190,7 @@ export default function MetricsScreen() {
             <Skeleton height={220} radius={18} />
           </View>
         ) : (
-          <Animated.View key={range} entering={FadeIn.duration(240)}>
+          <SafeFade duration={240} key={range}>
             <Text style={styles.big}>{hours(minutes)}</Text>
             <Text style={styles.bigSub}>{t('mat.onMat')}</Text>
             <View style={[styles.chip, delta > 0 ? styles.chipUp : delta < 0 ? styles.chipDown : styles.chipSame]}>
@@ -285,17 +284,17 @@ export default function MetricsScreen() {
                 <Text style={styles.empty}>{t('mat.empty')}</Text>
               ) : (
                 sessions.map((e, i) => (
-                  <Animated.View key={e.id} entering={FadeInDown.delay(Math.min(i, 10) * 30)} style={styles.session}>
+                  <SafeFade delay={Math.min(i, 10) * 30} offsetY={8} key={e.id} style={styles.session}>
                     <View style={[styles.legendSwatch, { backgroundColor: KIND_COLORS[e.sessionType === 'NOGI' || e.sessionType === 'OPEN_MAT' ? e.sessionType : 'GI'] }]} />
                     <Text style={styles.sessionTitle}>
                       {sessionLabel(e.sessionType)} · {e.durationMinutes ? `${e.durationMinutes} min` : t('mat.noTime')}
                     </Text>
                     <Text style={styles.sessionDate}>{relativeDay(e.date, today)}</Text>
-                  </Animated.View>
+                  </SafeFade>
                 ))
               ))}
 
-          </Animated.View>
+          </SafeFade>
         )}
       </ScrollView>
 
@@ -393,7 +392,8 @@ const styles = makeStyles(() => ({
     borderColor: palette.primary,
     borderRadius: 6,
   },
-  barValue: { position: 'absolute', left: -6, right: -6, textAlign: 'center', color: palette.textPrimary, fontSize: 14, fontWeight: '800' },
+  barValueWrap: { position: 'absolute', left: -6, right: -6 },
+  barValue: { textAlign: 'center', color: palette.textPrimary, fontSize: 14, fontWeight: '800' },
   xLabels: { flexDirection: 'row', marginLeft: 36, marginTop: 8, height: 18 },
   // Centred on its bar and allowed wider than it, so dense charts keep whole labels.
   xSlot: { flex: 1, alignItems: 'center' },

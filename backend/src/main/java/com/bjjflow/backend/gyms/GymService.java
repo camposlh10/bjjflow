@@ -49,6 +49,7 @@ public class GymService {
     private final GymVerificationMediaRepository gymVerificationMediaRepository;
     private final com.bjjflow.backend.storage.MediaStorage mediaStorage;
     private final com.bjjflow.backend.notifications.NotificationService notificationService;
+    private final com.bjjflow.backend.realtime.RealtimeHub realtimeHub;
 
     @Transactional
     public GymDto createGym(Long userId, String name, String city, String description) {
@@ -401,6 +402,7 @@ public class GymService {
         gym.setYoutube(blankToNull(req.youtube()));
         gym.setGooglePlaceId(blankToNull(req.googlePlaceId()));
         gymRepository.save(gym);
+        picturesChanged(gym.getId());
         return toGymDto(gym, membership.getRole());
     }
 
@@ -453,6 +455,7 @@ public class GymService {
         photo.setStorageKey(key);
         photo.setPosition((int) gymPhotoRepository.countByGymId(membership.getGymId()));
         photo = gymPhotoRepository.save(photo);
+        picturesChanged(membership.getGymId());
         return new GymDtos.GymPhotoDto(photo.getId(), mediaStorage.urlFor(photo.getStorageKey()));
     }
 
@@ -465,6 +468,15 @@ public class GymService {
             throw new ApiException(HttpStatus.NOT_FOUND, "PHOTO_NOT_FOUND", "Photo not found");
         }
         gymPhotoRepository.delete(photo);
+        picturesChanged(membership.getGymId());
+    }
+
+    /** Members' open apps refresh the gym's logo and photos (after commit). */
+    private void picturesChanged(Long gymId) {
+        java.util.Map<String, Object> event = java.util.Map.of("type", "gym", "gymId", gymId);
+        for (GymMember m : gymMemberRepository.findAllByGymId(gymId)) {
+            realtimeHub.publishAfterCommit(m.getUserId(), event);
+        }
     }
 
     /**

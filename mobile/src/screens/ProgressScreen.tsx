@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { useMemo, useState } from 'react';
 import { Alert, Modal, Pressable, RefreshControl, ScrollView, View } from 'react-native';
 import { Button, Text, TextInput } from 'react-native-paper';
-import Animated, { FadeIn, FadeInDown, ZoomIn } from 'react-native-reanimated';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { TimelineItem, getJourney, logCompetition } from '../api/activity';
@@ -34,6 +34,7 @@ import {
   shortRange,
   summarize,
 } from './progress/progressData';
+import SafeFade from '../components/SafeFade';
 
 type Period = 'week' | 'month' | 'total';
 type IconName = keyof typeof Icon.glyphMap;
@@ -121,12 +122,12 @@ export default function ProgressScreen() {
       <View style={styles.titleRow}>
         <Text style={styles.screenTitle}>{t('tabs.progress')}</Text>
         {s && s.currentStreak > 0 ? (
-          <Animated.View entering={FadeIn.duration(300)} style={styles.streakPill}>
+          <SafeFade duration={300} style={styles.streakPill}>
             <Icon name="fire" size={18} color={palette.primary} />
             <Text style={styles.streakPillText}>
               {plural(s.currentStreak, 'progress.streakPill.one', 'progress.streakPill.many')}
             </Text>
-          </Animated.View>
+          </SafeFade>
         ) : null}
       </View>
 
@@ -148,9 +149,9 @@ export default function ProgressScreen() {
             title={t('progress.perf.title')}
             sub={t(period === 'week' ? 'progress.perf.week' : period === 'month' ? 'progress.perf.month' : 'progress.perf.total')}
           />
-          <Animated.View key={period} entering={FadeIn.duration(220)}>
+          <SafeFade duration={220} key={period}>
             <Performance entries={entries} period={period} today={today} onPress={openMatTime} />
-          </Animated.View>
+          </SafeFade>
 
           <SectionHeader title={t('progress.last.title')} />
           <LastTraining entries={entries} today={today} onPress={openMatTime} />
@@ -197,7 +198,7 @@ export default function ProgressScreen() {
             ) : (
               <>
                 {shownTimeline.map((item, i, arr) => (
-                  <Animated.View key={i} entering={FadeInDown.duration(240).delay(i * 40)} style={styles.timelineRow}>
+                  <SafeFade delay={i * 40} offsetY={8} key={i} style={styles.timelineRow}>
                     <View style={styles.timelineRail}>
                       <View style={styles.timelineDot} />
                       {i < arr.length - 1 && <View style={styles.timelineLine} />}
@@ -206,7 +207,7 @@ export default function ProgressScreen() {
                       <Text style={styles.timelineTitle}>{timelineText(item)}</Text>
                       <Text style={styles.timelineDate}>{eventDate(item.occurredAt)}</Text>
                     </View>
-                  </Animated.View>
+                  </SafeFade>
                 ))}
                 {timeline.length > 4 && (
                   <Pressable onPress={() => setShowAllJourney((v) => !v)} hitSlop={8}>
@@ -336,9 +337,9 @@ function WeekHero({
               <Text style={[styles.dayLetter, (done || isToday) && styles.dayLetterOn]}>{label}</Text>
               <View style={[styles.dayDot, !done && isToday && styles.dayToday]}>
                 {done && (
-                  <Animated.View entering={ZoomIn.delay(80 + i * 50).springify()} style={styles.dayDone}>
+                  <SafeFade delay={80 + i * 50} fromScale={0.5} style={styles.dayDone}>
                     <Icon name="check" size={20} color="#fff" strokeWidth={2.75} />
-                  </Animated.View>
+                  </SafeFade>
                 )}
               </View>
             </View>

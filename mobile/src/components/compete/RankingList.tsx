@@ -5,7 +5,6 @@ import { ActivityIndicator, FlatList, Modal, Platform, Pressable, View } from 'r
 import { Text } from 'react-native-paper';
 import Animated, {
   Easing,
-  FadeInDown,
   useAnimatedProps,
   useSharedValue,
   withRepeat,
@@ -21,6 +20,7 @@ import { ArrowLink, Avatar } from '../CommunityFeed';
 import Icon from '../Icon';
 import { signed } from './MatchParts';
 import { useCompeteActions } from './useCompete';
+import SafeFade from '../SafeFade';
 
 const PODIUM: Record<number, { bg: string; fg: string }> = {
   1: { bg: '#FACC15', fg: '#422006' },
@@ -220,9 +220,9 @@ export default function RankingList({ fixedScope, header, onPressPlayer, embedde
       </Pressable>
     );
     return (
-      <Animated.View key={p.id} entering={FadeInDown.delay(Math.min(index, 10) * 35).duration(260)}>
+      <SafeFade delay={Math.min(index, 10) * 35} duration={260} offsetY={8} key={p.id}>
         {item.position === 1 ? <FirstPlaceRing>{row}</FirstPlaceRing> : row}
-      </Animated.View>
+      </SafeFade>
     );
   };
 
