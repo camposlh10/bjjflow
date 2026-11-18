@@ -12,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * The training days that count in a match. A day counts when the gym confirmed
- * it (class attendance marked PRESENT, by the app, staff or a device) or the
+ * it (class attendance marked PRESENT or LATE, by the app, staff or a device) or the
  * member logged it with a photo by 06:00 the next morning, so a week can't be
  * filled in after the fact.
  */
@@ -49,7 +49,7 @@ class TrainingProof {
                 userId, Date.valueOf(from), Date.valueOf(to));
         jdbc.query("""
                 SELECT DISTINCT class_date FROM class_attendances
-                WHERE user_id = ? AND status = 'PRESENT' AND class_date BETWEEN ? AND ?
+                WHERE user_id = ? AND status IN ('PRESENT', 'LATE') AND class_date BETWEEN ? AND ?
                 """,
                 rs -> {
                     LocalDate d = rs.getDate(1).toLocalDate();

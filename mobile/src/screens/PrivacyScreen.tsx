@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ScrollView, StyleSheet, Switch, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native';
 import { ActivityIndicator, Text } from 'react-native-paper';
 
-import { MyRating, getMyRating, setAcceptsChallenges } from '../api/compete';
+import { MyRating, getChallengeBlocks, getMyRating, setAcceptsChallenges, unblockChallenges } from '../api/compete';
+import { Avatar } from '../components/CommunityFeed';
+import { shortDate } from '../components/compete/MatchParts';
 import { Settings, getSettings, updateSettings } from '../api/users';
-import { t } from '../i18n';
+import { t, tf } from '../i18n';
 import { makeStyles, palette } from '../theme/theme';
 
 export default function PrivacyScreen() {
@@ -22,6 +24,11 @@ export default function PrivacyScreen() {
       queryClient.setQueryData<MyRating>(['myRating'], (old) => (old ? { ...old, acceptsChallenges: accepts } : old)),
     onSuccess: (data) => queryClient.setQueryData(['myRating'], data),
     onError: () => queryClient.invalidateQueries({ queryKey: ['myRating'] }),
+  });
+  const blocks = useQuery({ queryKey: ['challengeBlocks'], queryFn: getChallengeBlocks });
+  const unblock = useMutation({
+    mutationFn: (userId: number) => unblockChallenges(userId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['challengeBlocks'] }),
   });
 
   if (settings.isLoading || !settings.data) {
@@ -75,6 +82,27 @@ export default function PrivacyScreen() {
           </View>
         )}
       </View>
+      {(blocks.data?.length ?? 0) > 0 && (
+        <>
+          <Text style={styles.blockTitle}>{t('compete.blocks.title')}</Text>
+          <View style={styles.card}>
+            {blocks.data!.map((b, i) => (
+              <View key={b.user.id} style={[styles.row, i > 0 && styles.rowDivider]}>
+                <Avatar name={b.user.displayName} url={b.user.avatarUrl} size={36} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.label}>{b.user.displayName}</Text>
+                  <Text style={styles.hint}>
+                    {b.until ? tf('compete.blocks.until', { date: shortDate(b.until.slice(0, 10)) }) : t('compete.blocks.forever')}
+                  </Text>
+                </View>
+                <Pressable onPress={() => unblock.mutate(b.user.id)} hitSlop={8} accessibilityRole="button">
+                  <Text style={styles.unblock}>{t('compete.blocks.unblock')}</Text>
+                </Pressable>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
       <Text style={styles.note}>{t('privacy.note')}</Text>
     </ScrollView>
   );
@@ -89,5 +117,7 @@ const styles = makeStyles(() => ({
   rowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: palette.surfaceVariant },
   label: { color: palette.textPrimary, fontSize: 15, fontWeight: '600' },
   hint: { color: palette.textSecondary, fontSize: 12, marginTop: 3 },
+  blockTitle: { color: palette.textSecondary, fontSize: 13, fontWeight: '600', marginTop: 22, marginBottom: 8, marginHorizontal: 4 },
+  unblock: { color: palette.primary, fontSize: 14, fontWeight: '700' },
   note: { color: palette.textSecondary, fontSize: 12, marginTop: 14, marginHorizontal: 4 },
 }));

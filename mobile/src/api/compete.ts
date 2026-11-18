@@ -216,7 +216,20 @@ export async function challenge(opponentId: number): Promise<Match> {
   return data;
 }
 
-export type MatchAction = 'accept' | 'decline' | 'cancel' | 'forfeit';
+/** silence: decline and stop their challenges for 7 days; block: until lifted in Privacidade. */
+export type MatchAction = 'accept' | 'decline' | 'cancel' | 'forfeit' | 'silence' | 'block';
+
+/** Someone the member silenced (until set) or blocked (until null). */
+export type ChallengeBlock = { user: Player; until: string | null };
+
+export async function getChallengeBlocks(): Promise<ChallengeBlock[]> {
+  const { data } = await api.get<ChallengeBlock[]>('/compete/blocks');
+  return Array.isArray(data) ? data : [];
+}
+
+export async function unblockChallenges(userId: number): Promise<void> {
+  await api.delete(`/compete/blocks/${userId}`);
+}
 
 export async function matchAction(id: number, action: MatchAction): Promise<Match> {
   const { data } = await api.post<Match>(`/matches/${id}/${action}`);
@@ -243,4 +256,4 @@ export async function deleteMatchPost(postId: number): Promise<void> {
 }
 
 /** Refreshes everything that shows ratings or matches. */
-export const COMPETE_KEYS = ['myRating', 'ranking', 'matches', 'match', 'versus', 'matchPosts'] as const;
+export const COMPETE_KEYS = ['myRating', 'ranking', 'matches', 'match', 'versus', 'matchPosts', 'challengeBlocks'] as const;

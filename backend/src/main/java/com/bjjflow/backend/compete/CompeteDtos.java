@@ -114,6 +114,10 @@ public class CompeteDtos {
             int lossCost) {
     }
 
+    /** Someone the member silenced ({@code until} set) or blocked ({@code until} null). */
+    public record BlockDto(PlayerDto user, Instant until) {
+    }
+
     public record PostRequest(@Size(max = 280) String caption) {
     }
 

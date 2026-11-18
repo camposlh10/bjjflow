@@ -68,7 +68,8 @@ public class ProfileService {
         return new ProfileDtos.SettingsDto(u.getEmail(), u.getUsername(), Boolean.TRUE.equals(u.getPro()),
                 Boolean.TRUE.equals(u.getPrivateAccount()), Boolean.TRUE.equals(u.getNotifyCommunity()),
                 Boolean.TRUE.equals(u.getNotifyMessages()), Boolean.TRUE.equals(u.getNotifyPromotions()),
-                Boolean.TRUE.equals(u.getMfaEnabled()), !Boolean.FALSE.equals(u.getGymBeltSync()));
+                Boolean.TRUE.equals(u.getMfaEnabled()), !Boolean.FALSE.equals(u.getGymBeltSync()),
+                !Boolean.FALSE.equals(u.getSmartReminders()));
     }
 
     @Transactional
@@ -88,6 +89,9 @@ public class ProfileService {
         }
         if (req.gymBeltSync() != null) {
             u.setGymBeltSync(req.gymBeltSync());
+        }
+        if (req.smartReminders() != null) {
+            u.setSmartReminders(req.smartReminders());
         }
         userRepository.save(u);
         return settings(userId);

@@ -57,6 +57,7 @@ public class MatchService {
     private final NotificationService notificationService;
     private final MediaStorage mediaStorage;
     private final JdbcTemplate jdbc;
+    private final ChallengeBlocks challengeBlocks;
 
     // ---------------------------------------------------------------- challenge flow
 
@@ -106,6 +107,34 @@ public class MatchService {
         m.setStatus(Match.DECLINED);
         m.setRespondedAt(Instant.now());
         return toDto(m, me, false);
+    }
+
+    /** Declines and stops challenges from this challenger for a week. */
+    @Transactional
+    public MatchDto silence(Long me, Long matchId) {
+        MatchDto dto = decline(me, matchId);
+        challengeBlocks.set(me, dto.challenger().id(), Instant.now().plus(ChallengeBlocks.SILENCE));
+        return dto;
+    }
+
+    /** Declines and stops challenges from this challenger until lifted in Privacidade. */
+    @Transactional
+    public MatchDto block(Long me, Long matchId) {
+        MatchDto dto = decline(me, matchId);
+        challengeBlocks.set(me, dto.challenger().id(), null);
+        return dto;
+    }
+
+    @Transactional(readOnly = true)
+    public List<CompeteDtos.BlockDto> blocks(Long me) {
+        List<ChallengeBlocks.Block> list = challengeBlocks.list(me);
+        Map<Long, PlayerDto> p = players.of(list.stream().map(ChallengeBlocks.Block::userId).toList());
+        return list.stream().map(b -> new CompeteDtos.BlockDto(p.get(b.userId()), b.until())).toList();
+    }
+
+    @Transactional
+    public void unblock(Long me, Long userId) {
+        challengeBlocks.remove(me, userId);
     }
 
     @Transactional
@@ -240,6 +269,35 @@ public class MatchService {
 
     // ---------------------------------------------------------------- reads
 
+    /** A member's round in progress, from their side (for reminders). */
+    public record OpenRound(String opponentFirstName, int myDays, int theirDays, LocalDate endsOn) {
+    }
+
+    /** The member's active round that ends soonest, if they're in one that has started. */
+    @Transactional(readOnly = true)
+    public java.util.Optional<OpenRound> currentRound(Long userId, LocalDate today) {
+        OpenRound best = null;
+        for (Match m : matchRepository.findForUser(userId, List.of(Match.ACTIVE), PageRequest.of(0, Compete.MAX_OPEN))) {
+            if (m.getStartsOn() == null || today.isBefore(m.getStartsOn())) {
+                continue;
+            }
+            int n = m.getRoundsPlayed() + 1;
+            LocalDate from = Compete.roundStart(m.getStartsOn(), n);
+            LocalDate to = Compete.roundEnd(m.getStartsOn(), n);
+            if (today.isAfter(to)) {
+                continue;
+            }
+            Long other = m.otherThan(userId);
+            String name = nameOf(other).trim().split(" ")[0];
+            OpenRound round = new OpenRound(name, trainingProof.count(userId, from, today),
+                    trainingProof.count(other, from, today), to);
+            if (best == null || round.endsOn().isBefore(best.endsOn())) {
+                best = round;
+            }
+        }
+        return java.util.Optional.ofNullable(best);
+    }
+
     @Transactional(readOnly = true)
     public MatchDto get(Long me, Long matchId) {
         Match m = requireMatch(matchId);
@@ -295,7 +353,8 @@ public class MatchService {
         if (!connected(me, them)) {
             return "NOT_CONNECTED";
         }
-        if (!ratingService.acceptsChallenges(them)) {
+        // Silenced or blocked reads the same to the challenger as challenges turned off.
+        if (!ratingService.acceptsChallenges(them) || challengeBlocks.blocks(them, me)) {
             return "DISABLED";
         }
         if (!matchRepository.findBetween(me, them, OPEN).isEmpty()) {

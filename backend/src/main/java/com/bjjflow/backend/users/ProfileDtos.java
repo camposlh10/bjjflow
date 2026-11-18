@@ -21,11 +21,11 @@ public class ProfileDtos {
 
     public record SettingsDto(String email, String username, boolean pro, boolean privateAccount,
             boolean notifyCommunity, boolean notifyMessages, boolean notifyPromotions, boolean mfaEnabled,
-            boolean gymBeltSync) {
+            boolean gymBeltSync, boolean smartReminders) {
     }
 
     public record UpdateSettingsRequest(Boolean privateAccount, Boolean notifyCommunity, Boolean notifyMessages,
-            Boolean notifyPromotions, Boolean gymBeltSync) {
+            Boolean notifyPromotions, Boolean gymBeltSync, Boolean smartReminders) {
     }
 
     public record ChangePasswordRequest(
