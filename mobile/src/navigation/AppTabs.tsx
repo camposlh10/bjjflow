@@ -67,6 +67,10 @@ export default function AppTabs() {
   return (
     <>
     <Tab.Navigator
+      // Visited tabs stay attached instead of being detached and re-attached on
+      // every switch: on iOS that native round trip could lose a tab's content,
+      // leaving it black under the tab bar. There are only five tabs.
+      detachInactiveScreens={false}
       // The sync status pill floats just above the tab bar, on every tab.
       tabBar={(props) => (
         <ActiveTab.Provider value={props.state.routes[props.state.index]?.name}>
@@ -86,6 +90,8 @@ export default function AppTabs() {
         // No tab-switch animation: an interrupted one could leave the new tab
         // blank (black) until the app was restarted.
         animation: 'none',
+        // Never pause a tab's rendering in the background either.
+        freezeOnBlur: false,
       }}>
       <Tab.Screen
         name="Home"
